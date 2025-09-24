@@ -68,4 +68,4 @@ Functional Changes:
 
 Version 0.1.2.7
 Functional Changes:
-    Added Practice Assessor to Competency Grid
+    Added Practice Assessor and Supervisor to Competency Grid
