@@ -5,6 +5,7 @@ import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
+from source.service_logic import ServiceLogic
 from source.window import child_window, set_disabled_entry, input_warning
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ class ServiceUpdate(object):
 
         self.wnd_service = wnd_service
         self.ad = ad
+        self.sl = ServiceLogic(ad)
 
         # Add title top window
         wnd_service.title("Service Data Update")
@@ -43,8 +45,7 @@ class ServiceUpdate(object):
         self.frm_s.pack(fill='both', expand=True)
 
         # Create lists to hold column widgets
-        self.ent_service_code = []
-        self.ent_service_name = []
+        self.service_widgets = []
 
         # Display widgets for all service records
         for db_s in range(ad.md.len('Service')):
@@ -69,29 +70,11 @@ class ServiceUpdate(object):
     def handle_save_click(self):
         """Read all values in table and update the table object if any values
            have changed."""
-        # Check every value to see if it has changed
-        number_changes = 0
-        for db_s in range(self.ad.md.len('Service')):
-            # Propagate Service Code changes to foreign keys in Staff Role and Role Competency tables
-            if self.ad.md.get('Service', 'Service Code', db_s) != self.ent_service_code[db_s].get():
-                self.ad.master_updated = True
-                old = self.ad.md.get('Service', 'Service Code', db_s)
-                new = self.ent_service_code[db_s].get()
-                self.ad.md.replace('Staff Role', 'Service Code', old, new)
-                self.ad.md.replace('Role Competency', 'Service Code', old, new)
-
-            if (self.ad.md.get('Service', 'Service Code', db_s) != self.ent_service_code[db_s].get()
-                    or self.ad.md.get('Service', 'Service Name', db_s) != self.ent_service_name[db_s].get()):
-                number_changes += 1
-                self.ad.master_updated = True
-                self.ad.md.update_row('Service', db_s, {'Service Code': self.ent_service_code[db_s].get(),
-                                                        'Service Name': self.ent_service_name[db_s].get()})
-
+        number_changes = self.sl.save_services(self.service_widgets)
         CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
 
         # Sort table and redisplay widgets for all service records
         if number_changes > 0:
-            self.ad.md.sort_table('Service')
             for db_s in range(self.ad.md.len('Service')):
                 self.add_service_to_display(db_s)
 
@@ -109,32 +92,28 @@ class ServiceUpdate(object):
         child_window(ServiceDelete, self.ad, self.wnd_service)
 
         # Remove a row from the table for each deleted record
-        for i in range(len(self.ent_service_code) - self.ad.md.len('Service')):
+        for i in range(len(self.service_widgets) - self.ad.md.len('Service')):
             # Remove last row of widgets
-            self.ent_service_code[-1].destroy()
-            self.ent_service_code.pop()
-            self.ent_service_name[-1].destroy()
-            self.ent_service_name.pop()
+            self.service_widgets[-1]['code'].destroy()
+            self.service_widgets[-1]['name'].destroy()
+            self.service_widgets.pop()
 
         # Display widgets for all service records
         for db_s in range(self.ad.md.len('Service')):
             self.add_service_to_display(db_s)
 
     def add_service_to_display(self, db_s):
-        if db_s + 1 > len(self.ent_service_code):
-            col = 0
-            self.ent_service_code.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
-            self.ent_service_code[db_s].grid(row=db_s + 1, column=col, sticky='w')
+        if db_s + 1 > len(self.service_widgets):
+            self.service_widgets.append({'code': ctk.CTkEntry(self.frm_s, width=self.width[0]),
+                                         'name': ctk.CTkEntry(self.frm_s, width=self.width[1])})
+            self.service_widgets[db_s]['code'].grid(row=db_s + 1, column=0, sticky='w')
+            self.service_widgets[db_s]['name'].grid(row=db_s + 1, column=1, sticky='w')
 
-            col += 1
-            self.ent_service_name.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
-            self.ent_service_name[db_s].grid(row=db_s + 1, column=col, sticky='w')
+        self.service_widgets[db_s]['code'].delete(0, 9999)
+        self.service_widgets[db_s]['code'].insert(0, self.ad.md.get('Service', 'Service Code', db_s))
 
-        self.ent_service_code[db_s].delete(0, 9999)
-        self.ent_service_code[db_s].insert(0, self.ad.md.get('Service', 'Service Code', db_s))
-
-        self.ent_service_name[db_s].delete(0, 9999)
-        self.ent_service_name[db_s].insert(0, self.ad.md.get('Service', 'Service Name', db_s))
+        self.service_widgets[db_s]['name'].delete(0, 9999)
+        self.service_widgets[db_s]['name'].insert(0, self.ad.md.get('Service', 'Service Name', db_s))
 
 
 class ServiceDelete(object):
@@ -144,6 +123,7 @@ class ServiceDelete(object):
 
         self.wnd_service_del = wnd_service_del
         self.ad = ad
+        self.sl = ServiceLogic(ad)
 
         # Add title top window
         wnd_service_del.title("Service Data Delete")
@@ -182,35 +162,18 @@ class ServiceDelete(object):
 
     def handle_delete_click(self):
         """Delete current record."""
-        # Identify selected service code
         service_code = self.cmb_service_code.get()
-        if not service_code:
-            return
-        db_s = self.ad.md.index('Service', 'Service Code', service_code)
+        success, message = self.sl.delete_service(service_code)
 
-        # Warn that dependent rows will be deleted
-        sr_cnt = self.ad.md.count('Staff Role', 'Service Code', service_code)
-        rc_cnt = self.ad.md.count('Role Competency', 'Service Code', service_code)
-        if rc_cnt or sr_cnt:
-            warn_text = f"{service_code} is used {sr_cnt} times in Staff Role and {rc_cnt} times in Role Competency"
-            win_msg = CTkMessagebox(title="Dependent Record Warning", message=warn_text,
-                                    icon='warning', option_1='Delete', option_2='Cancel')
-            if win_msg.get() != 'Delete':
+        if not success:
+            if message != "No service code selected.":
+                win_msg = CTkMessagebox(title="Dependent Record Warning", message=message,
+                                        icon='warning', option_1='Delete', option_2='Cancel')
+                if win_msg.get() != 'Delete':
+                    self.wnd_service_del.grab_set()
+                    return
                 self.wnd_service_del.grab_set()
-                return
-            self.wnd_service_del.grab_set()
-
-        # Delete row and dependent rows, note deletes not audited
-        self.ad.master_updated = True
-        self.ad.md.delete_row('Service', db_s)
-
-        # Delete entries for Service Code in Staff Role table
-        if rc_cnt:
-            self.ad.md.delete_value('Staff Role', 'Service Code', service_code)
-
-        # Delete entries for Service Code in Role Competency table
-        if rc_cnt:
-            self.ad.md.delete_value('Role Competency', 'Service Code', service_code)
+                self.sl.delete_service_with_dependents(service_code)
 
         # Clear widgets
         self.cmb_service_code.set('')
@@ -225,6 +188,7 @@ class ServiceAdd(object):
 
         self.wnd_service_add = wnd_service_add
         self.ad = ad
+        self.sl = ServiceLogic(ad)
 
         # Add title to window
         wnd_service_add.title("Service Data Add")
@@ -256,16 +220,9 @@ class ServiceAdd(object):
         service_code = self.ent_service_code.get()
         service_name = self.ent_service_name.get()
 
-        if not service_code:
-            input_warning(self.wnd_service_add, "Service Code field must be set!")
-            return
+        success, message = self.sl.add_service(service_code, service_name)
 
-        # Find Service Code to update or add a new one
-        try:
-            self.ad.md.index('Service', 'Service Code', service_code)
-        except IndexError:
-            self.ad.master_updated = True
-            self.ad.md.add_row('Service', {'Service Code': service_code, 'Service Name': service_name})
-            CTkMessagebox(title="Information", message=f"Added {service_code} - {service_name}", icon='info')
+        if success:
+            CTkMessagebox(title="Information", message=message, icon='info')
         else:
-            input_warning(self.wnd_service_add, f"Service Code {service_code} all ready defined!")
+            input_warning(self.wnd_service_add, message)

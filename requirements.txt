@@ -16,6 +16,7 @@ pandas==2.1.4
 pefile==2023.2.7
 pillow==10.2.0
 portalocker==2.8.2
+pytest==8.2.0
 pyinstaller==6.3.0
 pyinstaller-hooks-contrib==2023.12
 pyinstaller-versionfile==2.1.1

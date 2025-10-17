@@ -8,8 +8,8 @@ import customtkinter as ctk
 import tkinter as tk
 
 from source.appdata import AppData
-from source.staff import StaffAssessorUpdate
-from source.staff_competency import StaffCompetencyUpdate
+from source.staff_gui import StaffAssessorUpdate
+from source.staff_competency_gui import StaffCompetencyUpdate
 from source.tool_tip import ToolTip, competency_tip_text, role_tip_text
 from source.window import child_window, date_to_string
 from source.competency_display import set_display_value, staff_competency_lists

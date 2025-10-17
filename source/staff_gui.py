@@ -6,7 +6,8 @@ import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
-from source.staff_role import StaffRoleUpdate
+from source.staff_logic import StaffLogic
+from source.staff_role_gui import StaffRoleUpdate
 from source.window import (child_window, set_disabled_checkbox,
                            set_disabled_entry, input_warning, parse_date, date_to_string)
 
@@ -22,6 +23,7 @@ class StaffUpdate(object):
 
         self.wnd_staff = wnd_staff
         self.ad = ad
+        self.sl = StaffLogic(ad)
 
         # Add title top window
         self.wnd_staff.title("Staff Data Update")
@@ -200,27 +202,7 @@ class StaffUpdate(object):
             if self.chc_role_filter[db_r].get():
                 role_filter.append(role_code)
 
-        self.db_s_list = []
-        for db_s, staff_name in enumerate(self.ad.md.get_list("Staff", 'Staff Name')):
-            # If staff name doesn't pass filter stop testing
-            if name_filter and not re.search(name_filter, staff_name, re.I):
-                continue
-
-            # For staff with no roles only add them if role staff are to be included
-            if self.ad.md.count('Staff Role', 'Staff Name', staff_name) == 0:
-                if self.chc_no_role_filter.get():
-                    self.db_s_list.append(db_s)
-                continue
-
-            # Check each role
-            db_sr = self.ad.md.find_one('Staff Role', staff_name, 'Staff Name')
-            while db_sr > -1:
-                role_code = self.ad.md.get('Staff Role', 'Role Code', db_sr)
-                service_code = self.ad.md.get('Staff Role', 'Service Code', db_sr)
-                if service_code in service_filter and role_code in role_filter:
-                    self.db_s_list.append(db_s)
-                    break
-                db_sr = self.ad.md.find_one('Staff Role', staff_name, 'Staff Name', start=db_sr+1)
+        self.db_s_list = self.sl.apply_filters(self.ent_name_filter.get(), self.chc_no_role_filter.get(), service_filter, role_filter)
 
         self.display_staff_table()
 
@@ -233,42 +215,19 @@ class StaffUpdate(object):
                 input_warning(self.wnd_staff, f"Start Date {start_date} is not a valid date!")
                 return
 
-        # Check every value to see if it has changed
-        number_changes = 0
+        staff_widgets = []
         for s, db_s in enumerate(self.db_s_list):
-            staff_name = re.sub(' +', ' ', self.ent_staff_name[s].get().strip())
-            old_staff_name = self.ad.md.get('Staff', 'Staff Name', s)
-            if old_staff_name != staff_name:
-                logger.info(f"Changing Staff Name from >{old_staff_name}< to >{staff_name}<")
-                # Check name change does not conflict with an existing record
-                if self.ad.md.count('Staff', 'Staff Name', staff_name) > 0:
-                    input_warning(self.wnd_staff, f"Can't change Staff Name {old_staff_name} to"
-                                                  f" {staff_name} as it already exists")
-                    staff_name = old_staff_name
-                else:
-                    # Propagate Staff Name changes to foreign keys in other tables
-                    self.ad.master_updated = True
-                    self.ad.md.replace('Staff Role', 'Staff Name', old_staff_name, staff_name)
-                    self.ad.md.replace('Staff Competency', 'Staff Name', old_staff_name, staff_name)
+            staff_widgets.append({'name': self.ent_staff_name[s],
+                                  'start_date': self.ent_start_date[s],
+                                  'supervisor': self.chc_practice_supervisor[s],
+                                  'assessor': self.chc_practice_assessor[s]})
 
-            start_date = parse_date(self.ent_start_date[s].get())
-            if (old_staff_name != staff_name
-                    or self.ad.md.get('Staff', 'Start Date', db_s) != start_date
-                    or self.ad.md.get('Staff', 'Practice Supervisor', db_s) != self.chc_practice_supervisor[s].get()
-                    or self.ad.md.get('Staff', 'Practice Assessor', db_s) != self.chc_practice_assessor[s].get()):
-                number_changes += 1
-                logger.info(f"Updating Staff Name {old_staff_name}")
-                self.ad.master_updated = True
-                self.ad.md.update_row('Staff', db_s, {'Staff Name': staff_name,
-                                                      'Start Date': start_date,
-                                                      'Practice Supervisor': self.chc_practice_supervisor[s].get(),
-                                                      'Practice Assessor': self.chc_practice_assessor[s].get()})
+        number_changes, message = self.sl.save_staff(staff_widgets, self.db_s_list)
 
-        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+        CTkMessagebox(title="Information", message=message, icon='info')
 
         # Sort table and refresh redisplay
         if number_changes > 0:
-            self.ad.md.sort_table('Staff')
             self.display_staff_table()
 
     def handle_add_click(self):
@@ -395,6 +354,7 @@ class StaffDelete(object):
 
         self.wnd_staff_del = wnd_staff_del
         self.ad = ad
+        self.sl = StaffLogic(ad)
 
         # Add title top window
         wnd_staff_del.title("Staff Data Delete")
@@ -457,33 +417,19 @@ class StaffDelete(object):
 
     def handle_delete_click(self):
         """Delete current record."""
-        # Identify selected staff
         staff_name = self.cmb_staff_name.get()
-        if not staff_name:
-            return
-        db_s = self.ad.md.index('Staff', 'Staff Name', staff_name)
 
-        # Warn that dependent rows will be deleted
-        sr_cnt = self.ad.md.count('Staff Role', 'Staff Name', staff_name)
-        sc_cnt = self.ad.md.count('Staff Competency', 'Staff Name', staff_name)
-        if sr_cnt or sc_cnt:
-            warn_text = f"{staff_name} is used {sr_cnt} times in Staff Role and {sc_cnt} times in Staff Competency"
-            msg = CTkMessagebox(title="Dependent Record Warning", message=warn_text,
-                                icon='warning', option_1='Delete', option_2='Cancel')
-            if msg.get() != 'Delete':
+        success, message = self.sl.delete_staff(staff_name)
+
+        if not success:
+            if message != "No staff member selected.":
+                msg = CTkMessagebox(title="Dependent Record Warning", message=message,
+                                    icon='warning', option_1='Delete', option_2='Cancel')
+                if msg.get() != 'Delete':
+                    self.wnd_staff_del.grab_set()
+                    return
                 self.wnd_staff_del.grab_set()
-                return
-            self.wnd_staff_del.grab_set()
-
-        # Delete row and dependent rows, note deletes not audited
-        self.ad.master_updated = True
-        self.ad.md.delete_row('Staff', db_s)
-
-        # Delete entries for Staff Name in Staff Role dataframe
-        self.ad.md.delete_value('Staff Role', 'Staff Name', staff_name)
-
-        # Delete entries for Staff Name in Staff Competency table
-        self.ad.md.delete_value('Staff Competency', 'Staff Name', staff_name)
+                self.sl.delete_staff_with_dependents(staff_name)
 
         # Clear widgets
         self.cmb_staff_name.set('')
@@ -518,6 +464,7 @@ class StaffAdd(object):
 
         self.wnd_staff_add = wnd_staff_add
         self.ad = ad
+        self.sl = StaffLogic(ad)
 
         # Add title top window
         wnd_staff_add.title("Staff Data Add")
@@ -554,40 +501,20 @@ class StaffAdd(object):
 
     def handle_add_click(self):
         """Update current record or insert a new one if it does not exist."""
-        staff_name = re.sub(' +', ' ', self.ent_staff_name.get().strip())
+        staff_name = self.ent_staff_name.get()
         start_date = self.ent_start_date.get()
         practice_supervisor = self.chc_practice_supervisor.get()
         practice_assessor = self.chc_practice_assessor.get()
 
-        # Validate inputs
-        if not staff_name:
-            input_warning(self.wnd_staff_add, "Staff Name field must be set!")
-            return
-        elif start_date and not parse_date(start_date):
-            input_warning(self.wnd_staff_add, f"Start Date {start_date} is not a valid date!")
-            return
+        success, message = self.sl.add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
 
-        # Standardise the format of the start date
-        self.ent_start_date.delete(0, 9999)
-        self.ent_start_date.insert(0, date_to_string(parse_date(start_date)))
-
-        # Find Staff Name to update or add a new one
-        try:
-            self.ad.md.index('Staff', 'Staff Name', staff_name)
-        except IndexError:
-            self.ad.master_updated = True
-            self.ad.md.add_row('Staff', {'Staff Name': staff_name,
-                                         'Start Date': parse_date(start_date),
-                                         'Practice Supervisor': practice_supervisor,
-                                         'Practice Assessor': practice_assessor})
-
+        if success:
             # Open window to add roles for the new staff member
-            child_window(StaffRoleUpdate, self.ad, self.wnd_staff_add, staff_name)
+            child_window(StaffRoleUpdate, self.ad, self.wnd_staff_add, re.sub(' +', ' ', staff_name.strip()))
 
-            CTkMessagebox(title="Information", message=f"Added {staff_name}", icon='info')
-
+            CTkMessagebox(title="Information", message=message, icon='info')
         else:
-            input_warning(self.wnd_staff_add, f"Staff Name {staff_name} is already defined!")
+            input_warning(self.wnd_staff_add, message)
 
 
 class StaffAssessorUpdate:

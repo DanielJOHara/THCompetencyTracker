@@ -1,4 +1,4 @@
-"""This module contains the routines to manage the Staff Role table."""
+
 import logging
 import re
 
@@ -6,6 +6,7 @@ import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
+from source.staff_role_logic import StaffRoleLogic
 from source.window import input_warning
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ class StaffRoleUpdate(object):
 
         self.wnd_staff_role = wnd_staff_role
         self.ad = ad
+        self.srl = StaffRoleLogic(ad)
 
         # Add title top window
         wnd_staff_role.title("Staff Role Data Update")
@@ -156,45 +158,19 @@ class StaffRoleUpdate(object):
     def handle_delete_click(self):
         """Delete role records for staff member, don't need check use in other tables."""
         staff_name = self.cmb_staff_name.get()
-        self.ad.md.delete_value('Staff Role', 'Staff Name', staff_name)
+        self.srl.delete_staff_roles(staff_name)
         self.refresh_staff()
 
     def handle_save_click(self):
         """Update role records for current staff member."""
         staff_name = self.cmb_staff_name.get()
-        if not staff_name:
+        number_changes, message = self.srl.save_staff_roles(staff_name, self.cmb_role_code, self.chc_bank, self.chc_nightshift)
+
+        if message != f"{number_changes} changes saved":
+            input_warning(self.wnd_staff_role, message)
             return
 
-        number_changes = 0
-        for db_sc, service_code in enumerate(self.ad.md.get_list('Service', 'Service Code')):
-            role_code = self.cmb_role_code[db_sc].get()
-            db_sr = self.ad.md.find_two('Staff Role', service_code, 'Service Code', staff_name, 'Staff Name')
-            if not role_code:
-                if db_sr > -1:
-                    self.ad.md.delete_row('Staff Role', db_sr)
-                continue
-
-            bank = self.chc_bank[db_sc].get()
-            nightshift = self.chc_nightshift[db_sc].get()
-            if db_sr < 0:
-                number_changes += 1
-                self.ad.master_updated = True
-                self.ad.md.add_row('Staff Role', {'Service Code': service_code,
-                                                  'Staff Name': staff_name,
-                                                  'Role Code': role_code,
-                                                  'Bank': bank,
-                                                  'Nightshift': nightshift})
-            else:
-                if (self.ad.md.get('Staff Role', 'Role Code', db_sr) != role_code
-                        or self.ad.md.get('Staff Role', 'Bank', db_sr) != bank
-                        or self.ad.md.get('Staff Role', 'Nightshift', db_sr) != nightshift):
-                    number_changes += 1
-                    self.ad.master_updated = True
-                    self.ad.md.update_row('Staff Role', db_sr, {'Role Code': role_code,
-                                                                'Bank': bank,
-                                                                'Nightshift': nightshift})
-
-        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+        CTkMessagebox(title="Information", message=message, icon='info')
 
         if number_changes > 0:
             self.refresh_staff()
@@ -203,15 +179,8 @@ class StaffRoleUpdate(object):
         """Filter the names in the Staff Name drop down to those that match
            the filter entered by the user."""
         name_filter = self.ent_name_filter.get()
+        filtered_names = self.srl.filter_staff_names(name_filter)
+        self.cmb_staff_name.configure(values=filtered_names)
         if name_filter:
-            # Remove every thing except letters and spaces from filter string
-            name_filter = re.sub(r'[^a-zA-Z -]', '', name_filter).strip()
             self.ent_name_filter.delete(0, 9999)
             self.ent_name_filter.insert(0, name_filter)
-            filter_name_lst = []
-            for staff_name in self.ad.md.get_list('Staff', 'Staff Name'):
-                if re.search(name_filter, staff_name, re.IGNORECASE):
-                    filter_name_lst.append(staff_name)
-            self.cmb_staff_name.configure(values=filter_name_lst)
-        else:
-            self.cmb_staff_name.configure(values=self.ad.md.get_list('Staff', 'Staff Name'))

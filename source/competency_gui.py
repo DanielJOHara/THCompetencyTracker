@@ -1,10 +1,11 @@
-"""This module contains the routines to manage the Competency table."""
+
 import logging
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
+from source.competency_logic import CompetencyLogic
 from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning
 
 logger = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ class CompetencyUpdate(object):
 
         self.wnd_competency = wnd_competency
         self.ad = ad
+        self.cl = CompetencyLogic(ad)
 
         # Add title top window
         wnd_competency.title("Competency Data Update")
@@ -42,13 +44,7 @@ class CompetencyUpdate(object):
         self.frm_s.pack(fill='both', expand=True)
 
         # Create lists to hold column widgets
-        self.ent_display_order = []
-        self.ent_competency_name = []
-        self.cmb_scope = []
-        self.ent_expiry = []
-        self.chc_prerequisite = []
-        self.chc_nightshift = []
-        self.chc_bank = []
+        self.competency_widgets = []
 
         # Display widgets for all competency records
         for db_c in range(ad.md.len('Competency')):
@@ -72,51 +68,16 @@ class CompetencyUpdate(object):
 
     def handle_save_click(self) -> None:
         """Read all values in table and update the table object if any values have changed."""
-        # Validate integer attributes
-        for db_c in range(self.ad.md.len('Competency')):
-            if not self.ent_display_order[db_c].get().isdigit():
-                input_warning(self.wnd_competency, "Display Order field must be integer!")
-                return
-            if self.ent_expiry[db_c].get() and not self.ent_expiry[db_c].get().isdigit():
-                input_warning(self.wnd_competency, "Expiry field must be integer or blank!")
-                return
+        number_changes, message = self.cl.save_competencies(self.competency_widgets)
 
-        # Check every value to see if it has changed
-        number_changes = 0
-        for db_c in range(self.ad.md.len('Competency')):
-            # Propagate Competency Name changes to foreign keys in other tables
-            if self.ad.md.get('Competency', 'Competency Name', db_c) != self.ent_competency_name[db_c].get():
-                self.ad.master_updated = True
-                old = self.ad.md.get('Competency', 'Competency Name', db_c)
-                new = self.ent_competency_name[db_c].get()
-                self.ad.md.replace('Role Competency', 'Competency Name', old, new)
-                self.ad.md.replace('Staff Competency', 'Competency Name', old, new)
+        if message != f"{number_changes} changes saved":
+            input_warning(self.wnd_competency, message)
+            return
 
-            if self.ent_expiry[db_c].get():
-                expiry = int(self.ent_expiry[db_c].get())
-            else:
-                expiry = ''
-            if (self.ad.md.get('Competency', 'Competency Name', db_c) != self.ent_competency_name[db_c].get()
-                    or self.ad.md.get('Competency', 'Display Order', db_c) != int(self.ent_display_order[db_c].get())
-                    or self.ad.md.get('Competency', 'Scope', db_c) != self.cmb_scope[db_c].get()
-                    or self.ad.md.get('Competency', 'Prerequisite', db_c) != self.chc_prerequisite[db_c].get()
-                    or self.ad.md.get('Competency', 'Nightshift', db_c) != self.chc_nightshift[db_c].get()
-                    or self.ad.md.get('Competency', 'Bank', db_c) != self.chc_bank[db_c].get()):
-                number_changes += 1
-                self.ad.master_updated = True
-                self.ad.md.update_row('Competency', db_c, {'Competency Name': self.ent_competency_name[db_c].get(),
-                                                           'Display Order': int(self.ent_display_order[db_c].get()),
-                                                           'Scope': self.cmb_scope[db_c].get(),
-                                                           'Expiry': expiry,
-                                                           'Prerequisite': self.chc_prerequisite[db_c].get(),
-                                                           'Nightshift': self.chc_nightshift[db_c].get(),
-                                                           'Bank': self.chc_bank[db_c].get()})
-
-        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+        CTkMessagebox(title="Information", message=message, icon='info')
 
         # Sort table and fresh display
         if number_changes > 0:
-            self.ad.md.sort_table('Competency')
             self.display_competency_table()
 
     def handle_add_click(self) -> None:
@@ -132,22 +93,11 @@ class CompetencyUpdate(object):
         child_window(CompetencyDelete, self.ad, self.wnd_competency)
 
         # Remove a row from the table for each deleted record
-        for i in range(len(self.ent_display_order) - self.ad.md.len('Competency')):
+        for i in range(len(self.competency_widgets) - self.ad.md.len('Competency')):
             # Remove last row of widgets
-            self.ent_display_order[-1].destroy()
-            self.ent_display_order.pop()
-            self.ent_competency_name[-1].destroy()
-            self.ent_competency_name.pop()
-            self.cmb_scope[-1].destroy()
-            self.cmb_scope.pop()
-            self.ent_expiry[-1].destroy()
-            self.ent_expiry.pop()
-            self.chc_prerequisite[-1].destroy()
-            self.chc_prerequisite.pop()
-            self.chc_nightshift[-1].destroy()
-            self.chc_nightshift.pop()
-            self.chc_bank[-1].destroy()
-            self.chc_bank.pop()
+            for widget_key in self.competency_widgets[-1]:
+                self.competency_widgets[-1][widget_key].destroy()
+            self.competency_widgets.pop()
 
         # Re-display table
         self.display_competency_table()
@@ -160,65 +110,50 @@ class CompetencyUpdate(object):
     def add_competency_to_display(self, db_c: int) -> None:
         """Display a row of widgets for a specified Competency table index."""
         # If the index is beyond what is already in the widget lists append new widgets
-        if db_c + 1 > len(self.ent_display_order):
+        if db_c + 1 > len(self.competency_widgets):
+            self.competency_widgets.append({
+                'display_order': ctk.CTkEntry(self.frm_s, width=self.width[0]),
+                'competency_name': ctk.CTkEntry(self.frm_s, width=self.width[1]),
+                'scope': ctk.CTkComboBox(self.frm_s, width=self.width[2], state='readonly', values=['BOTH', 'RN', 'HCA']),
+                'expiry': ctk.CTkEntry(self.frm_s, width=self.width[3]),
+                'prerequisite': ctk.CTkCheckBox(self.frm_s, width=self.width[4] - 2 * int(self.width[4] / 3), text=""),
+                'nightshift': ctk.CTkCheckBox(self.frm_s, width=self.width[5] - 2 * int(self.width[5] / 3), text=""),
+                'bank': ctk.CTkCheckBox(self.frm_s, width=self.width[6] - 2 * int(self.width[6] / 3), text="")
+            })
             col = 0
-            self.ent_display_order.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
-            self.ent_display_order[db_c].grid(row=db_c + 1, column=col, sticky='w')
-
-            col += 1
-            self.ent_competency_name.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
-            self.ent_competency_name[db_c].grid(row=db_c + 1, column=col, sticky='w')
-
-            col += 1
-            self.cmb_scope.append(ctk.CTkComboBox(self.frm_s, width=self.width[col],
-                                                  state='readonly', values=['BOTH', 'RN', 'HCA']))
-            self.cmb_scope[db_c].grid(row=db_c + 1, column=col, sticky='w')
-
-            col += 1
-            self.ent_expiry.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
-            self.ent_expiry[db_c].grid(row=db_c + 1, column=col, sticky='w')
-
-            col += 1
-            self.chc_prerequisite.append(ctk.CTkCheckBox(self.frm_s,
-                                                         width=self.width[col] - 2 * int(self.width[col] / 3), text=""))
-            self.chc_prerequisite[db_c].grid(row=db_c + 1, column=col, sticky='nsew', padx=int(self.width[col] / 3))
-
-            col += 1
-            self.chc_nightshift.append(ctk.CTkCheckBox(self.frm_s,
-                                                       width=self.width[col] - 2 * int(self.width[col] / 3), text=""))
-            self.chc_nightshift[db_c].grid(row=db_c + 1, column=col, sticky='nsew', padx=int(self.width[col] / 3))
-
-            col += 1
-            self.chc_bank.append(ctk.CTkCheckBox(self.frm_s,
-                                                 width=self.width[col] - 2 * int(self.width[col] / 3), text=""))
-            self.chc_bank[db_c].grid(row=db_c + 1, column=col, sticky='nsew', padx=int(self.width[col] / 3))
+            for key in self.competency_widgets[db_c]:
+                if key in ['prerequisite', 'nightshift', 'bank']:
+                    self.competency_widgets[db_c][key].grid(row=db_c + 1, column=col, sticky='nsew', padx=int(self.width[col] / 3))
+                else:
+                    self.competency_widgets[db_c][key].grid(row=db_c + 1, column=col, sticky='w')
+                col += 1
 
         # Set all widget values
-        self.ent_display_order[db_c].delete(0, 9999)
-        self.ent_display_order[db_c].insert(0, self.ad.md.get('Competency', 'Display Order', db_c))
+        self.competency_widgets[db_c]['display_order'].delete(0, 9999)
+        self.competency_widgets[db_c]['display_order'].insert(0, self.ad.md.get('Competency', 'Display Order', db_c))
 
-        self.ent_competency_name[db_c].delete(0, 9999)
-        self.ent_competency_name[db_c].insert(0, self.ad.md.get('Competency', 'Competency Name', db_c))
+        self.competency_widgets[db_c]['competency_name'].delete(0, 9999)
+        self.competency_widgets[db_c]['competency_name'].insert(0, self.ad.md.get('Competency', 'Competency Name', db_c))
 
-        self.cmb_scope[db_c].set(self.ad.md.get('Competency', 'Scope', db_c))
+        self.competency_widgets[db_c]['scope'].set(self.ad.md.get('Competency', 'Scope', db_c))
 
-        self.ent_expiry[db_c].delete(0, 9999)
-        self.ent_expiry[db_c].insert(0, self.ad.md.get('Competency', 'Expiry', db_c))
+        self.competency_widgets[db_c]['expiry'].delete(0, 9999)
+        self.competency_widgets[db_c]['expiry'].insert(0, self.ad.md.get('Competency', 'Expiry', db_c))
 
         if self.ad.md.get('Competency', 'Prerequisite', db_c):
-            self.chc_prerequisite[db_c].select()
+            self.competency_widgets[db_c]['prerequisite'].select()
         else:
-            self.chc_prerequisite[db_c].deselect()
+            self.competency_widgets[db_c]['prerequisite'].deselect()
 
         if self.ad.md.get('Competency', 'Nightshift', db_c):
-            self.chc_nightshift[db_c].select()
+            self.competency_widgets[db_c]['nightshift'].select()
         else:
-            self.chc_nightshift[db_c].deselect()
+            self.competency_widgets[db_c]['nightshift'].deselect()
 
         if self.ad.md.get('Competency', 'Bank', db_c):
-            self.chc_bank[db_c].select()
+            self.competency_widgets[db_c]['bank'].select()
         else:
-            self.chc_bank[db_c].deselect()
+            self.competency_widgets[db_c]['bank'].deselect()
 
 
 class CompetencyDelete(object):
@@ -228,6 +163,7 @@ class CompetencyDelete(object):
 
         self.wnd_competency_del = wnd_competency_del
         self.ad = ad
+        self.cl = CompetencyLogic(ad)
 
         # Add title top window
         self.wnd_competency_del.title("Competency Data Delete")
@@ -298,32 +234,18 @@ class CompetencyDelete(object):
 
     def handle_delete_click(self):
         """Delete current record."""
-        # Identify selected competency
         competency_name = self.cmb_competency_name.get()
-        if not competency_name:
-            return
-        db_c = self.ad.md.index('Competency', 'Competency Name', competency_name)
+        success, message = self.cl.delete_competency(competency_name)
 
-        # Warn that dependent rows will be deleted
-        rc_cnt = self.ad.md.count('Role Competency', 'Competency Name', competency_name)
-        sc_cnt = self.ad.md.count('Staff Competency', 'Competency Name', competency_name)
-        if rc_cnt or sc_cnt:
-            warn_text = (f"{competency_name} is used {rc_cnt} times in Role Competency"
-                         f" and {sc_cnt} times in Staff Competency")
-            msg = CTkMessagebox(title="Dependent Record Warning", message=warn_text,
-                                icon='warning', option_1='Delete', option_2='Cancel')
-            if msg.get() != 'Delete':
-                return
-
-        # Delete row and dependent rows, note deletes not audited
-        self.ad.master_updated = True
-        self.ad.md.delete_row('Competency', db_c)
-
-        # Delete entries for Competency Name in Role Competency table
-        self.ad.md.delete_value('Role Competency', 'Competency Name', competency_name)
-
-        # Delete entries for Competency Name in Staff Competency table
-        self.ad.md.delete_value('Staff Competency', 'Competency Name', competency_name)
+        if not success:
+            if message != "No competency selected.":
+                msg = CTkMessagebox(title="Dependent Record Warning", message=message,
+                                    icon='warning', option_1='Delete', option_2='Cancel')
+                if msg.get() != 'Delete':
+                    self.wnd_competency_del.grab_set()
+                    return
+                self.wnd_competency_del.grab_set()
+                self.cl.delete_competency_with_dependents(competency_name)
 
         # Clear widgets
         self.cmb_competency_name.set('')
@@ -343,6 +265,7 @@ class CompetencyAdd(object):
 
         self.wnd_competency_add = wnd_competency_add
         self.ad = ad
+        self.cl = CompetencyLogic(ad)
 
         # Add title top window
         wnd_competency_add.title("Competency Data Add")
@@ -402,36 +325,10 @@ class CompetencyAdd(object):
         prerequisite = self.chc_prerequisite.get()
         nightshift = self.chc_nightshift.get()
         bank = self.chc_bank.get()
-        if not competency_name:
-            input_warning(self.wnd_competency_add, "Competency Name field must be set!")
-            return
-        elif display_order and not str(display_order).isdigit():
-            input_warning(self.wnd_competency_add, "Display Order field must be an integer!")
-            return
-        elif expiry and not str(expiry).isdigit():
-            input_warning(self.wnd_competency_add, "Expiry field must be blank or an integer!")
-            return
 
-        # If display order not set then set it to be after last row
-        if not display_order:
-            display_order = self.ad.md.get('Competency', 'Display Order', self.ad.md.len('Competency') - 1) + 1
+        success, message = self.cl.add_competency(competency_name, scope, display_order, expiry, prerequisite, nightshift, bank)
+
+        if success:
+            CTkMessagebox(title="Information", message=message, icon='info')
         else:
-            display_order = int(display_order)
-
-        if expiry:
-            expiry = int(expiry)
-
-        try:
-            self.ad.md.index('Competency', 'Competency Name', competency_name)
-        except IndexError:
-            self.ad.master_updated = True
-            self.ad.md.add_row('Competency', {'Competency Name': competency_name,
-                                              'Scope': scope,
-                                              'Display Order': display_order,
-                                              'Expiry': expiry,
-                                              'Prerequisite': prerequisite,
-                                              'Nightshift': nightshift,
-                                              'Bank': bank})
-            CTkMessagebox(title="Information", message=f"Added {competency_name}", icon='info')
-        else:
-            input_warning(self.wnd_competency_add, f"Competency Name {competency_name} already defined!")
+            input_warning(self.wnd_competency_add, message)

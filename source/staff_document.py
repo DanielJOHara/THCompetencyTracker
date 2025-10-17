@@ -84,5 +84,4 @@ def staff_document(ad: AppData, staff_name_list: list[str], template_path: str, 
             CTkMessagebox(title=f"Check {staff_name}.docx Document is not open",
                           message=f'{e}', icon='warning')
 
-
     subprocess.Popen(f'explorer "{document_directory}"')

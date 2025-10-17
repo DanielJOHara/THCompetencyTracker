@@ -4,13 +4,13 @@ import logging
 import customtkinter as ctk
 
 from source.appdata import AppData
-from source.role_cometancy_grid import RoleCompetencyGrid
+from source.role_competency_gui import RoleCompetencyGrid
 from source.window import child_window
-from source.service import ServiceUpdate
-from source.role_update import RoleUpdate
-from source.staff import StaffUpdate
-from source.competency_update import CompetencyUpdate
-from source.staff_role import StaffRoleUpdate
+from source.service_gui import ServiceUpdate
+from source.role_gui import RoleUpdate
+from source.staff_gui import StaffUpdate
+from source.competency_gui import CompetencyUpdate
+from source.staff_role_gui import StaffRoleUpdate
 from source.choose_colours import ChooseColours
 
 logger = logging.getLogger(__name__)
