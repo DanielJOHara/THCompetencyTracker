@@ -1,13 +1,14 @@
 import pytest
 from unittest.mock import patch
+import pandas as pd
 
 import logging
 import customtkinter as ctk
 import _tkinter
 
-from source.appdata import AppData
 from source.master_data import MasterData
-from source.service_gui import ServiceAdd, ServiceDelete
+from source.appdata import AppData
+from source.service_gui import ServiceAdd, ServiceDelete, ServiceUpdate
 
 
 def pump_events(wnd_root):
@@ -20,21 +21,27 @@ logger = logging.getLogger()
 stream_handler = logging.StreamHandler()
 logger.addHandler(stream_handler)
 
-# Create root window
-wnd_root = ctk.CTk()
+
+@pytest.fixture(scope="module")
+def ctk_root():
+    try:
+        root = ctk.CTk()
+        yield root
+        root.destroy()
+    except _tkinter.TclError:
+        pytest.skip("Skipping GUI tests: No display available")
 
 
 @pytest.fixture
 def ad():
     ad = AppData()
-    ad.md = MasterData('TestMasterData.xlsx', 30)
-    try:
-        ad.md.load('TestMasterData.xlsx')
-        yield ad
-    except OSError as e:
-        pytest.skip(f"Skipping tests because of OSError: {e}")
-    finally:
-        ad.md._unlock()
+    ad.md = MasterData('None', 30)
+    ad.md.add_table('Service',
+                    ['Service Code', 'Service Name'],
+                    [["SC1", "Service Code One"],
+                     ["SC2", 'Service Code Two'],
+                     ["SC3", "Service Code Three"]])
+    yield ad
 
 
 @pytest.fixture
@@ -49,20 +56,32 @@ def mock_ctk_messagebox():
         yield mock_msgbox
 
 
-def test_service_add(mock_input_warning, mock_ctk_messagebox, ad):
+def test_service_update(ctk_root, ad):
+    # Create service update window
+    wnd_service_update = ctk.CTkToplevel(ctk_root)
+    wnd_service_update.grab_set()
+
+    # Populate service add window
+    service_update = ServiceUpdate(ad, wnd_service_update)
+    pump_events(ctk_root)
+
+    assert len(service_update.service_widgets) == ad.md.len('Service')
+
+
+def test_service_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad):
     # Create service add window
-    wnd_service_add = ctk.CTkToplevel()
+    wnd_service_add = ctk.CTkToplevel(ctk_root)
     wnd_service_add.grab_set()
 
     # Populate service add window
     service_add = ServiceAdd(ad, wnd_service_add)
-    pump_events(wnd_root)
+    pump_events(ctk_root)
 
     # Blank input test
     service_add.ent_service_code.delete(0, 9999)
     service_add.ent_service_name.delete(0, 9999)
     service_add.handle_add_click()
-    pump_events(wnd_root)
+    pump_events(ctk_root)
     mock_input_warning.assert_called_with(service_add.wnd_service_add, "Service Code field must be set!")
 
     # Add new service
@@ -71,7 +90,7 @@ def test_service_add(mock_input_warning, mock_ctk_messagebox, ad):
     service_add.ent_service_name.delete(0, 9999)
     service_add.ent_service_name.insert(0, 'New Service')
     service_add.btn_add.invoke()
-    pump_events(wnd_root)
+    pump_events(ctk_root)
 
     # Check information message call
     mock_ctk_messagebox.assert_called_once_with(title='Information', message='Added NEW - New Service', icon='info')
@@ -83,31 +102,32 @@ def test_service_add(mock_input_warning, mock_ctk_messagebox, ad):
 
     # Close service add window
     service_add.btn_exit.invoke()
-    pump_events(wnd_root)
+    pump_events(ctk_root)
 
 
-def test_service_delete(ad):
+def test_service_delete(ctk_root, ad):
     # Create service delete window
-    wnd_service_delete = ctk.CTkToplevel()
+    wnd_service_delete = ctk.CTkToplevel(ctk_root)
     wnd_service_delete.grab_set()
 
     # Populate service delete window
     service_delete = ServiceDelete(ad, wnd_service_delete)
-    pump_events(wnd_root)
+    pump_events(ctk_root)
 
     # Select the out patient service record and check the name updates correctly
-    service_delete.cmb_service_code.set('OPS')
+    service_delete.cmb_service_code.set('SC2')
     service_delete.refresh_service(None)
-    pump_events(wnd_root)
-    assert service_delete.ent_service_name.get() == 'Out Patient Service'
+    pump_events(ctk_root)
+    assert service_delete.ent_service_name.get() == 'Service Code Two'
 
     # Delete the new record
     service_delete.btn_delete.invoke()
-    pump_events(wnd_root)
+    pump_events(ctk_root)
     assert service_delete.cmb_service_code.get() == ''
     assert service_delete.ent_service_name.get() == ''
-    db_s = ad.md.find_one('Service', 'OPS', 'Service Code')
+    assert ad.md.len("Service") == 2
+    db_s = ad.md.find_one('Service', 'SC2', 'Service Code')
     assert db_s == -1
 
     service_delete.btn_exit.invoke()
-    pump_events(wnd_root)
+    pump_events(ctk_root)

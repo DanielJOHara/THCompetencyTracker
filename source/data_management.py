@@ -11,7 +11,7 @@ from source.role_gui import RoleUpdate
 from source.staff_gui import StaffUpdate
 from source.competency_gui import CompetencyUpdate
 from source.staff_role_gui import StaffRoleUpdate
-from source.choose_colours import ChooseColours
+from source.choose_colours_gui import ChooseColours
 
 logger = logging.getLogger(__name__)
 

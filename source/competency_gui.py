@@ -241,7 +241,7 @@ class CompetencyDelete(object):
             if message != "No competency selected.":
                 msg = CTkMessagebox(title="Dependent Record Warning", message=message,
                                     icon='warning', option_1='Delete', option_2='Cancel')
-                if msg.get() != 'Delete':
+                if msg.get() == 'Cancel':
                     self.wnd_competency_del.grab_set()
                     return
                 self.wnd_competency_del.grab_set()

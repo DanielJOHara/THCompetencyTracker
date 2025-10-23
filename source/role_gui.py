@@ -203,7 +203,7 @@ class RoleDelete(object):
             if message != "No role code selected.":
                 msg = CTkMessagebox(title="Dependent Record Warning", message=message,
                                     icon='warning', option_1='Delete', option_2='Cancel')
-                if msg.get() != 'Delete':
+                if msg.get() == 'Cancel':
                     self.wnd_role_del.grab_set()
                     return
                 self.wnd_role_del.grab_set()

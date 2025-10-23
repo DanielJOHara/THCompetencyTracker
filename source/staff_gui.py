@@ -425,7 +425,8 @@ class StaffDelete(object):
             if message != "No staff member selected.":
                 msg = CTkMessagebox(title="Dependent Record Warning", message=message,
                                     icon='warning', option_1='Delete', option_2='Cancel')
-                if msg.get() != 'Delete':
+                button = msg.get()
+                if msg.get() == 'Cancel':
                     self.wnd_staff_del.grab_set()
                     return
                 self.wnd_staff_del.grab_set()
@@ -511,7 +512,6 @@ class StaffAdd(object):
         if success:
             # Open window to add roles for the new staff member
             child_window(StaffRoleUpdate, self.ad, self.wnd_staff_add, re.sub(' +', ' ', staff_name.strip()))
-
             CTkMessagebox(title="Information", message=message, icon='info')
         else:
             input_warning(self.wnd_staff_add, message)

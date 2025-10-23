@@ -1,6 +1,5 @@
 
 import logging
-import re
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox

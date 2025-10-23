@@ -231,6 +231,10 @@ class MasterData:
                     except OSError as e:
                         logger.warning(f"Failed remove archive Master Excel {file_path} error {e}")
 
+    def add_table(self, table: str, columns: List[str], data) -> None:
+        """Add a table to the dataframe dictionary with specified columns."""
+        self._df[table] = pd.DataFrame(data, columns=columns)
+
     def update_row(self, table: str, index: int, update_row: dict) -> None:
         """Update the row with the specified index in the specified table with the values in the supplied dictionary.
            Values in the dictionary not in the table will be ignored. The table is not sorted incase the user is
