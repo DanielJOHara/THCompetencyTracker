@@ -48,17 +48,16 @@ def ad(request):
                  [["IPS", "Inpatient Service"],
                   ["OPS", "Outpatient Service"]])
     md.add_table('Role',
-                 ['Role Code', 'Role Name', 'RN', 'Display Order'],
-                 [["SN", "Staff Nurse", 1, 1],
-                  ["HCA", "Healthcare Assistant", 0, 2]])
+                 ['Role Code', 'Role Name', 'RN'],
+                 [["SN", "Staff Nurse", 1],
+                  ["HCA", "Healthcare Assistant", 0]])
     md.add_table('Staff Role',
-                 ['Staff Name', 'Service Code', 'Role Code', 'Bank', 'Nightshift'],
-                 [["Jane Smith", "OPS", "HCA", 0, 0],
-                  ["John Doe", "IPS", "SN", 0, 0]])
+                 ['Staff Name', 'Service Code', 'Role Code'],
+                 [["Jane Smith", "OPS", "HCA"],
+                  ["John Doe", "IPS", "SN"]])
     md.add_table('Staff Competency',
-                 ['Staff Name', 'Competency Name', 'Status', 'Expiry'],
-                 [["John Doe", "VoED", "Completed", "2024-12-31"]])
-
+                 ['Staff Name', 'Competency Name'],
+                 [["John Doe", "VoED"]])
     ad = AppData()
     ad.md = md
     ad.args = MagicMock()

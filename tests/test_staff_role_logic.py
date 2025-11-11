@@ -1,94 +1,150 @@
-
-import os
 import pytest
-from unittest.mock import MagicMock
+import logging
+
+from source.staff_role_logic import StaffRoleLogic
 from source.master_data import MasterData
 from source.appdata import AppData
-from source.staff_role_logic import StaffRoleLogic
+
+# Set up logging
+logger = logging.getLogger()
+stream_handler = logging.StreamHandler()
+logger.addHandler(stream_handler)
 
 
 @pytest.fixture
-def app_data():
-    """Fixture to create an AppData object with a MasterData instance."""
-    test_data_path = os.path.join(os.path.dirname(__file__), 'TestMasterData.xlsx')
-    md = MasterData(test_data_path, 30)
-    try:
-        md.load()
-        ad = AppData()
-        ad.md = md
-        yield ad
-    finally:
-        md._unlock()
+def ad():
+    ad = AppData()
+    ad.md = MasterData('None', 30)
+    ad.md.add_table('Staff',
+                    ['Staff Name'],
+                    [["Jane Smith"],
+                     ["John Doe"],
+                     ["Peter Jones"]])
+    ad.md.add_table('Service',
+                    ['Service Code', 'Service Name'],
+                    [["IPS", "Inpatient Service"],
+                     ["OPS", "Outpatient Service"],
+                     ["MHS", "Mental Health Service"],
+                     ["PCRT", "Primary Care Response Team"]])
+    ad.md.add_table('Role',
+                    ['Role Code', 'Role Name'],
+                    [["SN", "Staff Nurse"],
+                     ["HCA", "Healthcare Assistant"],
+                     ["RN", "Registered Nurse"]])
+    ad.md.add_table('Staff Role',
+                    ['Staff Name', 'Service Code', 'Role Code', 'Bank', 'Nightshift'],
+                    [["Jane Smith", "OPS", "HCA", 0, 0],
+                     ["John Doe", "IPS", "SN", 1, 1]])
+    yield ad
 
 
 @pytest.fixture
-def staff_role_logic(app_data):
-    """Fixture to create a StaffRoleLogic instance."""
-    return StaffRoleLogic(app_data)
+def value_list(ad):
+    """Fixture to create a list of staff role dictionaries for a staff member."""
+    staff_name = "John Doe"
+    value_list = []
+    for db_sr in range(ad.md.len('Staff Role')):
+        if ad.md.get('Staff Role', 'Staff Name', db_sr) == staff_name:
+            value_list.append({
+                'Service Code': ad.md.get('Staff Role', 'Service Code', db_sr),
+                'Role Code': ad.md.get('Staff Role', 'Role Code', db_sr),
+                'Bank': ad.md.get('Staff Role', 'Bank', db_sr),
+                'Nightshift': ad.md.get('Staff Role', 'Nightshift', db_sr)
+            })
+    return staff_name, value_list
 
 
-def test_save_staff_roles_add_and_update(staff_role_logic):
-    """Test saving new and updated staff roles."""
-    staff_name = "John Smith"
-    staff_role_logic.ad.md.add_row('Staff', {'Staff Name': staff_name, 'Service Code': 'IPS'})
+def create_role_lists_from_value_list(ad, value_list):
+    """Helper function to create role lists from a value_list."""
+    service_codes = ad.md.get_list('Service', 'Service Code')
+    role_list = []
+    bank_list = []
+    nightshift_list = []
+    for service_code in service_codes:
+        role = next((d for d in value_list if d['Service Code'] == service_code), None)
+        if role:
+            role_list.append(role['Role Code'])
+            bank_list.append(role['Bank'])
+            nightshift_list.append(role['Nightshift'])
+        else:
+            role_list.append("")
+            bank_list.append(0)
+            nightshift_list.append(0)
+    return role_list, bank_list, nightshift_list
 
-    # Mock widgets
-    role_widgets = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
-    bank_widgets = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
-    nightshift_widgets = [MagicMock(), MagicMock(), MagicMock(), MagicMock()]
 
-    # Service codes from test data
-    service_codes = ['IPS', 'MHS', 'OPS', 'PCRT']
+def test_save_staff_roles(value_list, ad):
+    """Test saving new, updated, and deleted staff roles."""
+    staff_name, original_value_list = value_list
 
-    # First, add a new role
-    role_widgets[0].get.return_value = "SN"
-    bank_widgets[0].get.return_value = 1
-    nightshift_widgets[0].get.return_value = 0
-    for i in range(1, 4):
-        role_widgets[i].get.return_value = ""
-        bank_widgets[i].get.return_value = 0
-        nightshift_widgets[i].get.return_value = 0
+    # 1. No changes
+    role_list, bank_list, nightshift_list = create_role_lists_from_value_list(ad, original_value_list)
+    input_valid, num_changes, message = StaffRoleLogic(ad).save_staff_roles(staff_name, role_list,
+                                                                            bank_list, nightshift_list)
+    assert input_valid is True
+    assert num_changes == 0
+    assert message == "0 changes saved"
 
-    num_changes, message = staff_role_logic.save_staff_roles(staff_name, role_widgets, bank_widgets, nightshift_widgets)
+    # 2. Add a new role
+    new_role = {'Service Code': 'MHS', 'Role Code': 'RN', 'Bank': 0, 'Nightshift': 1}
+    updated_value_list = original_value_list + [new_role]
+    role_list, bank_list, nightshift_list = create_role_lists_from_value_list(ad, updated_value_list)
+    input_valid, num_changes, message = StaffRoleLogic(ad).save_staff_roles(staff_name, role_list,
+                                                                            bank_list, nightshift_list)
+    assert input_valid is True
     assert num_changes == 1
     assert message == "1 changes saved"
-    db_sr = staff_role_logic.ad.md.find_two('Staff Role', service_codes[0], 'Service Code', staff_name, 'Staff Name')
+    db_sr = ad.md.find_two('Staff Role', 'MHS', 'Service Code', staff_name, 'Staff Name')
     assert db_sr > -1
-    assert staff_role_logic.ad.md.get('Staff Role', 'Role Code', db_sr) == "SN"
+    assert ad.md.get('Staff Role', 'Role Code', db_sr) == 'RN'
 
-    # Then, update the same role
-    role_widgets[0].get.return_value = "RN"
-    num_changes, message = staff_role_logic.save_staff_roles(staff_name, role_widgets, bank_widgets, nightshift_widgets)
+    # 3. Update an existing role
+    updated_value_list[0]['Role Code'] = 'RN'
+    role_list, bank_list, nightshift_list = create_role_lists_from_value_list(ad, updated_value_list)
+    input_valid, num_changes, message = StaffRoleLogic(ad).save_staff_roles(staff_name, role_list,
+                                                                            bank_list, nightshift_list)
+    assert input_valid is True
     assert num_changes == 1
     assert message == "1 changes saved"
-    assert staff_role_logic.ad.md.get('Staff Role', 'Role Code', db_sr) == "RN"
+    db_sr = ad.md.find_two('Staff Role', 'IPS', 'Service Code', staff_name, 'Staff Name')
+    assert ad.md.get('Staff Role', 'Role Code', db_sr) == 'RN'
 
-
-def test_delete_staff_roles(staff_role_logic):
-    """Test deleting all roles for a staff member."""
-    staff_name = "John Smith"
-    staff_role_logic.ad.md.add_row('Staff', {'Staff Name': staff_name, 'Service Code': 'IPS'})
-    staff_role_logic.ad.md.add_row('Staff Role', {'Service Code': 'IPS', 'Staff Name': staff_name, 'Role Code': 'SN', 'Bank': 0, 'Nightshift': 0})
-
-    staff_role_logic.delete_staff_roles(staff_name)
-
-    db_sr = staff_role_logic.ad.md.find_two('Staff Role', 'IPS', 'Service Code', staff_name, 'Staff Name')
+    # 4. Delete a role
+    deleted_value_list = [r for r in updated_value_list if r['Service Code'] != 'MHS']
+    role_list, bank_list, nightshift_list = create_role_lists_from_value_list(ad, deleted_value_list)
+    input_valid, num_changes, message = StaffRoleLogic(ad).save_staff_roles(staff_name, role_list,
+                                                                            bank_list, nightshift_list)
+    assert input_valid is True
+    assert num_changes == 1
+    assert message == "1 changes saved"
+    db_sr = ad.md.find_two('Staff Role', 'MHS', 'Service Code', staff_name, 'Staff Name')
     assert db_sr == -1
 
 
-def test_filter_staff_names(staff_role_logic):
+def test_delete_staff_roles(ad):
+    """Test deleting all roles for a staff member."""
+    staff_name = "John Doe"
+    staff_role_len = StaffRoleLogic(ad).ad.md.len('Staff Role')
+
+    StaffRoleLogic(ad).delete_staff_roles(staff_name)
+
+    assert StaffRoleLogic(ad).ad.md.len('Staff Role') == staff_role_len - 1
+    db_sr = StaffRoleLogic(ad).ad.md.find_one('Staff Role', staff_name, 'Staff Name')
+    assert db_sr == -1
+
+
+def test_filter_staff_names(ad):
     """Test filtering staff names."""
     # Test with a filter that matches some names
-    filtered_names = staff_role_logic.filter_staff_names("Duck")
-    assert "Huey Duck" in filtered_names
-    assert "Dewey Duck" in filtered_names
-    assert "Louie Duck" in filtered_names
+    filtered_names = StaffRoleLogic(ad).filter_staff_names("Jo")
+    assert "John Doe" in filtered_names
+    assert "Peter Jones" in filtered_names
 
     # Test with a filter that matches no names
-    filtered_names = staff_role_logic.filter_staff_names("NonExistentName")
+    filtered_names = StaffRoleLogic(ad).filter_staff_names("NonExistentName")
     assert len(filtered_names) == 0
 
     # Test with an empty filter
-    all_names = staff_role_logic.ad.md.get_list('Staff', 'Staff Name')
-    filtered_names = staff_role_logic.filter_staff_names("")
+    all_names = StaffRoleLogic(ad).ad.md.get_list('Staff', 'Staff Name')
+    filtered_names = StaffRoleLogic(ad).filter_staff_names("")
     assert len(filtered_names) == len(all_names)

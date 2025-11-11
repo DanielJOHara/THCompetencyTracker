@@ -8,7 +8,7 @@ from source.role_competency_logic import RoleCompetencyLogic
 
 
 @pytest.fixture
-def app_data(request):
+def ad(request):
     """Fixture to create an AppData object with a MasterData instance."""
     test_data_path = os.path.join(os.path.dirname(__file__), 'TestMasterData.xlsx')
     md = MasterData(test_data_path, 30)
@@ -24,9 +24,9 @@ def app_data(request):
 
 
 @pytest.fixture
-def role_competency_logic(app_data):
+def role_competency_logic(ad):
     """Fixture to create a RoleCompetencyLogic instance."""
-    return RoleCompetencyLogic(app_data)
+    return RoleCompetencyLogic(ad)
 
 
 def test_get_competency_list(role_competency_logic):
@@ -61,7 +61,10 @@ def test_save_role_competencies(role_competency_logic):
     chc_rc = [[MagicMock()]]
 
     # Ensure the role competency does not exist initially
-    db_rc = role_competency_logic.ad.md.find_three('Role Competency', service_code, 'Service Code', role_code, 'Role Code', competency_name, 'Competency Name')
+    db_rc = role_competency_logic.ad.md.find_three('Role Competency',
+                                                   service_code,'Service Code',
+                                                   role_code, 'Role Code',
+                                                   competency_name, 'Competency Name')
     if db_rc > -1:
         role_competency_logic.ad.md.delete_row('Role Competency', db_rc)
 

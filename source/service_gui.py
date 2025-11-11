@@ -6,7 +6,7 @@ from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
 from source.service_logic import ServiceLogic
-from source.window import child_window, set_disabled_entry, input_warning
+from source.window import child_window, set_disabled_entry, input_warning, widget_dict_values
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,8 @@ class ServiceUpdate(object):
     def handle_save_click(self):
         """Read all values in table and update the table object if any values
            have changed."""
-        number_changes = self.sl.save_services(self.service_widgets)
+        service_values = widget_dict_values(self.service_widgets)
+        number_changes = self.sl.save_services(service_values)
         CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
 
         # Sort table and redisplay widgets for all service records
@@ -163,10 +164,10 @@ class ServiceDelete(object):
     def handle_delete_click(self):
         """Delete current record."""
         service_code = self.cmb_service_code.get()
-        success, message = self.sl.delete_service(service_code)
+        success, warning, message = self.sl.delete_service(service_code)
 
         if not success:
-            if message != "No service code selected.":
+            if warning:
                 win_msg = CTkMessagebox(title="Dependent Record Warning", message=message,
                                         icon='warning', option_1='Delete', option_2='Cancel')
                 if win_msg.get() != 'Delete':
@@ -224,5 +225,7 @@ class ServiceAdd(object):
 
         if success:
             CTkMessagebox(title="Information", message=message, icon='info')
+            self.ent_service_code.delete(0, 9999)
+            self.ent_service_name.delete(0, 9999)
         else:
             input_warning(self.wnd_service_add, message)

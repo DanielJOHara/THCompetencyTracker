@@ -9,13 +9,13 @@ logger = logging.getLogger(__name__)
 class RoleCompetencyLogic:
     """Encapsulates the business logic for role competency management."""
 
-    def __init__(self, app_data: AppData):
+    def __init__(self, ad: AppData):
         """Initializes the RoleCompetencyLogic.
 
         Args:
-            app_data: The application's data object.
+            ad: The application's data object.
         """
-        self.ad = app_data
+        self.ad = ad
 
     def get_competency_list(self, staff_type: str) -> list:
         """Gets a list of competencies for a given staff type.

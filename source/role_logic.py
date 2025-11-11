@@ -11,56 +11,56 @@ class RoleUpdateLogic(object):
         """Initialise the RoleUpdateLogic class."""
         self.ad = ad
 
-    def save_roles(self, role_widgets: list) -> tuple[int, str]:
+    def save_roles(self, role_values: list) -> tuple[bool, int, str]:
         """Read all values in table and update the table object if any values have changed."""
         # Validate integer attribute
         for db_r in range(self.ad.md.len('Role')):
-            if not role_widgets[db_r]['display_order'].get().isdigit():
-                return 0, "Display Order field must be integer!"
+            if not role_values[db_r]['Display Order'].isdigit():
+                return False, 0, "Display Order field must be integer!"
 
         # Check every value to see if it has changed
         number_changes = 0
         for db_r in range(self.ad.md.len('Role')):
             # Propagate Role Code changes to foreign keys in Role Competency and Staff Role tables
-            if self.ad.md.get('Role', 'Role Code', db_r) != role_widgets[db_r]['role_code'].get():
+            if self.ad.md.get('Role', 'Role Code', db_r) != role_values[db_r]['Role Code']:
                 self.ad.master_updated = True
                 old = self.ad.md.get('Role', 'Role Code', db_r)
-                new = role_widgets[db_r]['role_code'].get()
+                new = role_values[db_r]['Role Code']
                 self.ad.md.replace('Role Competency', 'Role Code', old, new)
                 self.ad.md.replace('Staff Role', 'Role Code', old, new)
 
             # Update row if it has changed
-            if (self.ad.md.get('Role', 'Display Order', db_r) != int(role_widgets[db_r]['display_order'].get())
-                    or self.ad.md.get('Role', 'Role Code', db_r) != role_widgets[db_r]['role_code'].get()
-                    or self.ad.md.get('Role', 'Role Name', db_r) != role_widgets[db_r]['role_name'].get()
-                    or self.ad.md.get('Role', 'RN', db_r) != role_widgets[db_r]['rn'].get()):
+            if (self.ad.md.get('Role', 'Display Order', db_r) != int(role_values[db_r]['Display Order'])
+                    or self.ad.md.get('Role', 'Role Code', db_r) != role_values[db_r]['Role Code']
+                    or self.ad.md.get('Role', 'Role Name', db_r) != role_values[db_r]['Role Name']
+                    or self.ad.md.get('Role', 'RN', db_r) != role_values[db_r]['RN']):
                 number_changes += 1
                 self.ad.master_updated = True
-                self.ad.md.update_row('Role', db_r, {'Display Order': int(role_widgets[db_r]['display_order'].get()),
-                                                     'Role Code': role_widgets[db_r]['role_code'].get(),
-                                                     'Role Name': role_widgets[db_r]['role_name'].get(),
-                                                     'RN': role_widgets[db_r]['rn'].get()})
+                self.ad.md.update_row('Role', db_r, {'Display Order': int(role_values[db_r]['Display Order']),
+                                                     'Role Code': role_values[db_r]['Role Code'],
+                                                     'Role Name': role_values[db_r]['Role Name'],
+                                                     'RN': role_values[db_r]['RN']})
 
         if number_changes > 0:
             self.ad.md.sort_table('Role')
 
-        return number_changes, f"{number_changes} changes saved"
+        return True, number_changes, f"{number_changes} changes saved"
 
-    def delete_role(self, role_code: str) -> tuple[bool, str]:
+    def delete_role(self, role_code: str) -> tuple[bool, bool, str]:
         """Delete a role and its dependent records."""
         if not role_code:
-            return False, "No role code selected."
+            return False, False, "No role code selected."
 
         # Warn that dependent rows will be deleted
         rc_cnt = self.ad.md.count('Role Competency', 'Role Code', role_code)
         sr_cnt = self.ad.md.count('Staff Role', 'Role Code', role_code)
         if rc_cnt or sr_cnt:
             warn_text = f"{role_code} is used {rc_cnt} times in Role Competency and {sr_cnt} times in Staff Role"
-            return False, warn_text
+            return False, True, warn_text
 
         self.delete_role_with_dependents(role_code)
         
-        return True, f"{role_code} deleted."
+        return True, False, f"{role_code} deleted."
 
     def delete_role_with_dependents(self, role_code: str):
         """Delete a role and its dependent records."""

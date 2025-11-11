@@ -7,43 +7,47 @@ from source.appdata import AppData
 
 logger = logging.getLogger(__name__)
 
+
 class StaffRoleLogic:
     """Encapsulates the business logic for staff role management."""
 
-    def __init__(self, app_data: AppData):
+    def __init__(self, ad: AppData):
         """Initializes the StaffRoleLogic.
 
         Args:
-            app_data: The application's data object.
+            ad: The application's data object.
         """
-        self.ad = app_data
+        self.ad = ad
 
-    def save_staff_roles(self, staff_name: str, role_widgets: list, bank_widgets: list, nightshift_widgets: list) -> tuple[int, str]:
+    def save_staff_roles(self, staff_name: str, role_list: list,
+                         bank_list: list, nightshift_list: list) -> tuple[bool, int, str]:
         """Saves all changes made to the staff roles.
 
         Args:
             staff_name: The name of the staff member.
-            role_widgets: A list of widgets representing the roles.
-            bank_widgets: A list of widgets representing the bank status.
-            nightshift_widgets: A list of widgets representing the nightshift status.
+            role_list: A list the role values.
+            bank_list: A list of bank values.
+            nightshift_list: A list of nightshift values.
 
         Returns:
-            A tuple containing the number of changes and a message.
+            A tuple containing an input valid flag, number of changes and a message.
         """
         if not staff_name:
-            return 0, "No staff member selected."
+            return False, 0, "No staff member selected."
 
         number_changes = 0
         for db_sc, service_code in enumerate(self.ad.md.get_list('Service', 'Service Code')):
-            role_code = role_widgets[db_sc].get()
+            role_code = role_list[db_sc]
             db_sr = self.ad.md.find_two('Staff Role', service_code, 'Service Code', staff_name, 'Staff Name')
             if not role_code:
                 if db_sr > -1:
                     self.ad.md.delete_row('Staff Role', db_sr)
+                    number_changes += 1
+                    self.ad.master_updated = True
                 continue
 
-            bank = bank_widgets[db_sc].get()
-            nightshift = nightshift_widgets[db_sc].get()
+            bank = bank_list[db_sc]
+            nightshift = nightshift_list[db_sc]
             if db_sr < 0:
                 number_changes += 1
                 self.ad.master_updated = True
@@ -62,7 +66,7 @@ class StaffRoleLogic:
                                                                 'Bank': bank,
                                                                 'Nightshift': nightshift})
 
-        return number_changes, f"{number_changes} changes saved"
+        return True, number_changes, f"{number_changes} changes saved"
 
     def delete_staff_roles(self, staff_name: str) -> None:
         """Deletes all roles for a staff member.

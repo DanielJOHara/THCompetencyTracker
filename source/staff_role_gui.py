@@ -6,7 +6,7 @@ from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
 from source.staff_role_logic import StaffRoleLogic
-from source.window import input_warning
+from source.window import input_warning, widget_list_values
 
 logger = logging.getLogger(__name__)
 
@@ -163,9 +163,12 @@ class StaffRoleUpdate(object):
     def handle_save_click(self):
         """Update role records for current staff member."""
         staff_name = self.cmb_staff_name.get()
-        number_changes, message = self.srl.save_staff_roles(staff_name, self.cmb_role_code, self.chc_bank, self.chc_nightshift)
+        input_valid, number_changes, message = self.srl.save_staff_roles(staff_name,
+                                                                         widget_list_values(self.cmb_role_code),
+                                                                         widget_list_values(self.chc_bank),
+                                                                         widget_list_values(self.chc_nightshift))
 
-        if message != f"{number_changes} changes saved":
+        if not input_valid:
             input_warning(self.wnd_staff_role, message)
             return
 

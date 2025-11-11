@@ -33,7 +33,7 @@ def ctk_root():
 
 
 @pytest.fixture
-def app_data(request):
+def ad(request):
     """Fixture to create an AppData object with a MasterData instance."""
     ad = AppData()
     ad.md = MasterData('None', 30)
@@ -63,25 +63,25 @@ def mock_ctk_messagebox():
         yield mock_msgbox
 
 
-def test_role_update(ctk_root, app_data):
+def test_role_update(ctk_root, ad):
     # Create role update window
     wnd_role_update = ctk.CTkToplevel(ctk_root)
     wnd_role_update.grab_set()
 
     # Populate role update window
-    role_update = RoleUpdate(app_data, wnd_role_update)
+    role_update = RoleUpdate(ad, wnd_role_update)
     pump_events(ctk_root)
 
-    assert len(role_update.role_widgets) == app_data.md.len('Role')
+    assert len(role_update.role_widgets) == ad.md.len('Role')
 
 
-def test_role_add(ctk_root, mock_input_warning, mock_ctk_messagebox, app_data):
+def test_role_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad):
     # Create role add window
     wnd_role_add = ctk.CTkToplevel(ctk_root)
     wnd_role_add.grab_set()
 
     # Populate role add window
-    role_add = RoleAdd(app_data, wnd_role_add)
+    role_add = RoleAdd(ad, wnd_role_add)
     pump_events(ctk_root)
 
     # Blank input test
@@ -103,22 +103,22 @@ def test_role_add(ctk_root, mock_input_warning, mock_ctk_messagebox, app_data):
     mock_ctk_messagebox.assert_called_once_with(title='Information', message='Added NEW - New Role', icon='info')
 
     # Find the new record
-    db_r = app_data.md.find_one('Role', 'NEW', 'Role Code')
+    db_r = ad.md.find_one('Role', 'NEW', 'Role Code')
     assert db_r > -1
-    assert app_data.md.get('Role', 'Role Name', db_r) == 'New Role'
+    assert ad.md.get('Role', 'Role Name', db_r) == 'New Role'
 
     # Close role add window
     role_add.btn_exit.invoke()
     pump_events(ctk_root)
 
 
-def test_role_delete(ctk_root, app_data):
+def test_role_delete(ctk_root, ad):
     # Create role delete window
     wnd_role_delete = ctk.CTkToplevel(ctk_root)
     wnd_role_delete.grab_set()
 
     # Populate role delete window
-    role_delete = RoleDelete(app_data, wnd_role_delete)
+    role_delete = RoleDelete(ad, wnd_role_delete)
     pump_events(ctk_root)
 
     # Select the role record and check the name updates correctly
@@ -132,8 +132,8 @@ def test_role_delete(ctk_root, app_data):
     pump_events(ctk_root)
     assert role_delete.cmb_role_code.get() == ''
     assert role_delete.ent_role_name.get() == ''
-    assert app_data.md.len("Role") == 2
-    db_r = app_data.md.find_one('Role', 'RC2', 'Role Code')
+    assert ad.md.len("Role") == 2
+    db_r = ad.md.find_one('Role', 'RC2', 'Role Code')
     assert db_r == -1
 
     role_delete.btn_exit.invoke()

@@ -202,7 +202,8 @@ class StaffUpdate(object):
             if self.chc_role_filter[db_r].get():
                 role_filter.append(role_code)
 
-        self.db_s_list = self.sl.apply_filters(self.ent_name_filter.get(), self.chc_no_role_filter.get(), service_filter, role_filter)
+        self.db_s_list = self.sl.apply_filters(self.ent_name_filter.get(),
+                                               self.chc_no_role_filter.get(), service_filter, role_filter)
 
         self.display_staff_table()
 
@@ -217,10 +218,10 @@ class StaffUpdate(object):
 
         staff_widgets = []
         for s, db_s in enumerate(self.db_s_list):
-            staff_widgets.append({'name': self.ent_staff_name[s],
-                                  'start_date': self.ent_start_date[s],
-                                  'supervisor': self.chc_practice_supervisor[s],
-                                  'assessor': self.chc_practice_assessor[s]})
+            staff_widgets.append({'Staff Name': self.ent_staff_name[s].get(),
+                                  'Start Date': self.ent_start_date[s].get(),
+                                  'Practice Supervisor': self.chc_practice_supervisor[s].get(),
+                                  'Practice Assessor': self.chc_practice_assessor[s].get()})
 
         number_changes, message = self.sl.save_staff(staff_widgets, self.db_s_list)
 
@@ -419,13 +420,12 @@ class StaffDelete(object):
         """Delete current record."""
         staff_name = self.cmb_staff_name.get()
 
-        success, message = self.sl.delete_staff(staff_name)
+        success, warning, message = self.sl.delete_staff(staff_name)
 
         if not success:
-            if message != "No staff member selected.":
+            if warning:
                 msg = CTkMessagebox(title="Dependent Record Warning", message=message,
                                     icon='warning', option_1='Delete', option_2='Cancel')
-                button = msg.get()
                 if msg.get() == 'Cancel':
                     self.wnd_staff_del.grab_set()
                     return
@@ -513,6 +513,10 @@ class StaffAdd(object):
             # Open window to add roles for the new staff member
             child_window(StaffRoleUpdate, self.ad, self.wnd_staff_add, re.sub(' +', ' ', staff_name.strip()))
             CTkMessagebox(title="Information", message=message, icon='info')
+            self.ent_staff_name.delete(0, 9999)
+            self.ent_start_date.delete(0, 9999)
+            self.chc_practice_supervisor.deselect()
+            self.chc_practice_assessor.deselect()
         else:
             input_warning(self.wnd_staff_add, message)
 

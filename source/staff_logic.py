@@ -13,12 +13,12 @@ class StaffLogic(object):
         """Initialise the StaffLogic class."""
         self.ad = ad
 
-    def save_staff(self, staff_widgets: list, db_s_list: list) -> tuple[int, str]:
+    def save_staff(self, staff_values: list, db_s_list: list) -> tuple[int, str]:
         """Read all values in table and update the table object if any values
            have changed."""
         number_changes = 0
         for s, db_s in enumerate(db_s_list):
-            staff_name = re.sub(' +', ' ', staff_widgets[s]['name'].get().strip())
+            staff_name = re.sub(' +', ' ', staff_values[s]['Staff Name'].strip())
             old_staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
             if old_staff_name != staff_name:
                 logger.info(f"Changing Staff Name from >{old_staff_name}< to >{staff_name}<")
@@ -31,25 +31,26 @@ class StaffLogic(object):
                     self.ad.md.replace('Staff Role', 'Staff Name', old_staff_name, staff_name)
                     self.ad.md.replace('Staff Competency', 'Staff Name', old_staff_name, staff_name)
 
-            start_date = parse_date(staff_widgets[s]['start_date'].get())
+            start_date = parse_date(staff_values[s]['Start Date'])
             if (old_staff_name != staff_name
                     or self.ad.md.get('Staff', 'Start Date', db_s) != start_date
-                    or self.ad.md.get('Staff', 'Practice Supervisor', db_s) != staff_widgets[s]['supervisor'].get()
-                    or self.ad.md.get('Staff', 'Practice Assessor', db_s) != staff_widgets[s]['assessor'].get()):
+                    or self.ad.md.get('Staff', 'Practice Supervisor', db_s) != staff_values[s]['Practice Supervisor']
+                    or self.ad.md.get('Staff', 'Practice Assessor', db_s) != staff_values[s]['Practice Assessor']):
                 number_changes += 1
                 logger.info(f"Updating Staff Name {old_staff_name}")
                 self.ad.master_updated = True
                 self.ad.md.update_row('Staff', db_s, {'Staff Name': staff_name,
                                                       'Start Date': start_date,
-                                                      'Practice Supervisor': staff_widgets[s]['supervisor'].get(),
-                                                      'Practice Assessor': staff_widgets[s]['assessor'].get()})
+                                                      'Practice Supervisor': staff_values[s]['Practice Supervisor'],
+                                                      'Practice Assessor': staff_values[s]['Practice Assessor']})
         
         if number_changes > 0:
             self.ad.md.sort_table('Staff')
 
         return number_changes, f"{number_changes} changes saved"
 
-    def add_staff(self, staff_name: str, start_date: str, practice_supervisor: int, practice_assessor: int) -> tuple[bool, str]:
+    def add_staff(self, staff_name: str, start_date: str,
+                  practice_supervisor: int, practice_assessor: int) -> tuple[bool, str]:
         """Add a new staff member."""
         staff_name = re.sub(' +', ' ', staff_name.strip())
         
@@ -71,21 +72,21 @@ class StaffLogic(object):
         else:
             return False, f"Staff Name {staff_name} is already defined!"
 
-    def delete_staff(self, staff_name: str) -> tuple[bool, str]:
+    def delete_staff(self, staff_name: str) -> tuple[bool, bool, str]:
         """Delete a staff member and their dependent records."""
         if not staff_name:
-            return False, "No staff member selected."
+            return False, False, "No staff member selected."
 
         # Warn that dependent rows will be deleted
         sr_cnt = self.ad.md.count('Staff Role', 'Staff Name', staff_name)
         sc_cnt = self.ad.md.count('Staff Competency', 'Staff Name', staff_name)
         if sr_cnt or sc_cnt:
             warn_text = f"{staff_name} is used {sr_cnt} times in Staff Role and {sc_cnt} times in Staff Competency"
-            return False, warn_text
+            return False, True, warn_text
 
         self.delete_staff_with_dependents(staff_name)
         
-        return True, f"{staff_name} deleted."
+        return True, False, f"{staff_name} deleted."
 
     def delete_staff_with_dependents(self, staff_name: str):
         """Delete a staff member and their dependent records."""
@@ -101,7 +102,8 @@ class StaffLogic(object):
         # Delete entries for Staff Name in Staff Competency table
         self.ad.md.delete_value('Staff Competency', 'Staff Name', staff_name)
 
-    def apply_filters(self, name_filter: str, no_role_filter: int, service_filter: list, role_filter: list) -> list[int]:
+    def apply_filters(self, name_filter: str, no_role_filter: int,
+                      service_filter: list, role_filter: list) -> list[int]:
         """Apply filters to the staff list."""
         if name_filter:
             name_filter = re.sub(r"[^a-zA-Z -']", '', name_filter).strip()

@@ -1,10 +1,10 @@
 """This module provides common functions used by the GUI windows."""
 import datetime
 import logging
+from typing import Any, Callable, Union
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
-from typing import Any, Callable, Union
 
 from source.appdata import AppData
 
@@ -80,3 +80,24 @@ def parse_date(text: str) -> Union[str, datetime.date]:
         except ValueError:
             pass
     return ''
+
+
+def widget_dict_values(widget_dict_list: list) -> list:
+    """Get the values for a list of widget dictionaries and return values as a list of dictionaries."""
+    value_dict_list = []
+    for widget_dict in widget_dict_list:
+        value_dict = {}
+        for widget in widget_dict:
+            value_dict[widget] = widget_dict[widget].get()
+        value_dict_list.append(value_dict)
+
+    return value_dict_list
+
+
+def widget_list_values(widget_list: list) -> list:
+    """Get the values for a list of widgets and return as a list of values."""
+    value_list = []
+    for widget in widget_list:
+        value_list.append(widget.get())
+
+    return value_list

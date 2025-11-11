@@ -6,70 +6,73 @@ from source.appdata import AppData
 
 logger = logging.getLogger(__name__)
 
+
 class CompetencyLogic:
     """Encapsulates the business logic for competency management."""
 
-    def __init__(self, app_data: AppData):
+    def __init__(self, ad: AppData):
         """Initializes the CompetencyLogic.
 
         Args:
-            app_data: The application's data object.
+            ad: The application's data object.
         """
-        self.ad = app_data
+        self.ad = ad
 
-    def save_competencies(self, competency_widgets: list) -> tuple[int, str]:
+    def save_competencies(self, competency_values: list) -> tuple[bool, int, str]:
         """Saves all changes made to the competencies.
 
         Args:
-            competency_widgets: A list of widgets representing the competencies.
+            competency_values: A list of values the competencies.
 
         Returns:
             A tuple containing the number of changes and a message.
         """
         # Validate integer attributes
         for db_c in range(self.ad.md.len('Competency')):
-            if not competency_widgets[db_c]['display_order'].get().isdigit():
-                return 0, "Display Order field must be integer!"
-            if competency_widgets[db_c]['expiry'].get() and not competency_widgets[db_c]['expiry'].get().isdigit():
-                return 0, "Expiry field must be integer or blank!"
+            if not competency_values[db_c]['Display Order'].isdigit():
+                return False, 0, "Display Order field must be integer!"
+            if competency_values[db_c]['Expiry'] and not competency_values[db_c]['Expiry'].isdigit():
+                return False, 0, "Expiry field must be integer or blank!"
 
         # Check every value to see if it has changed
         number_changes = 0
         for db_c in range(self.ad.md.len('Competency')):
             # Propagate Competency Name changes to foreign keys in other tables
-            if self.ad.md.get('Competency', 'Competency Name', db_c) != competency_widgets[db_c]['competency_name'].get():
+            if self.ad.md.get('Competency', 'Competency Name', db_c) != competency_values[db_c]['Competency Name']:
                 self.ad.master_updated = True
                 old = self.ad.md.get('Competency', 'Competency Name', db_c)
-                new = competency_widgets[db_c]['competency_name'].get()
+                new = competency_values[db_c]['Competency Name']
                 self.ad.md.replace('Role Competency', 'Competency Name', old, new)
                 self.ad.md.replace('Staff Competency', 'Competency Name', old, new)
 
-            if competency_widgets[db_c]['expiry'].get():
-                expiry = int(competency_widgets[db_c]['expiry'].get())
+            if competency_values[db_c]['Expiry']:
+                expiry = int(competency_values[db_c]['Expiry'])
             else:
                 expiry = ''
-            if (self.ad.md.get('Competency', 'Competency Name', db_c) != competency_widgets[db_c]['competency_name'].get()
-                    or self.ad.md.get('Competency', 'Display Order', db_c) != int(competency_widgets[db_c]['display_order'].get())
-                    or self.ad.md.get('Competency', 'Scope', db_c) != competency_widgets[db_c]['scope'].get()
-                    or self.ad.md.get('Competency', 'Prerequisite', db_c) != competency_widgets[db_c]['prerequisite'].get()
-                    or self.ad.md.get('Competency', 'Nightshift', db_c) != competency_widgets[db_c]['nightshift'].get()
-                    or self.ad.md.get('Competency', 'Bank', db_c) != competency_widgets[db_c]['bank'].get()):
+            if (self.ad.md.get('Competency', 'Competency Name', db_c) != competency_values[db_c]['Competency Name']
+                    or self.ad.md.get('Competency', 'Display Order', db_c)
+                        != int(competency_values[db_c]['Display Order'])
+                    or self.ad.md.get('Competency', 'Scope', db_c) != competency_values[db_c]['Scope']
+                    or self.ad.md.get('Competency', 'Prerequisite', db_c) != competency_values[db_c]['Prerequisite']
+                    or self.ad.md.get('Competency', 'Nightshift', db_c) != competency_values[db_c]['Nightshift']
+                    or self.ad.md.get('Competency', 'Bank', db_c) != competency_values[db_c]['Bank']):
                 number_changes += 1
                 self.ad.master_updated = True
-                self.ad.md.update_row('Competency', db_c, {'Competency Name': competency_widgets[db_c]['competency_name'].get(),
-                                                           'Display Order': int(competency_widgets[db_c]['display_order'].get()),
-                                                           'Scope': competency_widgets[db_c]['scope'].get(),
-                                                           'Expiry': expiry,
-                                                           'Prerequisite': competency_widgets[db_c]['prerequisite'].get(),
-                                                           'Nightshift': competency_widgets[db_c]['nightshift'].get(),
-                                                           'Bank': competency_widgets[db_c]['bank'].get()})
+                self.ad.md.update_row('Competency', db_c,
+                                      {'Competency Name': competency_values[db_c]['Competency Name'],
+                                       'Display Order': int(competency_values[db_c]['Display Order']),
+                                       'Scope': competency_values[db_c]['Scope'],
+                                       'Expiry': expiry,
+                                       'Prerequisite': competency_values[db_c]['Prerequisite'],
+                                       'Nightshift': competency_values[db_c]['Nightshift'],
+                                       'Bank': competency_values[db_c]['Bank']})
 
         if number_changes > 0:
             self.ad.md.sort_table('Competency')
 
-        return number_changes, f"{number_changes} changes saved"
+        return True, number_changes, f"{number_changes} changes saved"
 
-    def delete_competency(self, competency_name: str) -> tuple[bool, str]:
+    def delete_competency(self, competency_name: str) -> tuple[bool, bool, str]:
         """Deletes a competency and its dependent records.
 
         Args:
@@ -79,7 +82,7 @@ class CompetencyLogic:
             A tuple containing a boolean indicating success and a message.
         """
         if not competency_name:
-            return False, "No competency selected."
+            return False, False, "No competency selected."
 
         # Warn that dependent rows will be deleted
         rc_cnt = self.ad.md.count('Role Competency', 'Competency Name', competency_name)
@@ -87,10 +90,10 @@ class CompetencyLogic:
         if rc_cnt or sc_cnt:
             warn_text = (f"{competency_name} is used {rc_cnt} times in Role Competency"
                          f" and {sc_cnt} times in Staff Competency")
-            return False, warn_text
+            return False, True, warn_text
 
         self.delete_competency_with_dependents(competency_name)
-        return True, f"{competency_name} deleted."
+        return True, False, f"{competency_name} deleted."
 
     def delete_competency_with_dependents(self, competency_name: str):
         """Deletes a competency and its dependent records.

@@ -1,166 +1,266 @@
-
 import pytest
-from unittest.mock import MagicMock, create_autospec
+import logging
+
 from source.staff_logic import StaffLogic
-from source.window import parse_date
+from source.master_data import MasterData
 from source.appdata import AppData
+from source.window import date_to_string, parse_date
+
+# Set up logging
+logger = logging.getLogger()
+stream_handler = logging.StreamHandler()
+logger.addHandler(stream_handler)
 
 
 @pytest.fixture
-def mock_appdata():
-    """Fixture to create a mocked AppData object."""
-    app_data = create_autospec(AppData)
-    app_data.md = MagicMock()
-    return app_data
+def ad():
+    ad = AppData()
+    ad.md = MasterData('None', 30)
+    ad.md.add_table('Staff',
+                    ['Staff Name', 'Start Date', 'Practice Supervisor', 'Practice Assessor'],
+                    [["Jane Smith", parse_date("2023-01-01"), 1, 0],
+                     ["John Doe", parse_date("2023-02-01"), 0, 0],
+                     ["Peter Jones", parse_date("2023-03-01"), 0, 1]])
+    ad.md.add_table('Service',
+                    ['Service Code', 'Service Name'],
+                    [["IPS", "Inpatient Service"],
+                     ["OPS", "Outpatient Service"]])
+    ad.md.add_table('Role',
+                    ['Role Code', 'Role Name'],
+                    [["SN", "Staff Nurse"],
+                     ["HCA", "Healthcare Assistant"]])
+    ad.md.add_table('Staff Role',
+                    ['Staff Name', 'Service Code', 'Role Code'],
+                    [["Jane Smith", "OPS", "HCA"],
+                     ["John Doe", "IPS", "SN"]])
+    ad.md.add_table('Staff Competency',
+                    ['Staff Name', 'Competency Name'],
+                    [["John Doe", "VoED"]])
+    yield ad
 
 
 @pytest.fixture
-def staff_logic(mock_appdata):
-    """Fixture to create a StaffLogic instance with a mocked AppData object."""
-    return StaffLogic(mock_appdata)
+def value_list(ad):
+    value_list = []
+    for db_s in range(ad.md.len('Staff')):
+        value_list.append({'Staff Name': ad.md.get('Staff', 'Staff Name', db_s),
+                           'Start Date': date_to_string(ad.md.get('Staff', 'Start Date', db_s)),
+                           'Practice Supervisor': ad.md.get('Staff', 'Practice Supervisor', db_s),
+                           'Practice Assessor': ad.md.get('Staff', 'Practice Assessor', db_s)})
+    yield value_list
 
 
-def test_add_staff_success(staff_logic, mock_appdata):
+def test_add_staff_success(ad):
     """Test successfully adding a new staff member."""
-    mock_appdata.md.index.side_effect = IndexError
+    staff_len = ad.md.len('Staff')
     staff_name = "New Staff"
     start_date = "2023-01-01"
     practice_supervisor = 1
     practice_assessor = 0
     
-    success, message = staff_logic.add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
+    success, message = StaffLogic(ad).add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
     
     assert success is True
     assert message == f"Added {staff_name}"
-    mock_appdata.md.add_row.assert_called_once()
-    assert mock_appdata.master_updated is True
+    assert ad.master_updated is True
+    assert ad.md.len('Staff') == staff_len + 1
 
 
-def test_add_staff_failure_exists(staff_logic, mock_appdata):
+def test_add_staff_failure_exists(ad):
     """Test failing to add a staff member that already exists."""
-    mock_appdata.md.index.return_value = 0
-    staff_name = "Existing Staff"
+    staff_len = ad.md.len('Staff')
+    staff_name = ad.md.get('Staff', 'Staff Name', 0)
     start_date = "2023-01-01"
     practice_supervisor = 1
     practice_assessor = 0
     
-    success, message = staff_logic.add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
+    success, message = StaffLogic(ad).add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
     
     assert success is False
     assert message == f"Staff Name {staff_name} is already defined!"
-    mock_appdata.md.add_row.assert_not_called()
+    assert ad.master_updated is False
+    assert ad.md.len('Staff') == staff_len
 
 
-def test_add_staff_failure_no_name(staff_logic):
+def test_add_staff_failure_no_name(ad):
     """Test failing to add a staff member with no name."""
-    success, message = staff_logic.add_staff("", "2023-01-01", 1, 0)
+    staff_len = ad.md.len('Staff')
+    staff_name = ""
+    start_date = "2023-01-01"
+    practice_supervisor = 1
+    practice_assessor = 0
+
+    success, message = StaffLogic(ad).add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
     
     assert success is False
     assert message == "Staff Name field must be set!"
+    assert ad.master_updated is False
+    assert ad.md.len('Staff') == staff_len
 
 
-def test_add_staff_failure_invalid_date(staff_logic):
+def test_add_staff_failure_invalid_date(ad):
     """Test failing to add a staff member with an invalid date."""
-    success, message = staff_logic.add_staff("New Staff", "invalid date", 1, 0)
+    staff_len = ad.md.len('Staff')
+    staff_name = "New Name"
+    start_date = "2023-02-29"
+    practice_supervisor = 1
+    practice_assessor = 0
+    success, message = StaffLogic(ad).add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
     
     assert success is False
-    assert message == f"Start Date invalid date is not a valid date!"
+    assert message == f"Start Date {start_date} is not a valid date!"
+    assert ad.master_updated is False
+    assert ad.md.len('Staff') == staff_len
 
 
-def test_delete_staff_success(staff_logic, mock_appdata):
+def test_delete_staff_success(ad):
     """Test successfully deleting a staff member."""
-    staff_name = "DEL"
-    mock_appdata.md.count.return_value = 0
-    
-    success, message = staff_logic.delete_staff(staff_name)
+    staff_len = ad.md.len('Staff')
+    staff_name = "Peter Jones"
+
+    success, warning, message = StaffLogic(ad).delete_staff(staff_name)
     
     assert success is True
+    assert warning is False
     assert message == f"{staff_name} deleted."
-    mock_appdata.md.index.assert_called_with('Staff', 'Staff Name', staff_name)
+    assert ad.md.len('Staff') == staff_len - 1
+    assert ad.md.count('Staff', 'Staff Name', staff_name) == 0
 
 
-def test_delete_staff_failure_no_name(staff_logic):
+def test_delete_staff_failure_no_name(ad):
     """Test failing to delete a staff member with no name."""
-    success, message = staff_logic.delete_staff("")
+    staff_len = ad.md.len('Staff')
+    staff_name = ""
+
+    success, warning, message = StaffLogic(ad).delete_staff(staff_name)
     
     assert success is False
+    assert warning is False
     assert message == "No staff member selected."
+    assert ad.md.len('Staff') == staff_len
 
 
-def test_delete_staff_failure_with_dependents(staff_logic, mock_appdata):
+def test_delete_staff_failure_with_dependents(ad):
     """Test failing to delete a staff member that has dependent records."""
-    staff_name = "DEP"
-    mock_appdata.md.count.side_effect = [1, 2]  # 1 for Staff Role, 2 for Staff Competency
+    staff_len = ad.md.len('Staff')
+    staff_name = "John Doe"
+    sr_cnt = ad.md.count('Staff Role', 'Staff Name', staff_name)
+    sc_cnt = ad.md.count('Staff Competency', 'Staff Name', staff_name)
     
-    success, message = staff_logic.delete_staff(staff_name)
+    success, warning, message = StaffLogic(ad).delete_staff(staff_name)
     
     assert success is False
-    assert f"{staff_name} is used 1 times in Staff Role and 2 times in Staff Competency" in message
+    assert warning is True
+    assert f"{staff_name} is used {sr_cnt} times in Staff Role and {sc_cnt} times in Staff Competency" in message
+    assert ad.md.len('Staff') == staff_len
 
 
-def test_delete_staff_with_dependents(staff_logic, mock_appdata):
+def test_delete_staff_with_dependents(ad):
     """Test deleting a staff member and their dependent records."""
-    staff_name = "DEP"
-    mock_appdata.md.index.return_value = 0
-    
-    staff_logic.delete_staff_with_dependents(staff_name)
-    
-    mock_appdata.md.delete_row.assert_called_once_with('Staff', 0)
-    mock_appdata.md.delete_value.assert_any_call('Staff Role', 'Staff Name', staff_name)
-    mock_appdata.md.delete_value.assert_any_call('Staff Competency', 'Staff Name', staff_name)
-    assert mock_appdata.master_updated is True
+    staff_len = ad.md.len('Staff')
+    staff_name = "John Doe"
+
+    StaffLogic(ad).delete_staff_with_dependents(staff_name)
+
+    assert ad.md.len('Staff') == staff_len - 1
+    assert ad.md.count('Staff', 'Staff Name', staff_name) == 0
 
 
-def test_save_staff_no_changes(staff_logic, mock_appdata):
+def test_save_staff_no_changes(ad, value_list):
     """Test saving staff when no changes have been made."""
-    mock_appdata.md.get.side_effect = ["Staff1", parse_date("2023-01-01"), 1, 0]
-    
-    mock_widget = {'name': MagicMock(), 'start_date': MagicMock(), 'supervisor': MagicMock(), 'assessor': MagicMock()}
-    mock_widget['name'].get.return_value = "Staff1"
-    mock_widget['start_date'].get.return_value = "2023-01-01"
-    mock_widget['supervisor'].get.return_value = 1
-    mock_widget['assessor'].get.return_value = 0
-    staff_widgets = [mock_widget]
-    db_s_list = [0]
-    
-    number_changes, message = staff_logic.save_staff(staff_widgets, db_s_list)
-    
+    db_s_list = list(range(len(value_list)))
+    number_changes, message = StaffLogic(ad).save_staff(value_list, db_s_list)
+
     assert number_changes == 0
     assert message == "0 changes saved"
-    mock_appdata.md.update_row.assert_not_called()
 
 
-def test_save_staff_with_changes(staff_logic, mock_appdata):
-    """Test saving staff when changes have been made."""
-    mock_appdata.md.get.side_effect = ["Staff1", "2023-01-01", 1, 0]
-    mock_appdata.md.count.return_value = 0
-    
-    mock_widget = {'name': MagicMock(), 'start_date': MagicMock(), 'supervisor': MagicMock(), 'assessor': MagicMock()}
-    mock_widget['name'].get.return_value = "Staff2"
-    mock_widget['start_date'].get.return_value = "2023-01-02"
-    mock_widget['supervisor'].get.return_value = 0
-    mock_widget['assessor'].get.return_value = 1
-    staff_widgets = [mock_widget]
-    db_s_list = [0]
-    
-    number_changes, message = staff_logic.save_staff(staff_widgets, db_s_list)
+def test_save_staff_no_changes_filtered_list(ad, value_list):
+    """Test saving staff when no changes have been made when a row is filtered."""
+    value_list.pop(1)
+    db_s_list = list(range(len(value_list)))
+    db_s_list.pop(1)
+    number_changes, message = StaffLogic(ad).save_staff(value_list, db_s_list)
+
+    assert number_changes == 0
+    assert message == "0 changes saved"
+
+
+def test_save_staff_with_name_change(ad, value_list):
+    """Test saving staff when a name change has been made."""
+    old_name = value_list[1]["Staff Name"]
+    new_name = 'New Name'
+    db_s_list = list(range(len(value_list)))
+    value_list[1]["Staff Name"] = new_name
+
+    number_changes, message = StaffLogic(ad).save_staff(value_list, db_s_list)
     
     assert number_changes == 1
     assert message == "1 changes saved"
-    mock_appdata.md.update_row.assert_called_once()
-    mock_appdata.md.replace.assert_any_call('Staff Role', 'Staff Name', 'Staff1', 'Staff2')
-    mock_appdata.md.replace.assert_any_call('Staff Competency', 'Staff Name', 'Staff1', 'Staff2')
-    mock_appdata.md.sort_table.assert_called_once_with('Staff')
-    assert mock_appdata.master_updated is True
+    assert ad.master_updated is True
+    assert ad.md.count('Staff', 'Staff Name', old_name) == 0
+    assert ad.md.count('Staff', 'Staff Name', new_name) == 1
+    assert ad.md.count('Staff Role', 'Staff Name', old_name) == 0
+    assert ad.md.count('Staff Role', 'Staff Name', new_name) == 1
+    assert ad.md.count('Staff Competency', 'Staff Name', old_name) == 0
+    assert ad.md.count('Staff Competency', 'Staff Name', new_name) == 1
 
 
-def test_apply_filters(staff_logic, mock_appdata):
-    """Test applying filters to the staff list."""
-    mock_appdata.md.get_list.return_value = ["Staff1", "Staff2"]
-    mock_appdata.md.count.return_value = 1
-    mock_appdata.md.find_one.side_effect = [0, -1, 1, -1]
-    mock_appdata.md.get.side_effect = ["ROLE1", "SERVICE1", "ROLE2", "SERVICE2"]
-    
-    db_s_list = staff_logic.apply_filters("Staff", 1, ["SERVICE1"], ["ROLE1"])
-    
+def test_apply_no_filters(ad):
+    """Test applying no filters to the staff list."""
+    name_filter = ""
+    no_role_filter = 1
+    service_filter = ad.md.get_list('Service', 'Service Code')
+    role_filter = ad.md.get_list('Role', 'Role Code')
+
+    db_s_list = StaffLogic(ad).apply_filters(name_filter, no_role_filter, service_filter, role_filter)
+
+    assert db_s_list == list(range(ad.md.len("Staff")))
+
+
+def test_apply_name_filters(ad):
+    """Test applying name filter to the staff list."""
+    name_filter = "jo"
+    no_role_filter = 1
+    service_filter = ad.md.get_list('Service', 'Service Code')
+    role_filter = ad.md.get_list('Role', 'Role Code')
+
+    db_s_list = StaffLogic(ad).apply_filters(name_filter, no_role_filter, service_filter, role_filter)
+
+    assert db_s_list == [1, 2]
+
+
+def test_apply_no_role_filters(ad):
+    """Test applying no role filters to the staff list."""
+    name_filter = ""
+    no_role_filter = 0
+    service_filter = ad.md.get_list('Service', 'Service Code')
+    role_filter = ad.md.get_list('Role', 'Role Code')
+
+    db_s_list = StaffLogic(ad).apply_filters(name_filter, no_role_filter, service_filter, role_filter)
+
+    assert db_s_list == [0, 1]
+
+
+def test_apply_role_filters(ad):
+    """Test applying role filters to the staff list."""
+    name_filter = ""
+    no_role_filter = 0
+    service_filter = ad.md.get_list('Service', 'Service Code')
+    role_filter = ['HCA']
+
+    db_s_list = StaffLogic(ad).apply_filters(name_filter, no_role_filter, service_filter, role_filter)
+
     assert db_s_list == [0]
+
+
+def test_apply_service_filters(ad):
+    """Test applying service filters to the staff list."""
+    name_filter = ""
+    no_role_filter = 0
+    service_filter = ['IPS']
+    role_filter = ad.md.get_list('Role', 'Role Code')
+
+    db_s_list = StaffLogic(ad).apply_filters(name_filter, no_role_filter, service_filter, role_filter)
+
+    assert db_s_list == [1]

@@ -1,5 +1,3 @@
-"""This module contains the routine to generate the Staff report. This report is a spreadsheet with
-   a staff summary tab and tab for each staff member giving the status for each competency."""
 import logging
 import os
 import re
@@ -7,7 +5,7 @@ import re
 import xlsxwriter
 
 from source.appdata import AppData
-from source.competency_display import set_competency_status
+from source.competency_display import set_competency_status, create_report_worksheet, write_row, format_status_column
 from source.write_cell import write_cell, yn
 
 logger = logging.getLogger(__name__)
@@ -21,12 +19,14 @@ def staff_report(ad: AppData, report_excel_path: str) -> None:
     # Define report work book and formats to be used
     wb = xlsxwriter.Workbook(report_excel_path)
     base_format = {'border': 1, 'valign': 'vcentre'}
-    format_plain = wb.add_format(base_format)
-    format_bold = wb.add_format(base_format | {'bold': True, 'align': 'centre'})
-    format_header = wb.add_format(base_format | {'bg_color': '#2CC985', 'text_wrap': True})
-    format_centre = wb.add_format(base_format | {'align': 'centre'})
-    format_date = wb.add_format(base_format | {'num_format': 'dd.mm.yy', 'align': 'centre'})
-    format_hyper = wb.add_format(base_format | {'font_color': 'blue', 'underline': 1})
+    formats = {
+        'plain': wb.add_format(base_format),
+        'bold': wb.add_format(base_format | {'bold': True, 'align': 'centre'}),
+        'header': wb.add_format(base_format | {'bg_color': '#2CC985', 'text_wrap': True}),
+        'centre': wb.add_format(base_format | {'align': 'centre'}),
+        'date': wb.add_format(base_format | {'num_format': 'dd.mm.yy', 'align': 'centre'}),
+        'hyper': wb.add_format(base_format | {'font_color': 'blue', 'underline': 1})
+    }
 
     # Define the sheet protect option
     protect_options = {
@@ -48,28 +48,26 @@ def staff_report(ad: AppData, report_excel_path: str) -> None:
     }
 
     # Create Staff summary sheet and output header row
-    ws_sum = wb.add_worksheet('Staff')
-    ws_sum.hide_gridlines(2)
-    ws_sum.freeze_panes(1, 0)
-    ws_sum_row = 0
-    ws_sum_col = 0
-    ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, 'Staff Name', format_header, width=26)
-    ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, 'Out Standing Competencies', format_header, width=12)
-    ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, 'Service', format_header, width=10)
-    ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, 'RN', format_header, width=10)
-    ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, 'Role', format_header, width=10)
-    ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, 'Nightshift', format_header, width=10)
-    ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, 'Bank', format_header, width=10)
+    header = [
+        {'label': 'Staff Name', 'width': 26},
+        {'label': 'Out Standing Competencies', 'width': 12},
+        {'label': 'Service', 'width': 10},
+        {'label': 'RN', 'width': 10},
+        {'label': 'Role', 'width': 10},
+        {'label': 'Nightshift', 'width': 10},
+        {'label': 'Bank', 'width': 10}
+    ]
     for status in range(len(ad.status_dict)):
-        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, ad.status_dict[status]['description'],
-                                format_header, width=11)
+        header.append({'label': ad.status_dict[status]['description'], 'width': 11})
+    ws_sum = create_report_worksheet(wb, 'Staff', header, formats['header'], protect_options, ad.args.report_password)
+    ws_sum_row = 0
 
     # Process each staff member
     sheet_name_list = []
     for db_s in range(ad.md.len('Staff')):
         # Set sheet name and check it does not already exist, sheet duplicates are case-insensitive
         staff_name = ad.md.get('Staff', 'Staff Name', db_s)
-        sheet_name = re.sub(r'[\[\]:*?/\\]', ' ', ad.md.get('Staff', 'Staff Name', db_s))[:30]
+        sheet_name = re.sub(r'[[\]:*?/\\]', ' ', staff_name)[:30]
         duplicate_count = sheet_name_list.count(sheet_name.lower())
         sheet_name_list.append(sheet_name.lower())
         if duplicate_count > 0:
@@ -77,26 +75,26 @@ def staff_report(ad: AppData, report_excel_path: str) -> None:
             sheet_name = sheet_name[:30-length_number] + ' ' + str(duplicate_count)
 
         # Create staff sheet and output header row
-        ws_stf = wb.add_worksheet(sheet_name)
-        ws_stf.hide_gridlines(2)
-        ws_stf.freeze_panes(1, 0)
+        header = [
+            {'label': 'Status', 'width': 20},
+            {'label': 'Competency Name', 'width': 32},
+            {'label': 'Scope', 'width': 10},
+            {'label': 'Expiry', 'width': 10},
+            {'label': 'Prerequisite', 'width': 12},
+            {'label': 'Nightshift', 'width': 10},
+            {'label': 'Bank', 'width': 10},
+            {'label': 'Competency Date', 'width': 12},
+            {'label': 'Completed', 'width': 10},
+            {'label': 'Prerequisite Date', 'width': 12},
+            {'label': 'Achieved', 'width': 10},
+            {'label': 'Notes', 'width': 35},
+            {'label': 'Force Not Required', 'width': 10},
+            {'label': 'Force Required', 'width': 10},
+            {'label': 'Staff', 'width': 12}
+        ]
+        ws_stf = create_report_worksheet(wb, sheet_name, header, formats['header'], protect_options, ad.args.report_password)
+        ws_stf.write_url(0, len(header) - 1, f"internal:'Staff'!A{db_s + 2}", formats['hyper'], string='Staff')
         ws_stf_row = 0
-        ws_stf_col = 0
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Status', format_header, width=20)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Competency Name', format_header, width=32)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Scope', format_header, width=10)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Expiry', format_header, width=10)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Prerequisite', format_header, width=12)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Nightshift', format_header, width=10)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Bank', format_header, width=10)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Competency Date', format_header, width=12)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Completed', format_header, width=10)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Prerequisite Date', format_header, width=12)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Achieved', format_header, width=10)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Notes', format_header, width=35)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Force Not Required', format_header, width=10)
-        ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, 'Force Required', format_header, width=10)
-        ws_stf.write_url(ws_stf_row, ws_stf_col, f"internal:'Staff'!A{db_s + 2}", format_hyper, string='Staff')
 
         # Create list of competency statuses for staff member
         competency_status_list = []
@@ -111,81 +109,32 @@ def staff_report(ad: AppData, report_excel_path: str) -> None:
             for db_c in range(ad.md.len('Competency')):
                 if competency_status_list[db_c] == status:
                     status_count[status] += 1
-                    competency_name = ad.md.get('Competency', 'Competency Name', db_c)
-                    db_sc = ad.md.find_two('Staff Competency',
-                                           staff_name, 'Staff Name',
-                                           competency_name, 'Competency Name')
-
-                    if db_sc > -1:
-                        competency_date = ad.md.get('Staff Competency', 'Competency Date', db_sc)
-                        completed = yn(ad.md.get('Staff Competency', 'Completed', db_sc))
-                        prerequisite_date = ad.md.get('Staff Competency', 'Prerequisite Date', db_sc)
-                        achieved = yn(ad.md.get('Staff Competency', 'Achieved', db_sc))
-                        notes = ad.md.get('Staff Competency', 'Notes', db_sc)
-                        not_required = yn(ad.md.get('Staff Competency', 'Not Required', db_sc))
-                        required = yn(ad.md.get('Staff Competency', 'Required', db_sc))
-                    else:
-                        competency_date = ''
-                        completed = ''
-                        prerequisite_date = ''
-                        achieved = ''
-                        notes = ''
-                        not_required = ''
-                        required = ''
                     ws_stf_row += 1
-                    ws_stf_col = 1
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col,
-                                            ad.md.get('Competency', 'Competency Name', db_c), format_plain)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col,
-                                            ad.md.get('Competency', 'Scope', db_c), format_plain)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col,
-                                            ad.md.get('Competency', 'Expiry', db_c), format_plain)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col,
-                                            yn(ad.md.get('Competency', 'Prerequisite', db_c)), format_centre)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col,
-                                            yn(ad.md.get('Competency', 'Nightshift', db_c)), format_centre)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col,
-                                            yn(ad.md.get('Competency', 'Bank', db_c)), format_centre)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, competency_date, format_date)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, completed, format_centre)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, prerequisite_date, format_date)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, achieved, format_centre)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, notes, format_plain)
-                    ws_stf_col = write_cell(ws_stf, ws_stf_row, ws_stf_col, not_required, format_centre)
-                    write_cell(ws_stf, ws_stf_row, ws_stf_col, required, format_centre)
+                    db_sc = ad.md.find_two('Staff Competency', staff_name, 'Staff Name', ad.md.get('Competency', 'Competency Name', db_c), 'Competency Name')
+                    data = [
+                        {'value': ad.status_dict[status]['description']},
+                        {'value': ad.md.get('Competency', 'Competency Name', db_c)},
+                        {'value': ad.md.get('Competency', 'Scope', db_c)},
+                        {'value': ad.md.get('Competency', 'Expiry', db_c)},
+                        {'value': yn(ad.md.get('Competency', 'Prerequisite', db_c)), 'format': 'centre'},
+                        {'value': yn(ad.md.get('Competency', 'Nightshift', db_c)), 'format': 'centre'},
+                        {'value': yn(ad.md.get('Competency', 'Bank', db_c)), 'format': 'centre'},
+                        {'value': ad.md.get('Staff Competency', 'Competency Date', db_sc) if db_sc > -1 else ''},
+                        {'value': yn(ad.md.get('Staff Competency', 'Completed', db_sc)) if db_sc > -1 else ''},
+                        {'value': ad.md.get('Staff Competency', 'Prerequisite Date', db_sc) if db_sc > -1 else ''},
+                        {'value': yn(ad.md.get('Staff Competency', 'Achieved', db_sc)) if db_sc > -1 else ''},
+                        {'value': ad.md.get('Staff Competency', 'Notes', db_sc) if db_sc > -1 else ''},
+                        {'value': yn(ad.md.get('Staff Competency', 'Not Required', db_sc)) if db_sc > -1 else ''},
+                        {'value': yn(ad.md.get('Staff Competency', 'Required', db_sc)) if db_sc > -1 else ''}
+                    ]
+                    write_row(ws_stf, ws_stf_row, data, formats)
                     row_status.append(status)
 
-        # Write first column with status description with background colour and
-        # a border around rows with the same status
-        for row in range(1, len(row_status)):
-            status_colour = ad.status_dict[row_status[row]]['colour']
-
-            status_format = {'valign': 'vcentre', 'bg_color': status_colour}
-
-            # Test if this is the only row with this status
-            if row_status[row] != row_status[row - 1] and (
-                    row == len(row_status) - 1 or row_status[row] != row_status[row + 1]):
-                this_format = wb.add_format(status_format | {'border': 1})
-
-            # Test if this is the first row with this status
-            elif row_status[row] != row_status[row - 1]:
-                this_format = wb.add_format(status_format | {'top': 1, 'left': 1, 'right': 1})
-
-            # Test if this is the last row with this status
-            elif row == len(row_status) - 1 or row_status[row] != row_status[row + 1]:
-                this_format = wb.add_format(
-                    status_format | {'bottom': 1, 'left': 1, 'right': 1, 'font_color': status_colour})
-
-            # This is a middle row for this status
-            else:
-                this_format = wb.add_format(status_format | {'left': 1, 'right': 1, 'font_color': status_colour})
-
-            write_cell(ws_stf, row, 0, ad.status_dict[row_status[row]]['description'], this_format)
+        format_status_column(ws_stf, row_status, ad, wb)
 
         # Add filter to first 7 columns of staff sheet
         ws_stf.autofilter(0, 0, ws_stf_row, 6)
         ws_stf.set_header('&L&14&A - &D')
-        ws_stf.protect(ad.args.report_password, protect_options)
 
         # Concatenate role information for this staff member's summary row
         service_code_txt = ''
@@ -208,22 +157,21 @@ def staff_report(ad: AppData, report_excel_path: str) -> None:
         # Write row for staff member to summary sheet
         ws_sum_row += 1
         ws_sum.write_url(ws_sum_row, 0, f"internal:'{sheet_name}'!A1",
-                         format_hyper, string=ad.md.get('Staff', 'Staff Name', db_s))
+                         formats['hyper'], string=staff_name)
         ws_sum_col = 1
         outstanding = status_count[0] + status_count[1] + status_count[2]
-        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, outstanding, format_bold)
-        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, service_code_txt[:-2], format_plain)
-        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, rn_txt[:-2], format_centre)
-        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, role_code_txt[:-2], format_plain)
-        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, nightshift_txt[:-2], format_centre)
-        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, bank_txt[:-2], format_centre)
+        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, outstanding, formats['bold'])
+        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, service_code_txt[:-2], formats['plain'])
+        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, rn_txt[:-2], formats['centre'])
+        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, role_code_txt[:-2], formats['plain'])
+        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, nightshift_txt[:-2], formats['centre'])
+        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, bank_txt[:-2], formats['centre'])
         for status in range(len(ad.status_dict)):
-            ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, status_count[status], format_plain)
+            ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, status_count[status], formats['plain'])
 
     # Add filter to first 7 columns of summary sheet
     ws_sum.autofilter(0, 0, ws_sum_row, 6)
     ws_sum.set_header('&L&14&A - &D')
-    ws_sum.protect(ad.args.report_password, protect_options)
 
     # Save spreadsheet and open it
     wb.close()

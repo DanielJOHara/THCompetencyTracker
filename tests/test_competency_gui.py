@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import patch, MagicMock
-import pandas as pd
 
 import logging
 import customtkinter as ctk
@@ -9,7 +8,6 @@ import _tkinter
 from source.master_data import MasterData
 from source.appdata import AppData
 from source.competency_gui import CompetencyAdd, CompetencyDelete, CompetencyUpdate
-from source.window import parse_date, date_to_string
 
 
 def pump_events(wnd_root):
@@ -34,41 +32,22 @@ def ctk_root():
 
 
 @pytest.fixture
-def app_data(request):
+def ad(request):
     """Fixture to create an AppData object with a MasterData instance."""
-    md = MasterData('None', 30)
-    md.add_table('Competency',
+    ad = AppData()
+    ad.md = MasterData('None', 30)
+    ad.md.add_table('Competency',
                     ['Competency Name', 'Display Order', 'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank'],
-                    [["VoED", 1, "BOTH", 365, 0, 0, 0],
-                     ["Cannulation", 2, "RN", 180, 0, 0, 0],
-                     ["Phlebotomy", 3, "HCA", 365, 0, 0, 0]])
-    md.add_table('Role Competency',
+                    [["VoED", 1, "BOTH", 2, 0, 0, 0],
+                     ["Cannulation", 2, "RN", 0, 0, 0, 0],
+                     ["Phlebotomy", 3, "HCA", 2, 0, 0, 0]])
+    ad.md.add_table('Role Competency',
                     ['Service Code', 'Role Code', 'Competency Name'],
                     [["IPS", "SN", "VoED"]])
-    md.add_table('Staff Competency',
-                    ['Staff Name', 'Competency Name', 'Status', 'Expiry'],
-                    [["John Doe", "VoED", "Completed", "2024-12-31"]])
-    md.add_table('Staff Competency',
-                    ['Staff Name', 'Competency Name', 'Status', 'Expiry'],
-                    [["John Doe", "VoED", "Completed", "2024-12-31"]])
-    md.add_table('Staff Competency',
-                    ['Staff Name', 'Competency Name', 'Status', 'Expiry'],
-                    [["John Doe", "VoED", "Completed", "2024-12-31"]])
-    md.add_table('Staff Competency',
-                    ['Staff Name', 'Competency Name', 'Status', 'Expiry'],
-                    [["John Doe", "VoED", "Completed", "2024-12-31"]])
-
-    ad = AppData()
-    ad.md = md
-    ad.args = MagicMock()
-    ad.args.readonly = False
-
-    def finalizer():
-        # No file to unlock as MasterData is mocked with 'None'
-        pass
-
-    request.addfinalizer(finalizer)
-    return ad
+    ad.md.add_table('Staff Competency',
+                    ['Staff Name', 'Competency Name'],
+                    [["John Doe", "VoED"]])
+    yield ad
 
 
 @pytest.fixture
@@ -83,32 +62,32 @@ def mock_ctk_messagebox():
         yield mock_msgbox
 
 
-def test_competency_update(ctk_root, app_data):
+def test_competency_update(ctk_root, ad):
     # Create competency update window
     wnd_competency_update = ctk.CTkToplevel(ctk_root)
     wnd_competency_update.grab_set()
 
     # Populate competency update window
-    competency_update = CompetencyUpdate(app_data, wnd_competency_update)
+    competency_update = CompetencyUpdate(ad, wnd_competency_update)
     pump_events(ctk_root)
 
-    assert len(competency_update.competency_widgets) == app_data.md.len('Competency')
+    assert len(competency_update.competency_widgets) == ad.md.len('Competency')
 
     # Test saving changes
-    competency_update.competency_widgets[0]['competency_name'].delete(0, 9999)
-    competency_update.competency_widgets[0]['competency_name'].insert(0, "New VoED")
+    competency_update.competency_widgets[0]['Competency Name'].delete(0, 9999)
+    competency_update.competency_widgets[0]['Competency Name'].insert(0, "New VoED")
     competency_update.handle_save_click()
     pump_events(ctk_root)
-    assert app_data.md.get('Competency', 'Competency Name', 0) == "New VoED"
+    assert ad.md.get('Competency', 'Competency Name', 0) == "New VoED"
 
 
-def test_competency_add(ctk_root, mock_input_warning, mock_ctk_messagebox, app_data):
+def test_competency_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad):
     # Create competency add window
     wnd_competency_add = ctk.CTkToplevel(ctk_root)
     wnd_competency_add.grab_set()
 
     # Populate competency add window
-    competency_add = CompetencyAdd(app_data, wnd_competency_add)
+    competency_add = CompetencyAdd(ad, wnd_competency_add)
     pump_events(ctk_root)
 
     # Blank input test
@@ -134,27 +113,27 @@ def test_competency_add(ctk_root, mock_input_warning, mock_ctk_messagebox, app_d
     mock_ctk_messagebox.assert_called_once_with(title='Information', message='Added New Competency', icon='info')
 
     # Find the new record
-    db_c = app_data.md.find_one('Competency', 'New Competency', 'Competency Name')
+    db_c = ad.md.find_one('Competency', 'New Competency', 'Competency Name')
     assert db_c > -1
-    assert app_data.md.get('Competency', 'Scope', db_c) == 'BOTH'
+    assert ad.md.get('Competency', 'Scope', db_c) == 'BOTH'
 
     # Close competency add window
     competency_add.btn_exit.invoke()
     pump_events(ctk_root)
 
 
-def test_competency_delete(ctk_root, app_data):
+def test_competency_delete(ctk_root, ad):
     # Create competency delete window
     wnd_competency_delete = ctk.CTkToplevel(ctk_root)
     wnd_competency_delete.grab_set()
 
     # Populate competency delete window
-    competency_delete = CompetencyDelete(app_data, wnd_competency_delete)
+    competency_delete = CompetencyDelete(ad, wnd_competency_delete)
     pump_events(ctk_root)
 
     # Select the competency record and check the name updates correctly
     competency_delete.cmb_competency_name.set('Cannulation')
-    competency_delete.refresh_competency(None)
+    competency_delete.refresh_competency('None')
     pump_events(ctk_root)
     assert competency_delete.ent_scope.get() == 'RN'
 
@@ -163,8 +142,8 @@ def test_competency_delete(ctk_root, app_data):
     pump_events(ctk_root)
     assert competency_delete.cmb_competency_name.get() == ''
     assert "Cannulation" not in competency_delete.cmb_competency_name.cget("values")
-    assert app_data.md.find_one('Competency', 'Cannulation', 'Competency Name') == -1
-    assert app_data.md.len("Competency") == 2
+    assert ad.md.find_one('Competency', 'Cannulation', 'Competency Name') == -1
+    assert ad.md.len("Competency") == 2
 
     competency_delete.btn_exit.invoke()
     pump_events(ctk_root)

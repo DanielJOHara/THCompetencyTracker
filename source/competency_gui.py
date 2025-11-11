@@ -6,7 +6,7 @@ from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
 from source.competency_logic import CompetencyLogic
-from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning
+from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning, widget_dict_values
 
 logger = logging.getLogger(__name__)
 
@@ -68,9 +68,10 @@ class CompetencyUpdate(object):
 
     def handle_save_click(self) -> None:
         """Read all values in table and update the table object if any values have changed."""
-        number_changes, message = self.cl.save_competencies(self.competency_widgets)
+        competency_values = widget_dict_values(self.competency_widgets)
+        input_valid, number_changes, message = self.cl.save_competencies(competency_values)
 
-        if message != f"{number_changes} changes saved":
+        if not input_valid:
             input_warning(self.wnd_competency, message)
             return
 
@@ -112,48 +113,51 @@ class CompetencyUpdate(object):
         # If the index is beyond what is already in the widget lists append new widgets
         if db_c + 1 > len(self.competency_widgets):
             self.competency_widgets.append({
-                'display_order': ctk.CTkEntry(self.frm_s, width=self.width[0]),
-                'competency_name': ctk.CTkEntry(self.frm_s, width=self.width[1]),
-                'scope': ctk.CTkComboBox(self.frm_s, width=self.width[2], state='readonly', values=['BOTH', 'RN', 'HCA']),
-                'expiry': ctk.CTkEntry(self.frm_s, width=self.width[3]),
-                'prerequisite': ctk.CTkCheckBox(self.frm_s, width=self.width[4] - 2 * int(self.width[4] / 3), text=""),
-                'nightshift': ctk.CTkCheckBox(self.frm_s, width=self.width[5] - 2 * int(self.width[5] / 3), text=""),
-                'bank': ctk.CTkCheckBox(self.frm_s, width=self.width[6] - 2 * int(self.width[6] / 3), text="")
+                'Display Order': ctk.CTkEntry(self.frm_s, width=self.width[0]),
+                'Competency Name': ctk.CTkEntry(self.frm_s, width=self.width[1]),
+                'Scope': ctk.CTkComboBox(self.frm_s,
+                                         width=self.width[2], state='readonly', values=['BOTH', 'RN', 'HCA']),
+                'Expiry': ctk.CTkEntry(self.frm_s, width=self.width[3]),
+                'Prerequisite': ctk.CTkCheckBox(self.frm_s, width=self.width[4] - 2 * int(self.width[4] / 3), text=""),
+                'Nightshift': ctk.CTkCheckBox(self.frm_s, width=self.width[5] - 2 * int(self.width[5] / 3), text=""),
+                'Bank': ctk.CTkCheckBox(self.frm_s, width=self.width[6] - 2 * int(self.width[6] / 3), text="")
             })
             col = 0
             for key in self.competency_widgets[db_c]:
-                if key in ['prerequisite', 'nightshift', 'bank']:
-                    self.competency_widgets[db_c][key].grid(row=db_c + 1, column=col, sticky='nsew', padx=int(self.width[col] / 3))
+                if key in ['Prerequisite', 'Nightshift', 'Bank']:
+                    self.competency_widgets[db_c][key].grid(row=db_c + 1, column=col,
+                                                            sticky='nsew', padx=int(self.width[col] / 3))
                 else:
                     self.competency_widgets[db_c][key].grid(row=db_c + 1, column=col, sticky='w')
                 col += 1
 
         # Set all widget values
-        self.competency_widgets[db_c]['display_order'].delete(0, 9999)
-        self.competency_widgets[db_c]['display_order'].insert(0, self.ad.md.get('Competency', 'Display Order', db_c))
+        self.competency_widgets[db_c]['Display Order'].delete(0, 9999)
+        self.competency_widgets[db_c]['Display Order'].insert(0, self.ad.md.get('Competency', 'Display Order', db_c))
 
-        self.competency_widgets[db_c]['competency_name'].delete(0, 9999)
-        self.competency_widgets[db_c]['competency_name'].insert(0, self.ad.md.get('Competency', 'Competency Name', db_c))
+        self.competency_widgets[db_c]['Competency Name'].delete(0, 9999)
+        self.competency_widgets[db_c]['Competency Name'].insert(0,
+                                                                self.ad.md.get('Competency', 'Competency Name', db_c))
 
-        self.competency_widgets[db_c]['scope'].set(self.ad.md.get('Competency', 'Scope', db_c))
+        self.competency_widgets[db_c]['Scope'].set(self.ad.md.get('Competency', 'Scope', db_c))
 
-        self.competency_widgets[db_c]['expiry'].delete(0, 9999)
-        self.competency_widgets[db_c]['expiry'].insert(0, self.ad.md.get('Competency', 'Expiry', db_c))
+        self.competency_widgets[db_c]['Expiry'].delete(0, 9999)
+        self.competency_widgets[db_c]['Expiry'].insert(0, self.ad.md.get('Competency', 'Expiry', db_c))
 
         if self.ad.md.get('Competency', 'Prerequisite', db_c):
-            self.competency_widgets[db_c]['prerequisite'].select()
+            self.competency_widgets[db_c]['Prerequisite'].select()
         else:
-            self.competency_widgets[db_c]['prerequisite'].deselect()
+            self.competency_widgets[db_c]['Prerequisite'].deselect()
 
         if self.ad.md.get('Competency', 'Nightshift', db_c):
-            self.competency_widgets[db_c]['nightshift'].select()
+            self.competency_widgets[db_c]['Nightshift'].select()
         else:
-            self.competency_widgets[db_c]['nightshift'].deselect()
+            self.competency_widgets[db_c]['Nightshift'].deselect()
 
         if self.ad.md.get('Competency', 'Bank', db_c):
-            self.competency_widgets[db_c]['bank'].select()
+            self.competency_widgets[db_c]['Bank'].select()
         else:
-            self.competency_widgets[db_c]['bank'].deselect()
+            self.competency_widgets[db_c]['Bank'].deselect()
 
 
 class CompetencyDelete(object):
@@ -235,10 +239,10 @@ class CompetencyDelete(object):
     def handle_delete_click(self):
         """Delete current record."""
         competency_name = self.cmb_competency_name.get()
-        success, message = self.cl.delete_competency(competency_name)
+        success, warning, message = self.cl.delete_competency(competency_name)
 
         if not success:
-            if message != "No competency selected.":
+            if warning:
                 msg = CTkMessagebox(title="Dependent Record Warning", message=message,
                                     icon='warning', option_1='Delete', option_2='Cancel')
                 if msg.get() == 'Cancel':
@@ -326,9 +330,17 @@ class CompetencyAdd(object):
         nightshift = self.chc_nightshift.get()
         bank = self.chc_bank.get()
 
-        success, message = self.cl.add_competency(competency_name, scope, display_order, expiry, prerequisite, nightshift, bank)
+        success, message = self.cl.add_competency(competency_name, scope,
+                                                  display_order, expiry, prerequisite, nightshift, bank)
 
         if success:
             CTkMessagebox(title="Information", message=message, icon='info')
+            self.ent_competency_name.delete(0, 9999)
+            self.cmb_scope.set("")
+            self.ent_display_order.delete(0, 9999)
+            self.ent_expiry.delete(0, 9999)
+            self.chc_prerequisite.deselect()
+            self.chc_nightshift.deselect()
+            self.chc_bank.deselect()
         else:
             input_warning(self.wnd_competency_add, message)

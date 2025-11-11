@@ -1,4 +1,3 @@
-"""This module contains the routines to process Competencies for competency grid and reports."""
 import datetime
 import logging
 from dateutil.relativedelta import relativedelta
@@ -6,6 +5,7 @@ from typing import Union, Tuple
 
 from source.appdata import AppData
 from source.window import date_to_string
+from source.write_cell import write_cell
 
 logger = logging.getLogger(__name__)
 
@@ -198,3 +198,52 @@ def set_competency_status(ad: AppData, db_s: int, db_c: int, service_code_list: 
     # Prerequisites are achieved or not required so we need competency
     else:
         return 2
+
+
+def create_report_worksheet(wb, sheet_name, header, format_header, protect_options, password):
+    """Create a worksheet with a header row and basic formatting."""
+    ws = wb.add_worksheet(sheet_name)
+    ws.hide_gridlines(2)
+    ws.freeze_panes(1, 0)
+    col = 0
+    for item in header:
+        col = write_cell(ws, 0, col, item['label'], format_header, width=item['width'])
+    ws.protect(password, protect_options)
+    return ws
+
+
+def write_row(ws, row, data, formats):
+    """Write a row of data to a worksheet."""
+    col = 0
+    for item in data:
+        if 'format' in item:
+            col = write_cell(ws, row, col, item['value'], formats[item['format']])
+        else:
+            col = write_cell(ws, row, col, item['value'], formats['plain'])
+
+
+def format_status_column(ws, row_status, ad, wb):
+    """Format the status column of a worksheet."""
+    for row in range(1, len(row_status)):
+        status_colour = ad.status_dict[row_status[row]]['colour']
+        status_format = {'valign': 'vcentre', 'bg_color': status_colour}
+
+        # Test if this is the only row with this status
+        if row_status[row] != row_status[row - 1] and (
+                row == len(row_status) - 1 or row_status[row] != row_status[row + 1]):
+            this_format = wb.add_format(status_format | {'border': 1})
+
+        # Test if this is the first row with this status
+        elif row_status[row] != row_status[row - 1]:
+            this_format = wb.add_format(status_format | {'top': 1, 'left': 1, 'right': 1})
+
+        # Test if this is the last row with this status
+        elif row == len(row_status) - 1 or row_status[row] != row_status[row + 1]:
+            this_format = wb.add_format(
+                status_format | {'bottom': 1, 'left': 1, 'right': 1, 'font_color': status_colour})
+
+        # This is a middle row for this status
+        else:
+            this_format = wb.add_format(status_format | {'left': 1, 'right': 1, 'font_color': status_colour})
+
+        write_cell(ws, row, 0, ad.status_dict[row_status[row]]['description'], this_format)

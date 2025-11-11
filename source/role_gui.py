@@ -6,7 +6,7 @@ from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
 from source.role_logic import RoleUpdateLogic
-from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning
+from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning, widget_dict_values
 
 logger = logging.getLogger(__name__)
 
@@ -69,9 +69,10 @@ class RoleUpdate(object):
 
     def handle_save_click(self):
         """Read all values in table and update the table object if any values have changed."""
-        number_changes, message = self.rul.save_roles(self.role_widgets)
+        role_values = widget_dict_values(self.role_widgets)
+        input_valid, number_changes, message = self.rul.save_roles(role_values)
 
-        if message != f"{number_changes} changes saved":
+        if not input_valid:
             input_warning(self.wnd_role, message)
             return
 
@@ -96,10 +97,10 @@ class RoleUpdate(object):
         # Remove a row from the table for each deleted record
         for i in range(len(self.role_widgets) - self.ad.md.len('Role')):
             # Remove last row of widgets
-            self.role_widgets[-1]['display_order'].destroy()
-            self.role_widgets[-1]['role_code'].destroy()
-            self.role_widgets[-1]['role_name'].destroy()
-            self.role_widgets[-1]['rn'].destroy()
+            self.role_widgets[-1]['Display Order'].destroy()
+            self.role_widgets[-1]['Role Code'].destroy()
+            self.role_widgets[-1]['Role Name'].destroy()
+            self.role_widgets[-1]['RN'].destroy()
             self.role_widgets.pop()
 
         # Re-display table
@@ -112,30 +113,30 @@ class RoleUpdate(object):
 
     def add_role_to_display(self, db_r):
         if db_r + 1 > len(self.role_widgets):
-            self.role_widgets.append({'display_order': ctk.CTkEntry(self.frm_s, width=self.width[0]),
-                                      'role_code': ctk.CTkEntry(self.frm_s, width=self.width[1]),
-                                      'role_name': ctk.CTkEntry(self.frm_s, width=self.width[2]),
-                                      'rn': ctk.CTkCheckBox(self.frm_s,
+            self.role_widgets.append({'Display Order': ctk.CTkEntry(self.frm_s, width=self.width[0]),
+                                      'Role Code': ctk.CTkEntry(self.frm_s, width=self.width[1]),
+                                      'Role Name': ctk.CTkEntry(self.frm_s, width=self.width[2]),
+                                      'RN': ctk.CTkCheckBox(self.frm_s,
                                                             width=self.width[3] - 2 * int(self.width[3] / 3),
                                                             text="")})
-            self.role_widgets[db_r]['display_order'].grid(row=db_r + 1, column=0, sticky='w')
-            self.role_widgets[db_r]['role_code'].grid(row=db_r + 1, column=1, sticky='w')
-            self.role_widgets[db_r]['role_name'].grid(row=db_r + 1, column=2, sticky='w')
-            self.role_widgets[db_r]['rn'].grid(row=db_r + 1, column=3, sticky='nsew', padx=int(self.width[3] / 3))
+            self.role_widgets[db_r]['Display Order'].grid(row=db_r + 1, column=0, sticky='w')
+            self.role_widgets[db_r]['Role Code'].grid(row=db_r + 1, column=1, sticky='w')
+            self.role_widgets[db_r]['Role Name'].grid(row=db_r + 1, column=2, sticky='w')
+            self.role_widgets[db_r]['RN'].grid(row=db_r + 1, column=3, sticky='nsew', padx=int(self.width[3] / 3))
 
-        self.role_widgets[db_r]['display_order'].delete(0, 9999)
-        self.role_widgets[db_r]['display_order'].insert(0, self.ad.md.get('Role', 'Display Order', db_r))
+        self.role_widgets[db_r]['Display Order'].delete(0, 9999)
+        self.role_widgets[db_r]['Display Order'].insert(0, self.ad.md.get('Role', 'Display Order', db_r))
 
-        self.role_widgets[db_r]['role_code'].delete(0, 9999)
-        self.role_widgets[db_r]['role_code'].insert(0, self.ad.md.get('Role', 'Role Code', db_r))
+        self.role_widgets[db_r]['Role Code'].delete(0, 9999)
+        self.role_widgets[db_r]['Role Code'].insert(0, self.ad.md.get('Role', 'Role Code', db_r))
 
-        self.role_widgets[db_r]['role_name'].delete(0, 9999)
-        self.role_widgets[db_r]['role_name'].insert(0, self.ad.md.get('Role', 'Role Name', db_r))
+        self.role_widgets[db_r]['Role Name'].delete(0, 9999)
+        self.role_widgets[db_r]['Role Name'].insert(0, self.ad.md.get('Role', 'Role Name', db_r))
 
         if self.ad.md.get('Role', 'RN', db_r):
-            self.role_widgets[db_r]['rn'].select()
+            self.role_widgets[db_r]['RN'].select()
         else:
-            self.role_widgets[db_r]['rn'].deselect()
+            self.role_widgets[db_r]['RN'].deselect()
 
 
 class RoleDelete(object):
@@ -197,10 +198,10 @@ class RoleDelete(object):
     def handle_delete_click(self):
         """Delete current record."""
         role_code = self.cmb_role_code.get()
-        success, message = self.rul.delete_role(role_code)
+        success, warning, message = self.rul.delete_role(role_code)
 
         if not success:
-            if message != "No role code selected.":
+            if warning:
                 msg = CTkMessagebox(title="Dependent Record Warning", message=message,
                                     icon='warning', option_1='Delete', option_2='Cancel')
                 if msg.get() == 'Cancel':
@@ -265,6 +266,8 @@ class RoleAdd(object):
         """Update current record or insert a new one if it does not exist."""
         role_code = self.ent_role_code.get()
         role_name = self.ent_role_name.get()
+        if not role_name:
+            role_name = role_code
         display_order = self.ent_display_order.get()
         rn = self.chc_rn.get()
 
@@ -272,5 +275,9 @@ class RoleAdd(object):
 
         if success:
             CTkMessagebox(title="Information", message=message, icon='info')
+            self.ent_role_code.delete(0, 9999)
+            self.ent_role_name.delete(0, 9999)
+            self.ent_display_order.delete(0, 9999)
+            self.chc_rn.deselect()
         else:
             input_warning(self.wnd_role_add, message)
