@@ -19,6 +19,7 @@ class StaffRoleUpdate(object):
         self.wnd_staff_role = wnd_staff_role
         self.ad = ad
         self.srl = StaffRoleLogic(ad)
+        self.staff_name = staff_name
 
         # Add title top window
         wnd_staff_role.title("Staff Role Data Update")
@@ -76,7 +77,7 @@ class StaffRoleUpdate(object):
             self.chc_nightshift[db_sc].grid(row=row, column=col, pady=6, padx=10)
 
         # Check that we are not in single staff member mode
-        if not staff_name:
+        if not self.staff_name:
             # Create lookup frame for name filter
             self.frm_lookup = ctk.CTkFrame(wnd_staff_role)
             self.frm_lookup.pack(fill='both', side='left', expand=True)
@@ -111,8 +112,8 @@ class StaffRoleUpdate(object):
         # Set Staff table row to the length of table
         self.db_s = ad.md.len('Staff')
 
-        if staff_name:
-            self.cmb_staff_name.set(staff_name)
+        if self.staff_name:
+            self.cmb_staff_name.set(self.staff_name)
             self.cmb_staff_name.configure(state='disabled')
             self.refresh_staff()
 
@@ -172,10 +173,17 @@ class StaffRoleUpdate(object):
             input_warning(self.wnd_staff_role, message)
             return
 
+        # If we are entering data for a single staff member close on save
+        if self.staff_name:
+            self.wnd_staff_role.destroy()
+            return
+
         CTkMessagebox(title="Information", message=message, icon='info')
 
         if number_changes > 0:
             self.refresh_staff()
+
+
 
     def filter_names(self):
         """Filter the names in the Staff Name drop down to those that match

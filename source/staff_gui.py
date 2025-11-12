@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 class StaffUpdate(object):
     """Window to allow user to update Staff data. The data is presented as a table."""
     def __init__(self, ad: AppData, wnd_staff: ctk.CTkToplevel) -> None:
-
         """Window to allow user to update Staff data."""
         logger.info("Creating Staff Grid data update window")
 
@@ -37,6 +36,10 @@ class StaffUpdate(object):
         self.frm_lookup.pack(fill='both', side='left', expand=True)
 
         row = 0
+        self.lbl_staff_count = ctk.CTkLabel(self.frm_lookup, text=f"X of Y staff displayed")
+        self.lbl_staff_count.grid(row=row, column=0, columnspan=2, pady=6, padx=10, sticky='w')
+
+        row += 1
         self.lbl_name_filter = ctk.CTkLabel(self.frm_lookup, text="Name Filter")
         self.lbl_name_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
         self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
@@ -127,7 +130,8 @@ class StaffUpdate(object):
         self.lbl_roles = []
 
         # Set all staff to be displayed
-        self.db_s_list = list(range(self.ad.md.len('Staff')))
+        self.db_s_list = []
+        self.apply_filters()
         self.display_staff_table()
 
         # Create button frame
@@ -266,6 +270,8 @@ class StaffUpdate(object):
             self.lbl_roles[-1].destroy()
             self.lbl_roles.pop()
 
+        self.lbl_staff_count.configure(text=f"{len(self.db_s_list)} of {self.ad.md.len('Staff')} staff displayed")
+
     def add_staff_to_display(self, s, db_s):
         if s + 1 > len(self.ent_staff_name):
             col = 0
@@ -323,7 +329,7 @@ class StaffUpdate(object):
         self.lbl_roles[s].configure(text=roles[:-2])
 
     def handel_role_click(self, event):
-        logger.info(f"handel_role_click from event widget [{event.widget}]")
+        logger.debug(f"handel_role_click from event widget [{event.widget}]")
         # Extract label number from widget
         label_num_search = re.search(r'ctklabel(\d+)?', str(event.widget))
         if not label_num_search:

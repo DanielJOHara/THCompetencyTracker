@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 import win32api
+from win32api import GetFileVersionInfo, LOWORD, HIWORD
 
 from source.appdata import AppData
 from source.setup_logger import setup_logger
@@ -165,10 +166,10 @@ def command_line(ad: AppData, description: str) -> None:
 
 def get_version_number(filename):
     try:
-        info = win32api.GetFileVersionInfo(filename, "\\")
+        info = GetFileVersionInfo(filename, "\\")
         ms = info['FileVersionMS']
         ls = info['FileVersionLS']
-        return win32api.HIWORD(ms), win32api.LOWORD(ms), win32api.HIWORD(ls), win32api.LOWORD(ls)
+        return HIWORD(ms), LOWORD(ms), HIWORD(ls), LOWORD(ls)
     except win32api.error:
         return 0, 0, 0, 0
 

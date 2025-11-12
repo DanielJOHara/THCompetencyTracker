@@ -7,6 +7,7 @@ import re
 import shutil
 import time
 from typing import Union, List
+import warnings
 
 import customtkinter as ctk
 import pandas as pd
@@ -310,6 +311,7 @@ class MasterData:
     def find_one(self, table: str, value: any, column: str, start: int = 0) -> int:
         """Return a dataframe index for the first occurrence of a value in a column.
            An index of -1 indicates that the value was not found."""
+        warnings.filterwarnings(action='ignore', category=UserWarning, message=r"Boolean Series.*")
         idx = self._df[table][start:][self._df[table][column] == value].index
         if len(idx) > 0:
             return int(idx[0])

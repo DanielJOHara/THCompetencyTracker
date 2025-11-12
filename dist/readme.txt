@@ -69,3 +69,6 @@ Functional Changes:
 Version 0.1.2.7
 Functional Changes:
     Added Practice Assessor and Supervisor to Competency Grid
+    Added filters to Staff Update window
+    Bank input fields after records added
+    Automatically close Staff Role Update window when inputting data for a single staff member
