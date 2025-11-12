@@ -53,13 +53,14 @@ def value_list(ad):
 def test_add_staff_success(ad):
     """Test successfully adding a new staff member."""
     staff_len = ad.md.len('Staff')
-    staff_name = "New Staff"
+    staff_name = " new  staff "
     start_date = "2023-01-01"
     practice_supervisor = 1
     practice_assessor = 0
     
-    success, message = StaffLogic(ad).add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
-    
+    success, staff_name, message = StaffLogic(ad).add_staff(staff_name, start_date,
+                                                            practice_supervisor, practice_assessor)
+    assert staff_name == "New Staff"
     assert success is True
     assert message == f"Added {staff_name}"
     assert ad.master_updated is True
@@ -74,8 +75,8 @@ def test_add_staff_failure_exists(ad):
     practice_supervisor = 1
     practice_assessor = 0
     
-    success, message = StaffLogic(ad).add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
-    
+    success, staff_name, message = StaffLogic(ad).add_staff(staff_name, start_date,
+                                                            practice_supervisor, practice_assessor)
     assert success is False
     assert message == f"Staff Name {staff_name} is already defined!"
     assert ad.master_updated is False
@@ -90,8 +91,8 @@ def test_add_staff_failure_no_name(ad):
     practice_supervisor = 1
     practice_assessor = 0
 
-    success, message = StaffLogic(ad).add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
-    
+    success, staff_name, message = StaffLogic(ad).add_staff(staff_name, start_date,
+                                                            practice_supervisor, practice_assessor)
     assert success is False
     assert message == "Staff Name field must be set!"
     assert ad.master_updated is False
@@ -105,8 +106,8 @@ def test_add_staff_failure_invalid_date(ad):
     start_date = "2023-02-29"
     practice_supervisor = 1
     practice_assessor = 0
-    success, message = StaffLogic(ad).add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
-    
+    success, staff_name, message = StaffLogic(ad).add_staff(staff_name, start_date,
+                                                            practice_supervisor, practice_assessor)
     assert success is False
     assert message == f"Start Date {start_date} is not a valid date!"
     assert ad.master_updated is False

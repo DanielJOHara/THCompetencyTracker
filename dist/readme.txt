@@ -67,8 +67,18 @@ Functional Changes:
     When reloading data check master data is not locked.
 
 Version 0.1.2.7
+Technical Changes:
+    Refactored code and added tests using Gemini CLI.
 Functional Changes:
     Added Practice Assessor and Supervisor to Competency Grid
     Added filters to Staff Update window
     Bank input fields after records added
     Automatically close Staff Role Update window when inputting data for a single staff member
+
+Version 0.1.2.8
+Technical Changes:
+
+Functional Changes:
+    Apply filters on Staff Update window after any change.
+    On Competency Report only include competencies relevant to staff type selected.
+    Capitalise Staff Name when adding new staff.

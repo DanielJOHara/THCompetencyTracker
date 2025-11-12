@@ -1,6 +1,8 @@
 """This module contains the business logic for managing staff."""
 import logging
 import re
+import string
+
 from source.appdata import AppData
 from source.window import parse_date
 
@@ -50,14 +52,15 @@ class StaffLogic(object):
         return number_changes, f"{number_changes} changes saved"
 
     def add_staff(self, staff_name: str, start_date: str,
-                  practice_supervisor: int, practice_assessor: int) -> tuple[bool, str]:
+                  practice_supervisor: int, practice_assessor: int) -> tuple[bool, str, str]:
         """Add a new staff member."""
-        staff_name = re.sub(' +', ' ', staff_name.strip())
+        staff_name = re.sub(r' +', ' ', staff_name.strip())
+        staff_name = string.capwords(staff_name)
         
         if not staff_name:
-            return False, "Staff Name field must be set!"
+            return False, staff_name, "Staff Name field must be set!"
         elif start_date and not parse_date(start_date):
-            return False, f"Start Date {start_date} is not a valid date!"
+            return False, staff_name, f"Start Date {start_date} is not a valid date!"
 
         # Find Staff Name to update or add a new one
         try:
@@ -68,9 +71,9 @@ class StaffLogic(object):
                                          'Start Date': parse_date(start_date),
                                          'Practice Supervisor': practice_supervisor,
                                          'Practice Assessor': practice_assessor})
-            return True, f"Added {staff_name}"
+            return True, staff_name, f"Added {staff_name}"
         else:
-            return False, f"Staff Name {staff_name} is already defined!"
+            return False, staff_name, f"Staff Name {staff_name} is already defined!"
 
     def delete_staff(self, staff_name: str) -> tuple[bool, bool, str]:
         """Delete a staff member and their dependent records."""

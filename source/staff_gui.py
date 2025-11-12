@@ -129,10 +129,9 @@ class StaffUpdate(object):
         self.chc_practice_assessor = []
         self.lbl_roles = []
 
-        # Set all staff to be displayed
+        # Apply default filters to staff to be displayed
         self.db_s_list = []
         self.apply_filters()
-        self.display_staff_table()
 
         # Create button frame
         self.frm_btn = ctk.CTkFrame(self.frm_table)
@@ -233,7 +232,7 @@ class StaffUpdate(object):
 
         # Sort table and refresh redisplay
         if number_changes > 0:
-            self.display_staff_table()
+            self.apply_filters()
 
     def handle_add_click(self):
         """Prompt user for row to be added."""
@@ -241,14 +240,14 @@ class StaffUpdate(object):
         child_window(StaffAdd, self.ad, self.wnd_staff)
 
         # Refresh table, this will add the extra row
-        self.display_staff_table()
+        self.apply_filters()
 
     def handle_delete_click(self):
         # Call window to delete competencies
         child_window(StaffDelete, self.ad, self.wnd_staff)
 
         # Re-display table
-        self.display_staff_table()
+        self.apply_filters()
 
     def display_staff_table(self):
         """Display widgets for all staff records."""
@@ -513,9 +512,12 @@ class StaffAdd(object):
         practice_supervisor = self.chc_practice_supervisor.get()
         practice_assessor = self.chc_practice_assessor.get()
 
-        success, message = self.sl.add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
+        success, staff_name, message = self.sl.add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
 
         if success:
+            self.ent_staff_name.delete(0, 9999)
+            self.ent_staff_name.insert(0, staff_name)
+
             # Open window to add roles for the new staff member
             child_window(StaffRoleUpdate, self.ad, self.wnd_staff_add, re.sub(' +', ' ', staff_name.strip()))
             CTkMessagebox(title="Information", message=message, icon='info')

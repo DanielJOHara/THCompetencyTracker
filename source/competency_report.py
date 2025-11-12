@@ -57,11 +57,19 @@ def competency_report(ad: AppData, service_code: str, staff_type: str, report_ex
     ]
     for status in range(len(ad.status_dict)):
         header.append({'label': ad.status_dict[status]['description'], 'width': 11})
-    ws_sum = create_report_worksheet(wb, 'Competency', header, formats['header'], protect_options, ad.args.report_password)
+    ws_sum = create_report_worksheet(wb, 'Competency',
+                                     header, formats['header'], protect_options, ad.args.report_password)
     ws_sum_row = 0
 
-    # Process each competency
+    # Create list of relevant competencies
+    db_c_list = []
     for db_c in range(ad.md.len('Competency')):
+        scope = ad.md.get('Competency', 'Scope', db_c)
+        if scope == 'BOTH' or scope == staff_type:
+            db_c_list.append(db_c)
+
+    # Process each competency
+    for c, db_c in enumerate(db_c_list):
         competency_name = ad.md.get('Competency', 'Competency Name', db_c)
         # Create competency sheet and output header row
         sheet_name = re.sub(r'[[\]:*?/\\]', ' ', competency_name)[:30]
@@ -82,8 +90,9 @@ def competency_report(ad: AppData, service_code: str, staff_type: str, report_ex
             {'label': 'Force Required', 'width': 10},
             {'label': 'Competency', 'width': 12}
         ]
-        ws_cmp = create_report_worksheet(wb, sheet_name, header, formats['header'], protect_options, ad.args.report_password)
-        ws_cmp.write_url(0, len(header) - 1, f"internal:'Competency'!A{db_c + 2}", formats['hyper'], string='Competency')
+        ws_cmp = create_report_worksheet(wb, sheet_name, header,
+                                         formats['header'], protect_options, ad.args.report_password)
+        ws_cmp.write_url(0, len(header) - 1, f"internal:'Competency'!A{c + 2}", formats['hyper'], string='Competency')
         ws_cmp_row = 0
 
         # Create list of competency status for staff members with role in service
@@ -118,12 +127,14 @@ def competency_report(ad: AppData, service_code: str, staff_type: str, report_ex
                     ws_cmp_row += 1
                     db_s = competency_status[1]
                     db_sr = competency_status[2]
-                    db_sc = ad.md.find_two('Staff Competency', ad.md.get('Staff', 'Staff Name', db_s), 'Staff Name', competency_name, 'Competency Name')
+                    db_sc = ad.md.find_two('Staff Competency', ad.md.get('Staff', 'Staff Name', db_s),
+                                           'Staff Name', competency_name, 'Competency Name')
                     data = [
                         {'value': ad.status_dict[status]['description']},
                         {'value': ad.md.get('Staff', 'Staff Name', db_s)},
                         {'value': ad.md.get('Staff Role', 'Service Code', db_sr)},
-                        {'value': yn(ad.md.get('Role', 'RN', ad.md.find_one('Role', ad.md.get('Staff Role', 'Role Code', db_sr), 'Role Code'))), 'format': 'centre'},
+                        {'value': yn(ad.md.get('Role', 'RN', ad.md.find_one(
+                            'Role', ad.md.get('Staff Role', 'Role Code', db_sr), 'Role Code'))), 'format': 'centre'},
                         {'value': ad.md.get('Staff Role', 'Role Code', db_sr)},
                         {'value': yn(ad.md.get('Staff Role', 'Nightshift', db_sr)), 'format': 'centre'},
                         {'value': yn(ad.md.get('Staff Role', 'Bank', db_sr)), 'format': 'centre'},
@@ -149,8 +160,10 @@ def competency_report(ad: AppData, service_code: str, staff_type: str, report_ex
         ws_sum.write_url(ws_sum_row, 0, f"internal:'{sheet_name}'!A1", formats['hyper'],
                          string=competency_name)
         ws_sum_col = 1
-        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, ad.md.get('Competency', 'Scope', db_c), formats['plain'])
-        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, ad.md.get('Competency', 'Expiry', db_c), formats['plain'])
+        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col,
+                                ad.md.get('Competency', 'Scope', db_c), formats['plain'])
+        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col,
+                                ad.md.get('Competency', 'Expiry', db_c), formats['plain'])
         ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col,
                                 yn(ad.md.get('Competency', 'Prerequisite', db_c)), formats['centre'])
         ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col,
@@ -158,10 +171,8 @@ def competency_report(ad: AppData, service_code: str, staff_type: str, report_ex
         ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col,
                                 yn(ad.md.get('Competency', 'Bank', db_c)), formats['centre'])
         for status in range(len(ad.status_dict)):
-            if (
-                    status == 0 and not ad.md.get('Competency', 'Expiry', db_c)
-                    or status == 1 and not ad.md.get('Competency', 'Prerequisite', db_c)
-                ):
+            if (status == 0 and not ad.md.get('Competency', 'Expiry', db_c)
+                    or status == 1 and not ad.md.get('Competency', 'Prerequisite', db_c)):
                 ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, '', formats['light_grey'])
             else:
                 ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, status_count[status], formats['plain'])
