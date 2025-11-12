@@ -21,6 +21,7 @@ class StaffLogic(object):
         number_changes = 0
         for s, db_s in enumerate(db_s_list):
             staff_name = re.sub(' +', ' ', staff_values[s]['Staff Name'].strip())
+            staff_name = string.capwords(staff_name)
             old_staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
             if old_staff_name != staff_name:
                 logger.info(f"Changing Staff Name from >{old_staff_name}< to >{staff_name}<")
