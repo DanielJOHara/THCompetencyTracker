@@ -1,8 +1,11 @@
 """This module defines the ToolTip class which can be used to add roll over text to a widget."""
+import logging
 import tkinter as tk
 
 from source.appdata import AppData
 from source.competency_display import set_competency_status
+
+logger = logging.getLogger(__name__)
 
 
 class ToolTip(object):
@@ -18,6 +21,7 @@ class ToolTip(object):
 
     def show_tip(self, event):
         """Display text in tooltip window"""
+        logger.debug(f"show_tip call with event: {event}")
         if self.tip_window or not self.tip_text:
             return
 
@@ -39,6 +43,7 @@ class ToolTip(object):
 
     def hide_tip(self, event):
         """Remove tool tip window"""
+        logger.debug(f"hide_tip call with event: {event}")
         if self.tip_window:
             self.tip_window.destroy()
             self.tip_window = None

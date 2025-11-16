@@ -87,10 +87,7 @@ class StaffRoleUpdate(object):
             self.lbl_name_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
             self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
             self.ent_name_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-
-            row += 1
-            self.btn_name_filter = ctk.CTkButton(self.frm_lookup, text="Apply Filter", command=self.filter_names)
-            self.btn_name_filter.grid(row=row, column=0, columnspan=2, pady=6, padx=10)
+            self.ent_name_filter.bind("<Return>", command=self.filter_names)
 
             # Multiple record action buttons
             self.btn_next = ctk.CTkButton(wnd_staff_role, text="Next", command=self.handle_next_click)
@@ -168,7 +165,6 @@ class StaffRoleUpdate(object):
                                                                          widget_list_values(self.cmb_role_code),
                                                                          widget_list_values(self.chc_bank),
                                                                          widget_list_values(self.chc_nightshift))
-
         if not input_valid:
             input_warning(self.wnd_staff_role, message)
             return
@@ -183,14 +179,22 @@ class StaffRoleUpdate(object):
         if number_changes > 0:
             self.refresh_staff()
 
-
-
-    def filter_names(self):
+    def filter_names(self, event: str = None) -> None:
         """Filter the names in the Staff Name drop down to those that match
            the filter entered by the user."""
+        logger.debug(f"filter_name called with event {event}")
         name_filter = self.ent_name_filter.get()
         filtered_names = self.srl.filter_staff_names(name_filter)
         self.cmb_staff_name.configure(values=filtered_names)
-        if name_filter:
-            self.ent_name_filter.delete(0, 9999)
-            self.ent_name_filter.insert(0, name_filter)
+
+        # If the filter returns a single name set it in the staff name field
+        if len(filtered_names) == 1:
+            self.cmb_staff_name.set(filtered_names[0])
+            self.refresh_staff()
+        # if the current staff name is not in the list blank all the fields
+        elif self.cmb_staff_name.get() not in filtered_names:
+            self.cmb_staff_name.set('')
+            for s in range(self.ad.md.len('Service')):
+                self.cmb_role_code[s].set('')
+                self.chc_bank[s].deselect()
+                self.chc_nightshift[s].deselect()

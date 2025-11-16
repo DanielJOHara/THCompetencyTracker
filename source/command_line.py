@@ -6,7 +6,8 @@ import json
 import logging
 import os
 import sys
-import win32api
+
+import pywintypes
 from win32api import GetFileVersionInfo, LOWORD, HIWORD
 
 from source.appdata import AppData
@@ -26,7 +27,6 @@ def command_line(ad: AppData, description: str) -> None:
         app_path = os.path.abspath(__file__)
 
     app_directory = os.path.dirname(app_path)
-    app_version = get_version_number(app_path)
     app_name = 'THCompetencyTracker'
     username = os.getlogin().lower()
     current_directory = os.getcwd()
@@ -145,8 +145,11 @@ def command_line(ad: AppData, description: str) -> None:
 
     setup_logger(ad)
 
-    logger.info(f"Running {app_name} from directory {app_directory} version {app_version}"
-                f" for {username} with current directory {current_directory}")
+    app_version = get_version_number(app_path)
+    logger.info(f"Running {app_name} from directory {app_directory}")
+    logger.info(f"version: {app_version}")
+    logger.info(f"User: {username}")
+    logger.info(f"Current directory: {current_directory}")
     logger.info(f"Arguments from argparse")
     for key in ad.args.__dict__:
         logger.info(f"    {key: <23}: {ad.args.__dict__[key]}")
@@ -164,13 +167,14 @@ def command_line(ad: AppData, description: str) -> None:
     read_json_configuration(ad)
 
 
-def get_version_number(filename):
+def get_version_number(file_name):
     try:
-        info = GetFileVersionInfo(filename, "\\")
+        info = GetFileVersionInfo(file_name, "\\")
         ms = info['FileVersionMS']
         ls = info['FileVersionLS']
         return HIWORD(ms), LOWORD(ms), HIWORD(ls), LOWORD(ls)
-    except win32api.error:
+    except pywintypes.error:
+        logger.warning(f"Fail to get version info for: {file_name}")
         return 0, 0, 0, 0
 
 

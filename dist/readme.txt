@@ -76,9 +76,14 @@ Functional Changes:
     Automatically close Staff Role Update window when inputting data for a single staff member
 
 Version 0.1.2.8
-Technical Changes:
-
 Functional Changes:
     Apply filters on Staff Update window after any change.
     On Competency Report only include competencies relevant to staff type selected.
     Capitalise Staff Name when adding new staff.
+
+Version 0.1.2.9
+Technical Changes:
+
+Functional Changes:
+    Corrected Staff Name processing to put capitals after apostrophe.
+    Filters applied automatically when enter is used on Staff Name, drop down option selected or check box clicked.

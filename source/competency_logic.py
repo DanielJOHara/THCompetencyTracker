@@ -50,8 +50,8 @@ class CompetencyLogic:
             else:
                 expiry = ''
             if (self.ad.md.get('Competency', 'Competency Name', db_c) != competency_values[db_c]['Competency Name']
-                    or self.ad.md.get('Competency', 'Display Order', db_c)
-                        != int(competency_values[db_c]['Display Order'])
+                    or self.ad.md.get('Competency',
+                                      'Display Order', db_c) != int(competency_values[db_c]['Display Order'])
                     or self.ad.md.get('Competency', 'Scope', db_c) != competency_values[db_c]['Scope']
                     or self.ad.md.get('Competency', 'Prerequisite', db_c) != competency_values[db_c]['Prerequisite']
                     or self.ad.md.get('Competency', 'Nightshift', db_c) != competency_values[db_c]['Nightshift']

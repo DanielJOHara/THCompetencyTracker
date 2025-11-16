@@ -362,34 +362,33 @@ class StaffDocumentSelect(object):
         self.lbl_name_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
         self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
         self.ent_name_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+        self.ent_name_filter.bind("<Return>", command=self.apply_filters)
 
         row += 1
         self.lbl_rn_filter = ctk.CTkLabel(self.frm_lookup, text="RN Filter")
         self.lbl_rn_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
-        self.cmb_rn_filter = ctk.CTkComboBox(self.frm_lookup, state='readonly', values=['', 'RN', 'HCA'])
+        self.cmb_rn_filter = ctk.CTkComboBox(self.frm_lookup, state='readonly',
+                                             values=['', 'RN', 'HCA'], command=self.apply_filters)
         self.cmb_rn_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
         row += 1
         self.lbl_role_filter = ctk.CTkLabel(self.frm_lookup, text="Role Filter")
         self.lbl_role_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
         self.cmb_role_filter = ctk.CTkComboBox(self.frm_lookup, state='readonly',
-                                               values=[''] + ad.md.get_list('Role', 'Role Code'))
+                                               values=[''] + ad.md.get_list('Role', 'Role Code'),
+                                               command=self.apply_filters)
         self.cmb_role_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
         row += 1
         self.lbl_service_filter = ctk.CTkLabel(self.frm_lookup, text="Service Filter")
         self.lbl_service_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
         self.cmb_service_filter = ctk.CTkComboBox(self.frm_lookup, state='readonly',
-                                                  values=[''] + ad.md.get_list('Service', 'Service Code'))
+                                                  values=[''] + ad.md.get_list('Service', 'Service Code'),
+                                                  command=self.apply_filters)
         self.cmb_service_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-
-        row += 1
-        self.btn_filter = ctk.CTkButton(self.frm_lookup, text="Apply Filters", command=self.apply_filters)
-        self.btn_filter.grid(row=row, column=1, pady=6, padx=10)
 
         # Create frame for staff list
         self.frm_staff_list = ctk.CTkFrame(wnd_sd_select)
-        # self.frm_staff_list.pack(fill='both', side='left', expand=True)
         self.frm_staff_list.grid(row=0, column=2, sticky='nsew')
 
         self.lbl_staff_list_title = ctk.CTkLabel(self.frm_staff_list, text="Staff List",
@@ -488,7 +487,8 @@ class StaffDocumentSelect(object):
 
         staff_document(self.ad, self.staff_list, self.template_path, self.document_directory)
 
-    def apply_filters(self):
+    def apply_filters(self, event: str = None):
+        logger.debug(f"apply_filters called with event {event}")
         rn_filter = self.cmb_rn_filter.get()
         role_filter = self.cmb_role_filter.get()
 
@@ -541,7 +541,9 @@ class StaffDocumentSelect(object):
                              or re.search(name_filter, staff_name, re.I))):
                     filter_name_lst.append(staff_name)
             self.cmb_staff_name.configure(values=filter_name_lst)
-            if self.cmb_staff_name.get() not in filter_name_lst:
+            if len(filter_name_lst) == 1:
+                self.cmb_staff_name.set(filter_name_lst[0])
+            elif self.cmb_staff_name.get() not in filter_name_lst:
                 self.cmb_staff_name.set('')
         else:
             self.cmb_staff_name.configure(values=self.ad.md.get_list('Staff', 'Staff Name'))

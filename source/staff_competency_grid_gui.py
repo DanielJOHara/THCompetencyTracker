@@ -433,6 +433,8 @@ class StaffCompetencyGrid(object):
         self.cnv_se.xview_scroll(int(-1 * (event / 120)), 'units')
 
     def handel_assessor_click(self, event):
+        """When a staff members assessor or supervisor cell is clicked open
+           a window to allow user to set these values for the staff member."""
         # Extract label number from widget
         label_num_search = re.search(r'label(\d+)', str(event.widget))
         if not label_num_search:
@@ -460,7 +462,9 @@ class StaffCompetencyGrid(object):
         else:
             self.lbl_row[s][3].configure(text='')
 
-    def handel_staff_click(self, event):
+    def handel_staff_click(self, event: object):
+        """When staff header is clicked display or hide assessor and supervisor columns."""
+        logger.debug(f"handel_staff_click called for staff type {self.staff_type} with event: {event}")
         if self.staff_type != 'RN':
             return
 

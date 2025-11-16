@@ -148,30 +148,30 @@ class StaffCompetencyUpdate(object):
             self.lbl_name_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
             self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
             self.ent_name_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+            self.ent_name_filter.bind("<Return>", command=self.apply_filters)
 
             row += 1
             self.lbl_rn_filter = ctk.CTkLabel(self.frm_lookup, text="RN Filter")
             self.lbl_rn_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
-            self.cmb_rn_filter = ctk.CTkComboBox(self.frm_lookup, state='readonly', values=['', 'RN', 'HCA'])
+            self.cmb_rn_filter = ctk.CTkComboBox(self.frm_lookup, state='readonly',
+                                                 values=['', 'RN', 'HCA'], command=self.apply_filters)
             self.cmb_rn_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
             row += 1
             self.lbl_role_filter = ctk.CTkLabel(self.frm_lookup, text="Role Filter")
             self.lbl_role_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
             self.cmb_role_filter = ctk.CTkComboBox(self.frm_lookup, state='readonly',
-                                                   values=[''] + ad.md.get_list('Role', 'Role Code'))
+                                                   values=[''] + ad.md.get_list('Role', 'Role Code'),
+                                                   command=self.apply_filters)
             self.cmb_role_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
             row += 1
             self.lbl_service_filter = ctk.CTkLabel(self.frm_lookup, text="Service Filter")
             self.lbl_service_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
             self.cmb_service_filter = ctk.CTkComboBox(self.frm_lookup, state='readonly',
-                                                      values=[''] + ad.md.get_list('Service', 'Service Code'))
+                                                      values=[''] + ad.md.get_list('Service', 'Service Code'),
+                                                      command=self.apply_filters)
             self.cmb_service_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-
-            row += 1
-            self.btn_filter = ctk.CTkButton(self.frm_lookup, text="Apply Filters", command=self.apply_filters)
-            self.btn_filter.grid(row=row, column=1, pady=6, padx=10)
 
         # Setup calendar and date update buttons
         row += 1
@@ -180,7 +180,7 @@ class StaffCompetencyUpdate(object):
 
         row += 1
         self.lbl_prerequisite = ctk.CTkLabel(self.frm_lookup, text="Prerequisite Date")
-        self.lbl_prerequisite.grid(row=row, column=0, columnspan=2, pady=0, padx=10)
+        self.lbl_prerequisite.grid(row=row, column=0, columnspan=2, pady=0, padx=10, sticky='w')
 
         row += 1
         self.btn_set_prerequisite = ctk.CTkButton(self.frm_lookup, text="Set", width=80, command=self.set_prerequisite)
@@ -192,7 +192,7 @@ class StaffCompetencyUpdate(object):
 
         row += 1
         self.lbl_competency = ctk.CTkLabel(self.frm_lookup, text="Competency Date")
-        self.lbl_competency.grid(row=row, column=0, columnspan=2, pady=2, padx=10)
+        self.lbl_competency.grid(row=row, column=0, columnspan=2, pady=2, padx=10, sticky='w')
 
         row += 1
         self.btn_set_competency = ctk.CTkButton(self.frm_lookup, text="Set", width=80, command=self.set_competency)
@@ -213,7 +213,7 @@ class StaffCompetencyUpdate(object):
         self.btn_exit.pack(pady=6, padx=10)
 
     # noinspection PyUnusedLocal
-    def refresh_competency(self, event=None):
+    def refresh_competency(self, event=None) -> None:
         """Load the record for the Staff Name and Competency Name entered by the
            user. This will only be called when not in single record mode."""
         staff_name = self.cmb_staff_name.get()
@@ -252,7 +252,7 @@ class StaffCompetencyUpdate(object):
                 self.chc_not_required.deselect()
                 self.chc_required.deselect()
 
-    def apply_filters(self):
+    def apply_filters(self, event: str = None) -> None:
         """Apply the filter criteria entered by the user. This will only be
            called when not in single record mode."""
         rn_filter = self.cmb_rn_filter.get()
@@ -393,7 +393,7 @@ class StaffCompetencyUpdate(object):
             staff_name = self.cmb_staff_name.get()
             competency_name = self.cmb_competency_name.get()
 
-
+        number_changes = 0
         if staff_name and competency_name:
             prerequisite_date = parse_date(self.ent_prerequisite_date.get())
             achieved = self.chc_achieved.get()
@@ -422,7 +422,6 @@ class StaffCompetencyUpdate(object):
                 return
 
             # If record found check for updates
-            number_changes = 0
             if db_sc > -1:
                 if (self.ad.md.get('Staff Competency', 'Prerequisite Date', db_sc) != prerequisite_date
                         or self.ad.md.get('Staff Competency', 'Achieved', db_sc) != achieved

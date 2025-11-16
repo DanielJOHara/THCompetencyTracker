@@ -44,6 +44,7 @@ class StaffUpdate(object):
         self.lbl_name_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
         self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
         self.ent_name_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+        self.ent_name_filter.bind("<Return>", command=self.apply_filters)
 
         row += 1
         self.lbl_no_role = ctk.CTkLabel(self.frm_lookup, text="No Role")
@@ -51,6 +52,7 @@ class StaffUpdate(object):
         self.chc_no_role_filter = ctk.CTkCheckBox(self.frm_lookup, text="")
         self.chc_no_role_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
         self.chc_no_role_filter.select()
+        self.chc_no_role_filter.bind("<Button-1>", command=self.apply_filters)
 
         row += 1
         self.lbl_service_filter = ctk.CTkLabel(self.frm_lookup, text="Service Codes")
@@ -61,6 +63,7 @@ class StaffUpdate(object):
             row += 1
             self.chc_service_filter.append(ctk.CTkCheckBox(self.frm_lookup, text=service_code))
             self.chc_service_filter[db_sc].grid(row=row, column=1, pady=1, padx=10, sticky='w')
+            self.chc_service_filter[db_sc].bind("<Button-1>", command=self.apply_filters)
             if service_code != 'LEFT':
                 self.chc_service_filter[db_sc].select()
 
@@ -75,6 +78,7 @@ class StaffUpdate(object):
             self.chc_role_filter.append(ctk.CTkCheckBox(self.frm_lookup, text=role_name))
             if self.ad.md.count('Staff Role', 'Role Code', role_code) > 0:
                 self.chc_role_filter[db_r].grid(row=row, column=1, pady=1, padx=10, sticky='w')
+                self.chc_role_filter[db_r].bind("<Button-1>", command=self.apply_filters)
                 self.chc_role_filter[db_r].select()
 
         row += 1
@@ -97,10 +101,6 @@ class StaffUpdate(object):
 
         self.btn_set_hca = ctk.CTkButton(self.frm_lookup, width=80, text="Set HCA", command=self.set_hca)
         self.btn_set_hca.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-
-        row += 1
-        self.btn_filter = ctk.CTkButton(self.frm_lookup, text="Apply Filters", command=self.apply_filters)
-        self.btn_filter.grid(row=row, column=1, pady=6, padx=10)
 
         # Create header frame, pad to align with scrollable frame
         self.frm_h = ctk.CTkFrame(self.frm_table)
@@ -153,21 +153,25 @@ class StaffUpdate(object):
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             if self.ad.md.get('Role', 'RN', db_r) and self.ad.md.count('Staff Role', 'Role Code', role_code) > 0:
                 self.chc_role_filter[db_r].select()
+        self.apply_filters()
 
     def clear_rn(self):
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             if self.ad.md.get('Role', 'RN', db_r):
                 self.chc_role_filter[db_r].deselect()
+        self.apply_filters()
 
     def set_hca(self):
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             if not self.ad.md.get('Role', 'RN', db_r) and self.ad.md.count('Staff Role', 'Role Code', role_code) > 0:
                 self.chc_role_filter[db_r].select()
+        self.apply_filters()
 
     def clear_hca(self):
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             if not self.ad.md.get('Role', 'RN', db_r):
                 self.chc_role_filter[db_r].deselect()
+        self.apply_filters()
 
     def set_all(self):
         self.chc_no_role_filter.select()
@@ -176,6 +180,7 @@ class StaffUpdate(object):
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             if self.ad.md.count('Staff Role', 'Role Code', role_code) > 0:
                 self.chc_role_filter[db_r].select()
+        self.apply_filters()
 
     def clear_all(self):
         self.ent_name_filter.delete(0, 9999)
@@ -184,8 +189,10 @@ class StaffUpdate(object):
             self.chc_service_filter[db_sc].deselect()
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             self.chc_role_filter[db_r].deselect()
+        self.apply_filters()
 
-    def apply_filters(self):
+    def apply_filters(self, event: str = None) -> None:
+        logger.debug(f"apply_filters called with event {event}")
         # Remove every thing except letters and spaces from name filter string
         name_filter = self.ent_name_filter.get()
         if name_filter:

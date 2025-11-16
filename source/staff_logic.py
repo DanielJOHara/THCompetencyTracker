@@ -1,7 +1,6 @@
 """This module contains the business logic for managing staff."""
 import logging
 import re
-import string
 
 from source.appdata import AppData
 from source.window import parse_date
@@ -21,10 +20,10 @@ class StaffLogic(object):
         number_changes = 0
         for s, db_s in enumerate(db_s_list):
             staff_name = re.sub(' +', ' ', staff_values[s]['Staff Name'].strip())
-            staff_name = string.capwords(staff_name)
+            staff_name = staff_name.title()
             old_staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
             if old_staff_name != staff_name:
-                logger.info(f"Changing Staff Name from >{old_staff_name}< to >{staff_name}<")
+                logger.debug(f"Changing Staff Name from >{old_staff_name}< to >{staff_name}<")
                 # Check name change does not conflict with an existing record
                 if self.ad.md.count('Staff', 'Staff Name', staff_name) > 0:
                     return 0, f"Can't change Staff Name {old_staff_name} to {staff_name} as it already exists"
@@ -40,7 +39,7 @@ class StaffLogic(object):
                     or self.ad.md.get('Staff', 'Practice Supervisor', db_s) != staff_values[s]['Practice Supervisor']
                     or self.ad.md.get('Staff', 'Practice Assessor', db_s) != staff_values[s]['Practice Assessor']):
                 number_changes += 1
-                logger.info(f"Updating Staff Name {old_staff_name}")
+                logger.debug(f"Updating Staff Name {old_staff_name}")
                 self.ad.master_updated = True
                 self.ad.md.update_row('Staff', db_s, {'Staff Name': staff_name,
                                                       'Start Date': start_date,
@@ -56,7 +55,7 @@ class StaffLogic(object):
                   practice_supervisor: int, practice_assessor: int) -> tuple[bool, str, str]:
         """Add a new staff member."""
         staff_name = re.sub(r' +', ' ', staff_name.strip())
-        staff_name = string.capwords(staff_name)
+        staff_name = staff_name.title()
         
         if not staff_name:
             return False, staff_name, "Staff Name field must be set!"

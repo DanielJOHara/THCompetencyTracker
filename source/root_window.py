@@ -36,7 +36,7 @@ class RootWindow:
         if os.path.isfile(resource('Th.png')):
             self.wnd_root.iconpath = ImageTk.PhotoImage(file=resource('Th.png'))
             self.wnd_root.wm_iconbitmap()
-            self.wnd_root.iconphoto(False, self.wnd_root.iconpath)
+            self.wnd_root.iconphoto(False, str(self.wnd_root.iconpath))
 
         self.wnd_root.title("Staff Competency Tracker")
 
