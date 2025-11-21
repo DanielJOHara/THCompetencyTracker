@@ -75,7 +75,8 @@ def competency_grid_export(ad: AppData, report_excel_path: str, service_code_lis
             col = write_cell(ws, 0, col, 'Start Date', format_wrap, width=10)
             col = write_cell(ws, 0, col, 'Job Role', format_wrap, width=10)
             if rn_flg:
-                col = write_cell(ws, 0, col, 'Practice Supervisor', format_wrap, width=10)
+                if ad.args.supervisor:
+                    col = write_cell(ws, 0, col, 'Practice Supervisor', format_wrap, width=10)
                 col = write_cell(ws, 0, col, 'Practice Assessor', format_wrap, width=10)
             for db_c in db_c_list:
                 col = write_cell(ws, 0, col,
@@ -128,7 +129,8 @@ def competency_grid_export(ad: AppData, report_excel_path: str, service_code_lis
                 col = write_cell(ws, row, col, ad.md.get('Staff', 'Start Date', db_s), format_date)
                 col = write_cell(ws, row, col, role_code, format_centre)
                 if rn_flg:
-                    col = write_cell_y(ws, row, col, ad.md.get('Staff', 'Practice Supervisor', db_s), format_centre)
+                    if ad.args.supervisor:
+                        col = write_cell_y(ws, row, col, ad.md.get('Staff', 'Practice Supervisor', db_s), format_centre)
                     col = write_cell_y(ws, row, col, ad.md.get('Staff', 'Practice Assessor', db_s), format_centre)
 
                 for db_c in db_c_list:

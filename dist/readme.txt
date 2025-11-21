@@ -83,7 +83,9 @@ Functional Changes:
 
 Version 0.1.2.9
 Technical Changes:
-
+    Resolved all detected formatting issues.
 Functional Changes:
     Corrected Staff Name processing to put capitals after apostrophe.
     Filters applied automatically when enter is used on Staff Name, drop down option selected or check box clicked.
+    Added a label at bottom of the main menu showing application name and version.
+    Do not display Practice Supervisor field unless new -s option is selected.

@@ -189,7 +189,7 @@ def test_staff_delete(ctk_root, mock_ctk_messagebox, ad):
     if sr_cnt or sc_cnt:
         message = f"{staff_name} is used {sr_cnt} times in Staff Role and {sc_cnt} times in Staff Competency"
         mock_ctk_messagebox.assert_called_once_with(
-            title="Dependent Record Warning", message=message,icon='warning', option_1='Delete', option_2='Cancel')
+            title="Dependent Record Warning", message=message, icon='warning', option_1='Delete', option_2='Cancel')
     assert staff_delete.cmb_staff_name.get() == ''
     assert staff_name not in staff_delete.cmb_staff_name.cget("values")
     assert ad.md.find_one('Staff', staff_name, 'Staff Name') == -1

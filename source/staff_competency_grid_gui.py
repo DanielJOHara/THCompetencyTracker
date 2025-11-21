@@ -331,7 +331,8 @@ class StaffCompetencyGrid(object):
                                        borderwidth=1,
                                        relief='solid',
                                        bg='#FFFFFF')
-        self.lbl_supervisor.grid(row=0, column=3)
+        if self.ad.args.supervisor:
+            self.lbl_supervisor.grid(row=0, column=3)
 
         self.lbl_blank2 = tk.Label(self.frm_nw,
                                    text='',
@@ -351,7 +352,8 @@ class StaffCompetencyGrid(object):
                                    borderwidth=1,
                                    relief='solid',
                                    bg='#FFFFFF')
-        self.lbl_blank3.grid(row=1, column=3)
+        if self.ad.args.supervisor:
+            self.lbl_blank3.grid(row=1, column=3)
 
         row = -1
         last_role_code = None
@@ -402,8 +404,9 @@ class StaffCompetencyGrid(object):
                                           borderwidth=1,
                                           relief='solid',
                                           bg='#FFFFFF')
-            self.lbl_row[s][3].grid(row=row, column=3)
-            self.lbl_row[s][3].bind('<Button-1>', self.handel_assessor_click)
+            if self.ad.args.supervisor:
+                self.lbl_row[s][3].grid(row=row, column=3)
+                self.lbl_row[s][3].bind('<Button-1>', self.handel_assessor_click)
 
     def scroll_horizontal(self, *args):
         """Scroll horizontally."""

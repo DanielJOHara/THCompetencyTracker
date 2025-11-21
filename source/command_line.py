@@ -27,8 +27,8 @@ def command_line(ad: AppData, description: str) -> None:
         app_path = os.path.abspath(__file__)
 
     app_directory = os.path.dirname(app_path)
-    app_name = 'THCompetencyTracker'
-    username = os.getlogin().lower()
+    ad.app_name = 'THCompetencyTracker'
+    ad.username = os.getlogin().lower()
     current_directory = os.getcwd()
 
     # Put doc string in help
@@ -67,6 +67,12 @@ def command_line(ad: AppData, description: str) -> None:
         help="Run application in read only mode")
 
     parser.add_argument(
+        '-s',
+        '--supervisor',
+        action="store_true",
+        help="Display Practice Supervisor field")
+
+    parser.add_argument(
         '-l',
         '--logging_level',
         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
@@ -81,8 +87,8 @@ def command_line(ad: AppData, description: str) -> None:
     parser.add_argument(
         '-lf',
         '--logging_file_name',
-        help=f"Logging file name, default {app_name}.log",
-        default=app_name + '.log')
+        help=f"Logging file name, default {ad.app_name}.log",
+        default=ad.app_name + '.log')
 
     parser.add_argument(
         '-re',
@@ -135,7 +141,7 @@ def command_line(ad: AppData, description: str) -> None:
 
     ad.args = parser.parse_args()
 
-    ad.configuration_path = str(os.path.join(ad.args.master_excel_directory, f'{app_name}.json'))
+    ad.configuration_path = str(os.path.join(ad.args.master_excel_directory, f'{ad.app_name}.json'))
 
     if not ad.args.logging_directory or not os.access(ad.args.logging_directory, os.W_OK):
         if os.access(ad.args.master_excel_directory, os.W_OK):
@@ -145,10 +151,10 @@ def command_line(ad: AppData, description: str) -> None:
 
     setup_logger(ad)
 
-    app_version = get_version_number(app_path)
-    logger.info(f"Running {app_name} from directory {app_directory}")
-    logger.info(f"version: {app_version}")
-    logger.info(f"User: {username}")
+    ad.app_version = get_version_number(app_path)
+    logger.info(f"Running {ad.app_name} from directory {app_directory}")
+    logger.info(f"version: {ad.app_version}")
+    logger.info(f"User: {ad.username}")
     logger.info(f"Current directory: {current_directory}")
     logger.info(f"Arguments from argparse")
     for key in ad.args.__dict__:
@@ -167,15 +173,15 @@ def command_line(ad: AppData, description: str) -> None:
     read_json_configuration(ad)
 
 
-def get_version_number(file_name):
+def get_version_number(file_name) -> str:
     try:
         info = GetFileVersionInfo(file_name, "\\")
         ms = info['FileVersionMS']
         ls = info['FileVersionLS']
-        return HIWORD(ms), LOWORD(ms), HIWORD(ls), LOWORD(ls)
+        return f"{HIWORD(ms)}.{LOWORD(ms)}.{HIWORD(ls)}.{LOWORD(ls)}"
     except pywintypes.error:
         logger.warning(f"Fail to get version info for: {file_name}")
-        return 0, 0, 0, 0
+        return "0.0.0.0"
 
 
 def resource(relative_path: str) -> str:

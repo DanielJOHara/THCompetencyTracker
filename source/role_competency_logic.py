@@ -6,6 +6,7 @@ from source.appdata import AppData
 
 logger = logging.getLogger(__name__)
 
+
 class RoleCompetencyLogic:
     """Encapsulates the business logic for role competency management."""
 

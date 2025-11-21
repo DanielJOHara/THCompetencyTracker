@@ -106,8 +106,12 @@ class StaffUpdate(object):
         self.frm_h = ctk.CTkFrame(self.frm_table)
         self.frm_h.pack(padx=6, fill='x', expand=False)
 
-        self.header = ['Staff Name', 'Start Date', 'Supervisor', 'Assessor', 'Roles']
-        self.width = [250, 90, 90, 90, 180]
+        if self.ad.args.supervisor:
+            self.header = ['Staff Name', 'Start Date', 'Supervisor', 'Assessor', 'Roles']
+            self.width = [250, 90, 90, 90, 180]
+        else:
+            self.header = ['Staff Name', 'Start Date', 'Assessor', 'Roles']
+            self.width = [250, 90, 90, 90, 180]
 
         # Create list to hold header labels
         self.lbl_header = []
@@ -288,12 +292,13 @@ class StaffUpdate(object):
             self.ent_start_date.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
             self.ent_start_date[s].grid(row=s + 1, column=col, sticky='w')
 
-            col += 1
             self.chc_practice_supervisor.append(ctk.CTkCheckBox(self.frm_s,
-                                                                width=self.width[col] - 2 * int(self.width[col] / 3),
-                                                                text=""))
-            self.chc_practice_supervisor[s].grid(row=s + 1, column=col,
-                                                 sticky='nsew', padx=int(self.width[col] / 3))
+                                                width=self.width[col] - 2 * int(self.width[col] / 3),
+                                                text=""))
+            if self.ad.args.supervisor:
+                col += 1
+                self.chc_practice_supervisor[s].grid(row=s + 1, column=col,
+                                                     sticky='nsew', padx=int(self.width[col] / 3))
 
             col += 1
             self.chc_practice_assessor.append(ctk.CTkCheckBox(self.frm_s,
@@ -388,9 +393,10 @@ class StaffDelete(object):
         self.ent_start_date = ctk.CTkEntry(self.frm_attribute, state='disabled')
         self.ent_start_date.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
-        row += 1
         self.chc_practice_supervisor = ctk.CTkCheckBox(self.frm_attribute, text="Practice Supervisor", state='disabled')
-        self.chc_practice_supervisor.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+        if self.ad.args.supervisor:
+            row += 1
+            self.chc_practice_supervisor.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
         row += 1
         self.chc_practice_assessor = ctk.CTkCheckBox(self.frm_attribute, text="Practice Assessor", state='disabled')
@@ -497,9 +503,10 @@ class StaffAdd(object):
         self.ent_start_date = ctk.CTkEntry(self.frm_attribute)
         self.ent_start_date.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
-        row += 1
         self.chc_practice_supervisor = ctk.CTkCheckBox(self.frm_attribute, text="Practice Supervisor")
-        self.chc_practice_supervisor.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+        if self.ad.args.supervisor:
+            row += 1
+            self.chc_practice_supervisor.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
         row += 1
         self.chc_practice_assessor = ctk.CTkCheckBox(self.frm_attribute, text="Practice Assessor")
@@ -564,11 +571,12 @@ class StaffAssessorUpdate:
         if self.ad.md.get('Staff', 'Practice Assessor', self.db_s):
             self.chc_practice_assessor.select()
 
-        row += 1
         self.chc_practice_supervisor = ctk.CTkCheckBox(self.frm_attribute, text="Practice Supervisor")
-        self.chc_practice_supervisor.grid(row=row, column=1, pady=6, padx=10, sticky='w')
         if self.ad.md.get('Staff', 'Practice Supervisor', self.db_s):
             self.chc_practice_supervisor.select()
+        if self.ad.args.supervisor:
+            row += 1
+            self.chc_practice_supervisor.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
         # Action Buttons
         self.btn_add = ctk.CTkButton(wnd_staff_assessor, text="Update", command=self.handle_update_click)

@@ -1,6 +1,5 @@
 import pytest
 from unittest.mock import patch
-import pandas as pd
 
 import logging
 import customtkinter as ctk

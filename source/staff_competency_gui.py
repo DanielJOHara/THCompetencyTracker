@@ -253,8 +253,8 @@ class StaffCompetencyUpdate(object):
                 self.chc_required.deselect()
 
     def apply_filters(self, event: str = None) -> None:
-        """Apply the filter criteria entered by the user. This will only be
-           called when not in single record mode."""
+        """Apply the filter criteria entered by the user. This will only be called when not in single record mode."""
+        logger.debug(f"apply_filters called with{event}")
         rn_filter = self.cmb_rn_filter.get()
         role_filter = self.cmb_role_filter.get()
 

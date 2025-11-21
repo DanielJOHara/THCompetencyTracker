@@ -59,6 +59,11 @@ class CompetencyTracking(object):
                                            command=lambda: child_window(StaffDocumentSelect, ad, wnd_track))
         self.btn_staff_doc.pack(pady=12, padx=20)
 
+        # When in read only mode this is the base window so display application name and version
+        if self.ad.args.readonly:
+            self.lbl_about = ctk.CTkLabel(self.wnd_track, text=f"{ad.app_name} {ad.app_version}")
+            self.lbl_about.pack(pady=0, padx=20, anchor='e')
+
         self.wnd_track.protocol('WM_DELETE_WINDOW', self.on_closing)
 
     def staff_report_select(self) -> None:

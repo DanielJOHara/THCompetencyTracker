@@ -1,4 +1,3 @@
-
 import os
 import pytest
 from unittest.mock import MagicMock
@@ -11,10 +10,9 @@ from source.role_competency_logic import RoleCompetencyLogic
 def ad(request):
     """Fixture to create an AppData object with a MasterData instance."""
     test_data_path = os.path.join(os.path.dirname(__file__), 'TestMasterData.xlsx')
-    md = MasterData(test_data_path, 30)
-    md.load()
     ad = AppData()
-    ad.md = md
+    ad.md = MasterData(test_data_path, 30)
+    ad.md.load()
 
     def finalizer():
         md._unlock()
@@ -62,7 +60,7 @@ def test_save_role_competencies(role_competency_logic):
 
     # Ensure the role competency does not exist initially
     db_rc = role_competency_logic.ad.md.find_three('Role Competency',
-                                                   service_code,'Service Code',
+                                                   service_code, 'Service Code',
                                                    role_code, 'Role Code',
                                                    competency_name, 'Competency Name')
     if db_rc > -1:
@@ -91,7 +89,8 @@ def test_reset_role_competencies(role_competency_logic):
     chc_rc = [[MagicMock()]]
 
     # Ensure the role competency does not exist initially
-    db_rc = role_competency_logic.ad.md.find_three('Role Competency', service_code, 'Service Code', role_code, 'Role Code', competency_name, 'Competency Name')
+    db_rc = role_competency_logic.ad.md.find_three('Role Competency', service_code, 'Service Code',
+                                                   role_code, 'Role Code', competency_name, 'Competency Name')
     if db_rc > -1:
         role_competency_logic.ad.md.delete_row('Role Competency', db_rc)
 

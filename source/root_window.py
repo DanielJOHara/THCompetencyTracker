@@ -60,6 +60,9 @@ class RootWindow:
                                                 command=lambda: child_window(DataManagement, ad, self.wnd_root))
             self.btn_data_input.pack(pady=12, padx=20)
 
+            self.lbl_about = ctk.CTkLabel(self.wnd_root, text=f"{ad.app_name} {ad.app_version}")
+            self.lbl_about.pack(pady=0, padx=20, anchor='e')
+
             # Call routine on exit to test for changes
             self.wnd_root.protocol('WM_DELETE_WINDOW', self.on_closing)
 

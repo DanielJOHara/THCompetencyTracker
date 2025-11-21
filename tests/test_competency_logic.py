@@ -172,7 +172,7 @@ def test_delete_competency_existing(ad):
 
 
 def test_delete_competency_blank(ad):
-    """Tests deleting an blank competency."""
+    """Tests deleting a blank competency."""
     success, warning, message = CompetencyLogic(ad).delete_competency("")
 
     assert success is False

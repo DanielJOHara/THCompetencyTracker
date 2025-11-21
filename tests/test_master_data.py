@@ -61,7 +61,7 @@ def test_write(md):
     # We can write to a temporary file and check if it's created.
     temp_path = os.path.join(os.path.dirname(__file__), 'temp_write_test.xlsx')
     # Create an empty file to be renamed
-    with open(temp_path, 'w') as f:
+    with open(temp_path, 'w'):
         pass
     md.master_excel_path = temp_path
     md.write()

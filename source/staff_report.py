@@ -92,7 +92,8 @@ def staff_report(ad: AppData, report_excel_path: str) -> None:
             {'label': 'Force Required', 'width': 10},
             {'label': 'Staff', 'width': 12}
         ]
-        ws_stf = create_report_worksheet(wb, sheet_name, header, formats['header'], protect_options, ad.args.report_password)
+        ws_stf = create_report_worksheet(wb, sheet_name, header,
+                                         formats['header'], protect_options, ad.args.report_password)
         ws_stf.write_url(0, len(header) - 1, f"internal:'Staff'!A{db_s + 2}", formats['hyper'], string='Staff')
         ws_stf_row = 0
 
@@ -110,7 +111,8 @@ def staff_report(ad: AppData, report_excel_path: str) -> None:
                 if competency_status_list[db_c] == status:
                     status_count[status] += 1
                     ws_stf_row += 1
-                    db_sc = ad.md.find_two('Staff Competency', staff_name, 'Staff Name', ad.md.get('Competency', 'Competency Name', db_c), 'Competency Name')
+                    db_sc = ad.md.find_two('Staff Competency', staff_name, 'Staff Name',
+                                           ad.md.get('Competency', 'Competency Name', db_c), 'Competency Name')
                     data = [
                         {'value': ad.status_dict[status]['description']},
                         {'value': ad.md.get('Competency', 'Competency Name', db_c)},
