@@ -87,7 +87,8 @@ def competency_grid_export(ad: AppData, report_excel_path: str, service_code_lis
             col = write_cell(ws, 1, col, '', format_wrap_grey)
             col = write_cell(ws, 1, col, '', format_wrap_grey)
             if rn_flg:
-                col = write_cell(ws, 1, col, '', format_wrap_grey)
+                if ad.args.supervisor:
+                    col = write_cell(ws, 1, col, '', format_wrap_grey)
                 col = write_cell(ws, 1, col, '', format_wrap_grey)
             for db_c in db_c_list:
                 competency_expiry = ad.md.get('Competency', 'Expiry', db_c)
