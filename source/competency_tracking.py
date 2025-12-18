@@ -12,7 +12,7 @@ from source.appdata import AppData
 from source.window import child_window, input_warning
 from source.staff_competency_gui import StaffCompetencyUpdate
 from source.staff_competency_grid_gui import StaffCompetencyGrid
-from source.competency_grid_export import competency_grid_export
+from source.staff_competency_grid_export import competency_grid_export
 from source.competency_report import competency_report
 from source.staff_report import staff_report
 from source.staff_document import staff_document

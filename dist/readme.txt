@@ -89,3 +89,7 @@ Functional Changes:
     Filters applied automatically when enter is used on Staff Name, drop down option selected or check box clicked.
     Added a label at bottom of the main menu showing application name and version.
     Do not display Practice Supervisor field unless new -s option is selected.
+
+Version 0.1.2.10
+Technical Changes:
+    Added command line parameters for theme colour and window icon

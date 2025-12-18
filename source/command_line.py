@@ -27,7 +27,7 @@ def command_line(ad: AppData, description: str) -> None:
         app_path = os.path.abspath(__file__)
 
     app_directory = os.path.dirname(app_path)
-    ad.app_name = 'THCompetencyTracker'
+    ad.app_name = 'CompetencyTracker'
     ad.username = os.getlogin().lower()
     current_directory = os.getcwd()
 
@@ -98,6 +98,19 @@ def command_line(ad: AppData, description: str) -> None:
         default=30)
 
     parser.add_argument(
+        '-t',
+        '--theme',
+        choices=['green', 'blue', 'dark-blue'],
+        help="GUI theme colour",
+        default='green')
+
+    parser.add_argument(
+        '-i',
+        '--icon',
+        help=f"Icon file for top left hand of windows, default Th.png",
+        default='Th.png')
+
+    parser.add_argument(
         '-cod',
         '--out_of_date',
         help="Out of date Colour",
@@ -143,6 +156,7 @@ def command_line(ad: AppData, description: str) -> None:
 
     ad.configuration_path = str(os.path.join(ad.args.master_excel_directory, f'{ad.app_name}.json'))
 
+    # Ensure the logging directory is writeable
     if not ad.args.logging_directory or not os.access(ad.args.logging_directory, os.W_OK):
         if os.access(ad.args.master_excel_directory, os.W_OK):
             ad.args.logging_directory = ad.args.master_excel_directory

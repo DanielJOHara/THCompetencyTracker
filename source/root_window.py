@@ -26,15 +26,15 @@ class RootWindow:
         self.ad = ad
 
         # Set colour themes: 'blue' (standard), 'green", 'dark-blue'
-        ctk.set_default_color_theme('green')
+        ctk.set_default_color_theme(ad.args.theme)
 
         # Create root window with single frame of action buttons
         self.wnd_root = ctk.CTk()
         ad.wnd_root = self.wnd_root
 
         # Change window icon
-        if os.path.isfile(resource('Th.png')):
-            self.wnd_root.iconpath = ImageTk.PhotoImage(file=resource('Th.png'))
+        if os.path.isfile(resource(ad.args.icon)):
+            self.wnd_root.iconpath = ImageTk.PhotoImage(file=resource(ad.args.icon))
             self.wnd_root.wm_iconbitmap()
             self.wnd_root.iconphoto(False, str(self.wnd_root.iconpath))
 
