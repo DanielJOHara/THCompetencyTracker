@@ -45,6 +45,7 @@ class StaffUpdate(object):
         self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
         self.ent_name_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
         self.ent_name_filter.bind("<Return>", command=self.apply_filters)
+        self.ent_name_filter.bind("<Leave>", command=self.apply_filters)
 
         row += 1
         self.lbl_no_role = ctk.CTkLabel(self.frm_lookup, text="No Role")
@@ -196,7 +197,7 @@ class StaffUpdate(object):
         self.apply_filters()
 
     def apply_filters(self, event: str = None) -> None:
-        logger.debug(f"apply_filters called with event {event}")
+        logger.debug(f"In StaffUpdate apply_filters called with event {event}")
         # Remove every thing except letters and spaces from name filter string
         name_filter = self.ent_name_filter.get()
         if name_filter:
@@ -411,10 +412,8 @@ class StaffDelete(object):
         self.lbl_name_filter.grid(row=row, column=0, pady=6, padx=10, sticky='e')
         self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
         self.ent_name_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-
-        row += 1
-        self.btn_name_filter = ctk.CTkButton(self.frm_lookup, text="Apply Filter", command=self.filter_names)
-        self.btn_name_filter.grid(row=row, column=0, columnspan=2, pady=6, padx=10)
+        self.ent_name_filter.bind("<Return>", command=self.filter_names)
+        self.ent_name_filter.bind("<Leave>", command=self.filter_names)
 
         # Action Buttons
         self.btn_delete = ctk.CTkButton(wnd_staff_del, text="Delete", command=self.handle_delete_click)
@@ -457,20 +456,25 @@ class StaffDelete(object):
         set_disabled_checkbox(self.chc_practice_supervisor, 0)
         set_disabled_checkbox(self.chc_practice_assessor, 0)
 
-    def filter_names(self):
+    def filter_names(self, event):
         """Filter the names in the Staff Name drop down to those that match
            the filter entered by the user."""
         name_filter = self.ent_name_filter.get()
+        logger.debug(f"In StaffDelete name_filter called for event{event} and filter name {name_filter}")
         if name_filter:
             # Remove every thing except letters and spaces from filter string
             name_filter = re.sub(r'[^a-zA-Z -]', '', name_filter).strip()
             self.ent_name_filter.delete(0, 9999)
             self.ent_name_filter.insert(0, name_filter)
+            # Set the filter name list
             filter_name_lst = []
             for staff_name in self.ad.md.get_list('Staff', 'Staff Name'):
                 if re.search(name_filter, staff_name, re.IGNORECASE):
                     filter_name_lst.append(staff_name)
             self.cmb_staff_name.configure(values=filter_name_lst)
+            # If there is only one name in list set the name
+            if len(filter_name_lst) == 1:
+                self.cmb_staff_name.set(filter_name_lst[0])
         else:
             self.cmb_staff_name.configure(values=self.ad.md.get_list('Staff', 'Staff Name'))
 

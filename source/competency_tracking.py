@@ -45,14 +45,16 @@ class CompetencyTracking(object):
             self.btn_input.pack(pady=12, padx=20)
 
         self.btn_grid = ctk.CTkButton(self.frm_button, text="Grid Export",
-                                      command=lambda: child_window(GridExportSelect, ad, wnd_track))
+                                      command=lambda: child_window(ReportSelect, ad, wnd_track, 'GRID'))
         self.btn_grid.pack(pady=12, padx=20)
 
         self.btn_competency = ctk.CTkButton(self.frm_button, text="Competency Report",
-                                            command=lambda: child_window(CompetencyReportSelect, ad, wnd_track))
+                                            command=lambda: child_window(ReportSelect, ad, wnd_track, 'COMPETENCY'))
         self.btn_competency.pack(pady=12, padx=20)
 
-        self.btn_staff = ctk.CTkButton(self.frm_button, text="Staff Report", command=self.staff_report_select)
+        self.btn_staff = ctk.CTkButton(self.frm_button, text="Staff Report",
+                                       command=lambda: child_window(ReportSelect, ad, wnd_track, 'STAFF'))
+
         self.btn_staff.pack(pady=12, padx=20)
 
         self.btn_staff_doc = ctk.CTkButton(self.frm_button, text="Staff Documents",
@@ -65,26 +67,6 @@ class CompetencyTracking(object):
             self.lbl_about.pack(pady=0, padx=20, anchor='e')
 
         self.wnd_track.protocol('WM_DELETE_WINDOW', self.on_closing)
-
-    def staff_report_select(self) -> None:
-        """Function to provide Excel report path to staff report generation."""
-        # Prompt user for Excel file for report
-        report_excel_path = tk.filedialog.asksaveasfilename(
-            initialdir=self.ad.args.report_directory,
-            initialfile=f'TH Staff Report {datetime.date.today():%Y-%m-%d}.xlsx',
-            title="Select Staff Report Excel File",
-            filetype=(('xlsx files', '*.xlsx'),)).replace('/', '\\')
-        logger.info(f"User selected to generate Staff report file: {report_excel_path}")
-
-        # If user canceled file selection abandon report
-        if not report_excel_path:
-            return
-
-        # Add Excel file extension if it is missing
-        if report_excel_path[-5:] != '.xlsx':
-            report_excel_path += '.xlsx'
-
-        staff_report(self.ad, report_excel_path)
 
     def on_closing(self) -> None:
         self.wnd_track.destroy()
@@ -148,23 +130,34 @@ class StaffCompetencyGridSelect(object):
             self.wnd_cg_select.destroy()
 
 
-class GridExportSelect(object):
-    """Window for the user to enter the Service Codes and Staff Types for which to generate the grid export."""
-    def __init__(self, ad: AppData, wnd_ge_select: ctk.CTkToplevel) -> None:
+class ReportSelect(object):
+    """Window for the user to enter the Service Codes and Staff Types for which
+       to generate the grid export, staff report or competency report."""
+    def __init__(self, ad: AppData, wnd_report_select: ctk.CTkToplevel, report_type: str) -> None:
 
-        logger.info("Creating Grid Export Selection window")
-
-        self.wnd_ge_select = wnd_ge_select
         self.ad = ad
+        self.wnd_report_select = wnd_report_select
+
+        if report_type == 'GRID':
+            self.report_title = "Staff Competency Grid"
+            self.report_procedure = competency_grid_export
+        elif report_type == 'COMPETENCY':
+            self.report_title = "Competency Report"
+            self.report_procedure = competency_report
+        elif report_type == 'STAFF':
+            self.report_title = "Staff Report"
+            self.report_procedure = staff_report
+        else:
+            logger.error(f"ReportSelect called with invalid report type: {report_type}")
+            input_warning(self.wnd_report_select, "Failed to Generate Report")
+            return
+
+        logger.info(f"Creating {self.report_title} Selection Window")
 
         # Add title top window
-        wnd_ge_select.title("Competency Report")
-        self.ad = ad
+        wnd_report_select.title(f"{self.report_title} Select")
 
-        # Add title top window
-        wnd_ge_select.title("Grid Export")
-
-        self.frm_attribute = ctk.CTkFrame(wnd_ge_select)
+        self.frm_attribute = ctk.CTkFrame(wnd_report_select)
         self.frm_attribute.pack(fill='both', expand=True)
 
         # Generate list of check boxes for service codes in column 0
@@ -177,6 +170,7 @@ class GridExportSelect(object):
             row += 1
             self.chc_service_code_list.append(ctk.CTkCheckBox(self.frm_attribute, text=service_code))
             self.chc_service_code_list[s].grid(row=row, column=0, pady=6, padx=20, sticky='e')
+            self.chc_service_code_list[s].bind("<Button-1>", command=self.set_default_file)
 
         # Generate check boxes for staff types in column 1
         row = 0
@@ -186,40 +180,52 @@ class GridExportSelect(object):
         row += 1
         self.chc_rn = ctk.CTkCheckBox(self.frm_attribute, text='RN')
         self.chc_rn.grid(row=row, column=1, pady=6, padx=20, sticky='e')
+        self.chc_rn.bind("<Button-1>", command=self.set_default_file)
 
         row += 1
         self.chc_hca = ctk.CTkCheckBox(self.frm_attribute, text='HCA')
         self.chc_hca.grid(row=row, column=1, pady=6, padx=20, sticky='e')
+        self.chc_hca.bind("<Button-1>", command=self.set_default_file)
 
         # Generate action buttons in column 2
         row = 0
         self.btn_generate = ctk.CTkButton(self.frm_attribute, text="Generate",
-                                          command=self.competency_grid_export_generate)
+                                          command=self.generate_report)
         self.btn_generate.grid(row=row, column=2, pady=6, padx=10)
 
         # Create frame for file location
-        self.frm_files = ctk.CTkFrame(wnd_ge_select)
+        self.frm_files = ctk.CTkFrame(wnd_report_select)
         self.frm_files.pack(fill='both', expand=True)
 
-        # Set export file path to the default
-        self.export_path = os.path.join(self.ad.args.report_directory,
-                                        f'TH Staff Competency Grid {datetime.date.today():%Y-%m-%d}.xlsx')
         row = 0
-        self.btn_export_file = ctk.CTkButton(self.frm_files, text="Export File",
-                                             command=self.competency_grid_export_select)
-        self.btn_export_file.grid(row=row, column=0, pady=6, padx=10)
-        self.lbl_export_file = ctk.CTkLabel(self.frm_files, text=self.export_path)
-        self.lbl_export_file.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+        self.btn_report_path = ctk.CTkButton(self.frm_files, text="Report File", command=self.file_select)
+        self.btn_report_path.grid(row=row, column=0, pady=6, padx=10)
+        self.lbl_report_path = ctk.CTkLabel(self.frm_files)
+        self.lbl_report_path.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
-    def competency_grid_export_generate(self) -> None:
+        # Set export file path to the default
+        self.report_path = self.ad.args.report_directory + '//dummy.xlsx'
+        self.set_default_file()
+
+    def set_default_file(self, event: str = None) -> None:
+        logger.debug(f"ReportSelect set_default_file called with event {event}")
+
+        service_code_list, staff_type_list = self.set_report_lists()
+        scope = ' '.join(service_code_list) + ' - ' + ' '.join(staff_type_list)
+
+        report_directory = str(os.path.dirname(self.report_path))
+        report_file = f'{self.report_title} {scope} {datetime.date.today():%Y-%m-%d}.xlsx'
+        self.report_path = str(os.path.join(report_directory, report_file))
+        self.lbl_report_path.configure(text=self.report_path)
+
+    def set_report_lists(self) -> [list, list]:
+        """Function to read check boxes for service codes and staff types and return selections in two lists."""
+        
         # Set service code list from list of check boxs
         service_code_list = []
         for s, service_code in enumerate(self.ad.md.get_list('Service', 'Service Code')):
             if self.chc_service_code_list[s].get():
                 service_code_list.append(service_code)
-        if len(service_code_list) < 1:
-            input_warning(self.wnd_ge_select, "Check required Service Codes")
-            return
 
         # Set staff type list from RN and HCA check boxes
         staff_type_list = []
@@ -227,22 +233,36 @@ class GridExportSelect(object):
             staff_type_list.append('RN')
         if self.chc_hca.get():
             staff_type_list.append('HCA')
+        
+        return service_code_list, staff_type_list
+
+    def generate_report(self) -> None:
+        # Get service code and staff type selections in two lists
+        service_code_list, staff_type_list = self.set_report_lists()
+        if len(service_code_list) < 1 and len(staff_type_list) < 1:
+            input_warning(self.wnd_report_select, "Check required Service Codes and Staff Types")
+            return
+        if len(service_code_list) < 1:
+            input_warning(self.wnd_report_select, "Check required Service Codes")
+            return
         if len(staff_type_list) < 1:
-            input_warning(self.wnd_ge_select, "Check required Staff Types")
+            input_warning(self.wnd_report_select, "Check required Staff Types")
             return
 
-        # Call external routine to generate the export
-        competency_grid_export(self.ad, self.export_path, service_code_list, staff_type_list)
+        # Call external routine to generate the report
+        self.report_procedure(self.ad, self.report_path, service_code_list, staff_type_list)
 
-    def competency_grid_export_select(self) -> None:
+    def file_select(self) -> None:
         """Function to provide Excel report path to competency grid export generation."""
         # Prompt user for Excel file for report
+        report_directory = str(os.path.dirname(self.report_path))
+        report_file = str(os.path.basename(self.report_path))
         report_excel_path = tk.filedialog.asksaveasfilename(
-            initialdir=self.ad.args.report_directory,
-            initialfile=f'TH Staff Competency Grid {datetime.date.today():%Y-%m-%d}.xlsx',
-            title="Select Competency Grid Excel File",
+            initialdir=report_directory,
+            initialfile=report_file,
+            title="Select Report Excel File",
             filetype=(('xlsx files', '*.xlsx'),)).replace('/', '\\')
-        logger.info(f"User selected to generate Competency grid export file: {report_excel_path}")
+        logger.info(f"User selected to generate report file: {report_excel_path}")
 
         if not report_excel_path:
             return
@@ -251,73 +271,8 @@ class GridExportSelect(object):
         if report_excel_path[-5:] != '.xlsx':
             report_excel_path += '.xlsx'
 
-        self.export_path = report_excel_path
-        self.lbl_export_file.configure(text=self.export_path)
-
-        return
-
-
-class CompetencyReportSelect(object):
-    """Window for the user to enter the Service Code and staff type for which
-       to generate the competency report."""
-
-    def __init__(self, ad: AppData, wnd_cr_select: ctk.CTkToplevel) -> None:
-
-        logger.info("Creating Competency Report Selection window")
-
-        self.wnd_cr_select = wnd_cr_select
-        self.ad = ad
-
-        # Add title top window
-        wnd_cr_select.title("Competency Report")
-
-        self.frm_attribute = ctk.CTkFrame(wnd_cr_select)
-        self.frm_attribute.pack(fill='both', side='left', expand=True)
-
-        row = 0
-        self.lbl_service_code = ctk.CTkLabel(self.frm_attribute, text="Service Code")
-        self.lbl_service_code.grid(row=row, column=0, pady=6, padx=10, sticky='e')
-        self.cmb_service_code = ctk.CTkComboBox(self.frm_attribute, state='readonly',
-                                                values=ad.md.get_list('Service', 'Service Code'),
-                                                command=self.call_competency_report)
-        self.cmb_service_code.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-
-        row += 1
-        self.lbl_staff_type = ctk.CTkLabel(self.frm_attribute, text="Staff Type")
-        self.lbl_staff_type.grid(row=row, column=0, pady=6, padx=10, sticky='e')
-        self.cmb_staff_type = ctk.CTkComboBox(self.frm_attribute, state='readonly',
-                                              values=['RN', 'HCA', 'BOTH'], command=self.call_competency_report)
-        self.cmb_staff_type.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-
-    # noinspection PyUnusedLocal
-    def call_competency_report(self, event):
-        service_code = self.cmb_service_code.get()
-        staff_type = self.cmb_staff_type.get()
-        if service_code and staff_type:
-            # Prompt user for Excel file for report
-            if staff_type == 'BOTH':
-                initial_file = f'TH Competency Report {service_code} {datetime.date.today():%Y-%m-%d}.xlsx'
-            else:
-                initial_file = f'TH Competency Report {service_code} {staff_type} {datetime.date.today():%Y-%m-%d}.xlsx'
-
-            report_excel_path = tk.filedialog.asksaveasfilename(
-                initialdir=self.ad.args.report_directory,
-                initialfile=initial_file,
-                title="Select Competency Report Excel File",
-                filetype=(('xlsx files', '*.xlsx'),)).replace('/', '\\')
-            logger.info(f"User selected to generate Competency report file: {report_excel_path}")
-
-            # If user canceled file selection abandon report
-            if not report_excel_path:
-                return
-
-            # Add Excel file extension if it is missing
-            if report_excel_path[-5:] != '.xlsx':
-                report_excel_path += '.xlsx'
-
-            # Call routine to generate report then close window
-            competency_report(self.ad, service_code, staff_type, report_excel_path)
-            self.wnd_cr_select.destroy()
+        self.report_path = report_excel_path
+        self.lbl_report_path.configure(text=self.report_path)
 
 
 class StaffDocumentSelect(object):
@@ -368,6 +323,7 @@ class StaffDocumentSelect(object):
         self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
         self.ent_name_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
         self.ent_name_filter.bind("<Return>", command=self.apply_filters)
+        self.ent_name_filter.bind("<Leave>", command=self.apply_filters)
 
         row += 1
         self.lbl_rn_filter = ctk.CTkLabel(self.frm_lookup, text="RN Filter")

@@ -33,8 +33,9 @@ class RootWindow:
         ad.wnd_root = self.wnd_root
 
         # Change window icon
-        if os.path.isfile(resource(ad.args.icon)):
-            self.wnd_root.iconpath = ImageTk.PhotoImage(file=resource(ad.args.icon))
+        icon_path = resource(ad.args.icon)
+        if os.path.isfile(icon_path):
+            self.wnd_root.iconpath = ImageTk.PhotoImage(file=icon_path)
             self.wnd_root.wm_iconbitmap()
             self.wnd_root.iconphoto(False, str(self.wnd_root.iconpath))
 

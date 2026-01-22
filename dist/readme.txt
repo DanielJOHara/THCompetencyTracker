@@ -93,3 +93,13 @@ Functional Changes:
 Version 0.1.2.10
 Technical Changes:
     Added command line parameters for theme colour and window icon
+
+Version 0.1.2.11
+Technical Changes:
+    Reset modify date on archived master files so that it will be retained for the full retention period.
+Functional Changes:
+    Added automatic filtering to staff delete that was missed in last version.
+    Made name filter automatically apply when leaving the entry field.
+    Formated date fields in staff report.
+    Added window to select service codes and staff types for staff report.
+    Standardised Competency Report Select to be same as Grid Export and new Staff Report Select.

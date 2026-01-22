@@ -11,10 +11,10 @@ from source.write_cell import write_cell, yn
 logger = logging.getLogger(__name__)
 
 
-def staff_report(ad: AppData, report_excel_path: str) -> None:
+def staff_report(ad: AppData, report_excel_path: str, service_code_list, staff_type_list) -> None:
     """Generate a spreadsheet with a staff summary tab and tab for each staff member
        giving the status for each competency."""
-    logger.info("Creating Staff Report")
+    logger.info(f"Creating Staff Report for Service Areas {service_code_list} and Staff Types {staff_type_list}")
 
     # Define report work book and formats to be used
     wb = xlsxwriter.Workbook(report_excel_path)
@@ -65,9 +65,25 @@ def staff_report(ad: AppData, report_excel_path: str) -> None:
     # Process each staff member
     sheet_name_list = []
     for db_s in range(ad.md.len('Staff')):
-        # Set sheet name and check it does not already exist, sheet duplicates are case-insensitive
+        # Check staff member has a role in the selected Service Area and Staff Type
         staff_name = ad.md.get('Staff', 'Staff Name', db_s)
-        sheet_name = re.sub(r'[[\]:*?/\\]', ' ', staff_name)[:30]
+        staff_required = False
+        for service_code in service_code_list:
+            for staff_type in staff_type_list:
+                db_sr = ad.md.find_two('Staff Role', staff_name, 'Staff Name', service_code, 'Service Code')
+                if db_sr != -1:
+                    role_code = ad.md.get('Staff Role', 'Role Code', db_sr)
+                    db_r = ad.md.find_one('Role', role_code, 'Role Code')
+                    rn = ad.md.get('Role', 'RN', db_r)
+                    if staff_type == 'RN' and rn or staff_type == 'HCA' and not rn:
+                        staff_required = True
+                        break
+
+        if not staff_required:
+            continue
+
+        # Set sheet name and check it does not already exist, sheet duplicates are case-insensitive
+        sheet_name = re.sub(r'[^a-zA-Z]', ' ', staff_name)[:30]
         duplicate_count = sheet_name_list.count(sheet_name.lower())
         sheet_name_list.append(sheet_name.lower())
         if duplicate_count > 0:
@@ -118,12 +134,17 @@ def staff_report(ad: AppData, report_excel_path: str) -> None:
                         {'value': ad.md.get('Competency', 'Competency Name', db_c)},
                         {'value': ad.md.get('Competency', 'Scope', db_c)},
                         {'value': ad.md.get('Competency', 'Expiry', db_c)},
-                        {'value': yn(ad.md.get('Competency', 'Prerequisite', db_c)), 'format': 'centre'},
-                        {'value': yn(ad.md.get('Competency', 'Nightshift', db_c)), 'format': 'centre'},
-                        {'value': yn(ad.md.get('Competency', 'Bank', db_c)), 'format': 'centre'},
-                        {'value': ad.md.get('Staff Competency', 'Competency Date', db_sc) if db_sc > -1 else ''},
+                        {'value': yn(ad.md.get('Competency', 'Prerequisite', db_c)),
+                         'format': 'centre'},
+                        {'value': yn(ad.md.get('Competency', 'Nightshift', db_c)),
+                         'format': 'centre'},
+                        {'value': yn(ad.md.get('Competency', 'Bank', db_c)),
+                         'format': 'centre'},
+                        {'value': ad.md.get('Staff Competency', 'Competency Date', db_sc) if db_sc > -1 else '',
+                         'format': 'date'},
                         {'value': yn(ad.md.get('Staff Competency', 'Completed', db_sc)) if db_sc > -1 else ''},
-                        {'value': ad.md.get('Staff Competency', 'Prerequisite Date', db_sc) if db_sc > -1 else ''},
+                        {'value': ad.md.get('Staff Competency', 'Prerequisite Date', db_sc) if db_sc > -1 else '',
+                         'format': 'date'},
                         {'value': yn(ad.md.get('Staff Competency', 'Achieved', db_sc)) if db_sc > -1 else ''},
                         {'value': ad.md.get('Staff Competency', 'Notes', db_sc) if db_sc > -1 else ''},
                         {'value': yn(ad.md.get('Staff Competency', 'Not Required', db_sc)) if db_sc > -1 else ''},

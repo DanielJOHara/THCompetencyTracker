@@ -149,6 +149,7 @@ class StaffCompetencyUpdate(object):
             self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
             self.ent_name_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
             self.ent_name_filter.bind("<Return>", command=self.apply_filters)
+            self.ent_name_filter.bind("<Leave>", command=self.apply_filters)
 
             row += 1
             self.lbl_rn_filter = ctk.CTkLabel(self.frm_lookup, text="RN Filter")
@@ -326,7 +327,9 @@ class StaffCompetencyUpdate(object):
                              or re.search(name_filter, staff_name, re.I))):
                     filter_name_lst.append(staff_name)
             self.cmb_staff_name.configure(values=filter_name_lst)
-            if self.cmb_staff_name.get() not in filter_name_lst:
+            if len(filter_name_lst) == 1:
+                self.cmb_staff_name.set(filter_name_lst[0])
+            elif self.cmb_staff_name.get() not in filter_name_lst:
                 self.cmb_staff_name.set('')
         else:
             self.cmb_staff_name.configure(values=self.ad.md.get_list('Staff', 'Staff Name'))

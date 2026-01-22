@@ -177,9 +177,10 @@ class MasterData:
 
     def write(self):
         self._unlock()
-        # Add date to current master file to create archive
+        # Add date to current master file name and rename to create archive
         archive_excel_path = add_date_to_filename(self.master_excel_path)
         os.rename(self.master_excel_path, archive_excel_path)
+        os.utime(archive_excel_path)
         # Create an Excel writer object
         with pd.ExcelWriter(self.master_excel_path, engine='xlsxwriter') as writer:
             wb = writer.book

@@ -88,6 +88,7 @@ class StaffRoleUpdate(object):
             self.ent_name_filter = ctk.CTkEntry(self.frm_lookup)
             self.ent_name_filter.grid(row=row, column=1, pady=6, padx=10, sticky='w')
             self.ent_name_filter.bind("<Return>", command=self.filter_names)
+            self.ent_name_filter.bind("<Leave>", command=self.filter_names)
 
             # Multiple record action buttons
             self.btn_next = ctk.CTkButton(wnd_staff_role, text="Next", command=self.handle_next_click)

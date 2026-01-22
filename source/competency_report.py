@@ -11,9 +11,9 @@ from source.write_cell import write_cell, yn
 logger = logging.getLogger(__name__)
 
 
-def competency_report(ad: AppData, service_code: str, staff_type: str, report_excel_path: str) -> None:
+def competency_report(ad: AppData, report_excel_path: str, service_code_list: list, staff_type_list: list) -> None:
     """Generate a spreadsheet with a tab for each competency giving the status for each staff member."""
-    logger.info(f"Creating Competency Report for Service Code {service_code} and Staff Type {staff_type}")
+    logger.info(f"Creating Competency Report for Service Codes {service_code_list} and Staff Types {staff_type_list}")
 
     # Define report work book and formats to be used
     wb = xlsxwriter.Workbook(report_excel_path)
@@ -65,14 +65,14 @@ def competency_report(ad: AppData, service_code: str, staff_type: str, report_ex
     db_c_list = []
     for db_c in range(ad.md.len('Competency')):
         scope = ad.md.get('Competency', 'Scope', db_c)
-        if scope == 'BOTH' or scope == staff_type:
+        if scope == 'BOTH' or scope in staff_type_list:
             db_c_list.append(db_c)
 
     # Process each competency
     for c, db_c in enumerate(db_c_list):
         competency_name = ad.md.get('Competency', 'Competency Name', db_c)
         # Create competency sheet and output header row
-        sheet_name = re.sub(r'[[\]:*?/\\]', ' ', competency_name)[:30]
+        sheet_name = re.sub(r'[^a-zA-Z]', ' ', competency_name)[:30]
         header = [
             {'label': 'Status', 'width': 20},
             {'label': 'Staff Name', 'width': 26},
@@ -100,22 +100,29 @@ def competency_report(ad: AppData, service_code: str, staff_type: str, report_ex
         competency_status_list = []
         for db_s in range(ad.md.len('Staff')):
             staff_name = ad.md.get('Staff', 'Staff Name', db_s)
-            # Find staff members role for service and they don't have role skip them
-            db_sr = ad.md.find_two('Staff Role',
-                                   service_code,  'Service Code',
-                                   staff_name, 'Staff Name')
-            if db_sr < 0:
+            staff_required = False
+            db_sr_list = []
+            for service_code in service_code_list:
+                # Find staff members role for service and if they don't have role skip the service code
+                db_sr = ad.md.find_two('Staff Role', service_code, 'Service Code', staff_name, 'Staff Name')
+                if db_sr < 0:
+                    continue
+                db_sr_list.append(db_sr)
+                for staff_type in staff_type_list:
+                    # Look up the role and if it is for a required staff type staff is required
+                    role_code = ad.md.get('Staff Role', 'Role Code', db_sr)
+                    db_r = ad.md.index('Role', 'Role Code', role_code)
+                    rn = ad.md.get('Role', 'RN', db_r)
+                    if rn and staff_type in ['RN', 'BOTH'] or not rn and staff_type in ['HCA', 'BOTH']:
+                        staff_required = True
+                        break
+
+            if not staff_required:
                 continue
 
-            # Look up the role and if it is not for a required staff type skip the staff member
-            db_r = ad.md.index('Role', 'Role Code', ad.md.get('Staff Role', 'Role Code', db_sr))
-            if (ad.md.get('Role', 'RN', db_r) and staff_type not in ['RN', 'BOTH']
-                    or not ad.md.get('Role', 'RN', db_r) and staff_type not in ['HCA', 'BOTH']):
-                continue
-
-            # Add staff member's competency status and indexes to list
-            status = set_competency_status(ad, db_s, db_c, [service_code])
-            competency_status_list.append([status, db_s, db_sr])
+            # Add staff member's competency status and role indexes to list
+            status = set_competency_status(ad, db_s, db_c, service_code_list)
+            competency_status_list.append([status, db_s, db_sr_list])
 
         # Write a row (excluding first colum) for each competency in status blocks
         status_count = [0] * len(ad.status_dict)  # Initialise counts for each status
@@ -126,25 +133,46 @@ def competency_report(ad: AppData, service_code: str, staff_type: str, report_ex
                     status_count[status] += 1
                     ws_cmp_row += 1
                     db_s = competency_status[1]
-                    db_sr = competency_status[2]
                     db_sc = ad.md.find_two('Staff Competency', ad.md.get('Staff', 'Staff Name', db_s),
                                            'Staff Name', competency_name, 'Competency Name')
+                    # Concatenate the roles data
+                    db_sr_list = competency_status[2]
+                    service_codes = ad.md.get('Staff Role', 'Service Code', db_sr_list[0])
+                    role_code = ad.md.get('Staff Role', 'Role Code', db_sr_list[0])
+                    role_codes = role_code
+                    db_r = ad.md.find_one('Role', role_code, 'Role Code')
+                    rn_flags = yn(ad.md.get('Role', 'RN', db_r))
+                    night_shift_flags = yn(ad.md.get('Staff Role', 'Nightshift', db_sr_list[0]))
+                    bank_flags = yn(ad.md.get('Staff Role', 'Bank', db_sr_list[0]))
+                    for db_sr in db_sr_list[1:]:
+                        service_codes += ',' + ad.md.get('Staff Role', 'Service Code', db_sr)
+                        role_code = ad.md.get('Staff Role', 'Role Code', db_sr)
+                        role_codes += ',' + role_code
+                        db_r = ad.md.find_one('Role', role_code, 'Role Code')
+                        rn_flags += ',' + yn(ad.md.get('Role', 'RN', db_r))
+                        night_shift_flags += ',' + yn(ad.md.get('Staff Role', 'Nightshift', db_sr))
+                        bank_flags += ',' + yn(ad.md.get('Staff Role', 'Bank', db_sr))
                     data = [
                         {'value': ad.status_dict[status]['description']},
                         {'value': ad.md.get('Staff', 'Staff Name', db_s)},
-                        {'value': ad.md.get('Staff Role', 'Service Code', db_sr)},
-                        {'value': yn(ad.md.get('Role', 'RN', ad.md.find_one(
-                            'Role', ad.md.get('Staff Role', 'Role Code', db_sr), 'Role Code'))), 'format': 'centre'},
-                        {'value': ad.md.get('Staff Role', 'Role Code', db_sr)},
-                        {'value': yn(ad.md.get('Staff Role', 'Nightshift', db_sr)), 'format': 'centre'},
-                        {'value': yn(ad.md.get('Staff Role', 'Bank', db_sr)), 'format': 'centre'},
-                        {'value': ad.md.get('Staff Competency', 'Competency Date', db_sc) if db_sc > -1 else ''},
-                        {'value': yn(ad.md.get('Staff Competency', 'Completed', db_sc)) if db_sc > -1 else ''},
-                        {'value': ad.md.get('Staff Competency', 'Prerequisite Date', db_sc) if db_sc > -1 else ''},
-                        {'value': yn(ad.md.get('Staff Competency', 'Achieved', db_sc)) if db_sc > -1 else ''},
+                        {'value': service_codes},
+                        {'value': rn_flags, 'format': 'centre'},
+                        {'value': role_codes},
+                        {'value': night_shift_flags, 'format': 'centre'},
+                        {'value': bank_flags, 'format': 'centre'},
+                        {'value': ad.md.get('Staff Competency', 'Competency Date', db_sc) if db_sc > -1 else '',
+                         'format': 'date'},
+                        {'value': yn(ad.md.get('Staff Competency', 'Completed', db_sc)) if db_sc > -1 else '',
+                         'format': 'centre'},
+                        {'value': ad.md.get('Staff Competency', 'Prerequisite Date', db_sc) if db_sc > -1 else '',
+                         'format': 'date'},
+                        {'value': yn(ad.md.get('Staff Competency', 'Achieved', db_sc)) if db_sc > -1 else '',
+                         'format': 'centre'},
                         {'value': ad.md.get('Staff Competency', 'Notes', db_sc) if db_sc > -1 else ''},
-                        {'value': yn(ad.md.get('Staff Competency', 'Not Required', db_sc)) if db_sc > -1 else ''},
-                        {'value': yn(ad.md.get('Staff Competency', 'Required', db_sc)) if db_sc > -1 else ''}
+                        {'value': yn(ad.md.get('Staff Competency', 'Not Required', db_sc)) if db_sc > -1 else '',
+                         'format': 'centre'},
+                        {'value': yn(ad.md.get('Staff Competency', 'Required', db_sc)) if db_sc > -1 else '',
+                         'format': 'centre'}
                     ]
                     write_row(ws_cmp, ws_cmp_row, data, formats)
                     row_status.append(status)

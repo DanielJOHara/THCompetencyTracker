@@ -206,7 +206,9 @@ def resource(relative_path: str) -> str:
     # If running a python script use script location
     else:
         base_path = os.path.dirname(os.path.abspath(__file__))
-    return str(os.path.join(base_path, relative_path))
+    resource = str(os.path.join(base_path, relative_path))
+    logger.debug(f"Resource returned {resource}")
+    return resource
 
 
 def read_json_configuration(ad: AppData) -> None:
