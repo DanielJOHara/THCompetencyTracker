@@ -103,3 +103,4 @@ Functional Changes:
     Formated date fields in staff report.
     Added window to select service codes and staff types for staff report.
     Standardised Competency Report Select to be same as Grid Export and new Staff Report Select.
+    Added password protection to master data excel spreadsheet.

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class MasterData:
-    def __init__(self, master_excel_path: str, retention: int, wnd_parent=None) -> None:
+    def __init__(self, master_excel_path: str, retention: int, wnd_parent=None, password='unlock') -> None:
         logger.info(f"Creating MasterData for Excel {master_excel_path} with retention {retention}")
         self.tables = [
             'Service', 'Role', 'Staff', 'Competency', 'Staff Role', 'Role Competency', 'Staff Competency']
@@ -62,6 +62,7 @@ class MasterData:
         self._df = {}
         self._file_lock = None
         self.wnd_parent = wnd_parent
+        self.password = password
 
     def __str__(self):
         """Function to generate string version of the master data as string of each of the data frames."""
@@ -181,6 +182,25 @@ class MasterData:
         archive_excel_path = add_date_to_filename(self.master_excel_path)
         os.rename(self.master_excel_path, archive_excel_path)
         os.utime(archive_excel_path)
+
+        # Define the sheet protect option
+        protect_options = {
+            'objects': False,
+            'scenarios': False,
+            'format_cells': True,
+            'format_columns': True,
+            'format_rows': True,
+            'insert_columns': False,
+            'insert_rows': False,
+            'insert_hyperlinks': False,
+            'delete_columns': False,
+            'delete_rows': False,
+            'select_locked_cells': True,
+            'sort': False,
+            'autofilter': True,
+            'pivot_tables': False,
+            'select_unlocked_cells': True,
+        }
         # Create an Excel writer object
         with pd.ExcelWriter(self.master_excel_path, engine='xlsxwriter') as writer:
             wb = writer.book
@@ -205,6 +225,7 @@ class MasterData:
 
                 # Add filter to columns
                 ws.autofilter(0, 0, len(_df), len(_df.columns) - 1)
+                ws.protect(self.password, protect_options)
 
         # Crete a copy of the new master file for read only processes
         excel_copy = os.path.splitext(self.master_excel_path)[0] + '_copy.xlsx'

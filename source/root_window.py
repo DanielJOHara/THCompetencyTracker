@@ -86,7 +86,7 @@ class RootWindow:
             sys.exit(1)
 
         master_excel_path = str(os.path.join(self.ad.args.master_excel_directory, self.ad.args.master_excel_file_name))
-        self.ad.md = MasterData(master_excel_path, self.ad.args.retention, self.wnd_root)
+        self.ad.md = MasterData(master_excel_path, self.ad.args.retention, self.wnd_root, self.ad.args.report_password)
         try:
             self.ad.md.load(master_excel_path, readonly=self.ad.args.readonly)
             self.set_button_states()
