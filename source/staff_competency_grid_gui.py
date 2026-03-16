@@ -3,6 +3,7 @@
 import datetime
 import logging
 import re
+from typing import Any
 
 import customtkinter as ctk
 import tkinter as tk
@@ -23,8 +24,11 @@ class StaffCompetencyGrid(object):
        value is clicked a window is opened to allow the user to modify it. The
        value and colour is updated to reflect this change.
        I have used tkinter label widgets as they support wrapping."""
-    def __init__(self, ad: AppData, wnd_sc_grid: ctk.CTkToplevel,
-                 service_code: str, staff_type: str, font_size: int = 10) -> None:
+    def __init__(self, ad: AppData,
+                 wnd_sc_grid: ctk.CTkToplevel,
+                 service_code: str,
+                 staff_type: str,
+                 font_size: int = 10) -> None:
         logger.info(f"Creating Staff Competency Grid window for {service_code} {staff_type}")
 
         self.wnd_sc_grid = wnd_sc_grid
@@ -179,7 +183,7 @@ class StaffCompetencyGrid(object):
                                                width=wt_c,
                                                wraplength=wrp_c,
                                                anchor='w',
-                                               justify=tk.LEFT,
+                                               justify='left',
                                                borderwidth=1,
                                                relief='solid',
                                                bg='#D3D3D3'))
@@ -261,7 +265,7 @@ class StaffCompetencyGrid(object):
                                             width=wt_s,
                                             wraplength=wrp_s,
                                             anchor='w',
-                                            justify=tk.LEFT,
+                                            justify='left',
                                             borderwidth=1,
                                             relief='solid',
                                             bg='#FFFFFF'))
@@ -418,24 +422,24 @@ class StaffCompetencyGrid(object):
         self.cnv_se.yview(*args)
         self.cnv_sw.yview(*args)
 
-    # noinspection PyUnusedLocal
-    def handle_configure(self, event):
+    def handle_configure(self, event: Any):
         """On window configure set frame scroll regions."""
+        logger.debug(f"Called with event {event}")
         self.cnv_ne.config(scrollregion=self.frm_cnv_ne.bbox())
         self.cnv_sw.config(scrollregion=self.frm_cnv_sw.bbox())
         self.cnv_se.config(scrollregion=self.frm_cnv_se.bbox())
 
-    def handle_mousewheel(self, event):
+    def handle_mousewheel(self, event: int):
         """Scroll vertically for mouse wheel."""
         self.cnv_se.yview_scroll(int(-1 * (event / 120)), 'units')
         self.cnv_sw.yview_scroll(int(-1 * (event / 120)), 'units')
 
-    def handle_mousewheel_shift(self, event):
+    def handle_mousewheel_shift(self, event: int):
         """Scroll horizontally for mouse wheel."""
         self.cnv_ne.xview_scroll(int(-1 * (event / 120)), 'units')
         self.cnv_se.xview_scroll(int(-1 * (event / 120)), 'units')
 
-    def handel_assessor_click(self, event):
+    def handel_assessor_click(self, event: tk.Event):
         """When a staff members assessor or supervisor cell is clicked open
            a window to allow user to set these values for the staff member."""
         # Extract label number from widget
@@ -467,6 +471,7 @@ class StaffCompetencyGrid(object):
 
     def handel_staff_click(self, event: object):
         """When staff header is clicked display or hide assessor and supervisor columns."""
+        print(f"event {event}")
         logger.debug(f"handel_staff_click called for staff type {self.staff_type} with event: {event}")
         if self.staff_type != 'RN':
             return
@@ -484,7 +489,7 @@ class StaffCompetencyGrid(object):
                 self.lbl_row[s][3].destroy()
             self.assessor_displayed = False
 
-    def handel_grid_click(self, event):
+    def handel_grid_click(self, event: tk.Event):
         """ When a cell is clicked calls the window for the user to update a
             Staff Competency record. It extracts the number of the label from
             the event widget. This is then used to calculate the index into the

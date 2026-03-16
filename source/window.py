@@ -1,7 +1,7 @@
 """This module provides common functions used by the GUI windows."""
 import datetime
 import logging
-from typing import Any, Callable, Union
+from typing import Any, Callable
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
@@ -11,8 +11,10 @@ from source.appdata import AppData
 logger = logging.getLogger(__name__)
 
 
-def child_window(function: Callable[..., Any], ad: AppData,
-                 wnd_parent: Union[ctk.CTk, ctk.CTkToplevel], *args, **kwargs) -> None:
+def child_window(function: Callable[..., Any],
+                 ad: AppData,
+                 wnd_parent: ctk.CTk | ctk.CTkToplevel,
+                 *args, **kwargs) -> None:
     """Function to create a child window"""
     # Create child window object
     wnd_child = ctk.CTkToplevel()
@@ -36,7 +38,7 @@ def child_window(function: Callable[..., Any], ad: AppData,
         wnd_parent.grab_set()
 
 
-def input_warning(wnd: Union[ctk.CTk, ctk.CTkToplevel], message: str) -> None:
+def input_warning(wnd: ctk.CTk | ctk.CTkToplevel, message: str) -> None:
     """Display a warning message box then grab back focus."""
     win_msg = CTkMessagebox(title="Data Input Error", message=message, icon='warning', option_1='OK')
     logger.info(f"Displaying Data Input Error: {message}")
@@ -53,7 +55,7 @@ def set_disabled_entry(ent: ctk.CTkEntry, string: str) -> None:
     ent.configure(state='disabled')
 
 
-def set_disabled_checkbox(chc: ctk.CTkCheckBox, value: any) -> None:
+def set_disabled_checkbox(chc: ctk.CTkCheckBox, value: Any) -> None:
     """Set a disabled CheckBox widget to the supplies value."""
     chc.configure(state='normal')
     if value:
@@ -63,14 +65,14 @@ def set_disabled_checkbox(chc: ctk.CTkCheckBox, value: any) -> None:
     chc.configure(state='disabled')
 
 
-def date_to_string(date: Union[datetime.date, datetime.datetime]) -> str:
+def date_to_string(date: datetime.date | datetime.datetime) -> str:
     """Converts a datetime to the standard format used by this application."""
     if isinstance(date, datetime.date) or isinstance(date, datetime.datetime):
         return date.strftime('%d.%m.%y')
     return ''
 
 
-def parse_date(text: str) -> Union[str, datetime.date]:
+def parse_date(text: str) -> str | datetime.date:
     """Converts multiple text date formats to a datetime date."""
     for fmt in ('%d.%m.%y', '%d-%m-%y', '%d/%m/%y',
                 '%d.%m.%Y', '%d-%m-%Y', '%d/%m/%Y',

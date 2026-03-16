@@ -1,5 +1,6 @@
 
 import logging
+from typing import Any
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
@@ -222,9 +223,9 @@ class CompetencyDelete(object):
         self.btn_exit = ctk.CTkButton(wnd_competency_del, text="Exit", command=wnd_competency_del.destroy)
         self.btn_exit.pack(pady=6, padx=10)
 
-    # noinspection PyUnusedLocal
-    def refresh_competency(self, event: str) -> None:
+    def refresh_competency(self, event: Any) -> None:
         """Display the competency record selected."""
+        logger.debug(f"Called with event {event}")
         # Identify selected competency
         competency_name = self.cmb_competency_name.get()
         db_c = self.ad.md.index('Competency', 'Competency Name', competency_name)

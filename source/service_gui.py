@@ -1,5 +1,6 @@
-"""This module contains the routines to manage the Service table."""
+"""This module contains the GUI routines to manage the Service table."""
 import logging
+from typing import Any
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
@@ -103,7 +104,7 @@ class ServiceUpdate(object):
         for db_s in range(self.ad.md.len('Service')):
             self.add_service_to_display(db_s)
 
-    def add_service_to_display(self, db_s):
+    def add_service_to_display(self, db_s: int):
         if db_s + 1 > len(self.service_widgets):
             self.service_widgets.append({'code': ctk.CTkEntry(self.frm_s, width=self.width[0]),
                                          'name': ctk.CTkEntry(self.frm_s, width=self.width[1])})
@@ -153,9 +154,9 @@ class ServiceDelete(object):
         self.btn_exit = ctk.CTkButton(wnd_service_del, text="Exit", command=self.wnd_service_del.destroy)
         self.btn_exit.pack(pady=6, padx=10)
 
-    # noinspection PyUnusedLocal
-    def refresh_service(self, event):
+    def refresh_service(self, event: Any):
         """Display the service record selected."""
+        logger.debug(f"Called with event {event}")
         # Identify selected service code
         service_code = self.cmb_service_code.get()
         db_s = self.ad.md.index('Service', 'Service Code', service_code)

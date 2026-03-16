@@ -1,6 +1,7 @@
 """This module defines the ToolTip class which can be used to add roll over text to a widget."""
 import logging
 import tkinter as tk
+from typing import Any
 
 from source.appdata import AppData
 from source.competency_display import set_competency_status
@@ -9,7 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 class ToolTip(object):
-    def __init__(self, widget, tip_text: str, x_offset=10, y_offset=10) -> None:
+    def __init__(self,
+                 widget: tk.Widget,
+                 tip_text: str,
+                 x_offset: int = 10,
+                 y_offset: int = 10) -> None:
         self.widget = widget
         self.tip_text = tip_text
         self.x_offset = x_offset
@@ -19,13 +24,13 @@ class ToolTip(object):
         self.widget.bind('<Enter>', self.show_tip)
         self.widget.bind('<Leave>', self.hide_tip)
 
-    def show_tip(self, event):
+    def show_tip(self, event: Any):
         """Display text in tooltip window"""
         logger.debug(f"show_tip call with event: {event}")
         if self.tip_window or not self.tip_text:
             return
 
-        x, y, cx, cy = self.widget.bbox("insert")
+        x, y, cx, cy = self.widget.bbox('insert')
         x = x + self.widget.winfo_rootx() + self.x_offset
         y = y + cy + self.widget.winfo_rooty() + self.y_offset
 
@@ -34,14 +39,14 @@ class ToolTip(object):
         self.tip_window.wm_geometry("+%d+%d" % (x, y))
         label = tk.Label(self.tip_window,
                          text=self.tip_text,
-                         justify=tk.LEFT,
-                         background="#ffffe0",
-                         relief=tk.SOLID,
+                         justify="left",
+                         background='#ffffe0',
+                         relief="solid",
                          borderwidth=1,
-                         font=('Lucida Console', 13, "normal"))
+                         font=('Lucida Console', 13, 'normal'))
         label.pack(ipadx=1)
 
-    def hide_tip(self, event):
+    def hide_tip(self, event: Any):
         """Remove tool tip window"""
         logger.debug(f"hide_tip call with event: {event}")
         if self.tip_window:
@@ -49,7 +54,11 @@ class ToolTip(object):
             self.tip_window = None
 
 
-def competency_tip_text(ad: AppData, db_c: int, db_s_list: list[int], service_code: str, staff_type: str) -> str:
+def competency_tip_text(ad: AppData,
+                        db_c: int,
+                        db_s_list: list[int],
+                        service_code: str,
+                        staff_type: str) -> str:
     """Function to set tool tip text for a competency."""
     competency_name = ad.md.get('Competency', 'Competency Name', db_c)
     scope = ad.md.get('Competency', 'Scope', db_c)
@@ -79,7 +88,9 @@ def competency_tip_text(ad: AppData, db_c: int, db_s_list: list[int], service_co
     return tip_text
 
 
-def role_tip_text(ad: AppData, db_r: int, service_code: str) -> str:
+def role_tip_text(ad: AppData,
+                  db_r: int,
+                  service_code: str) -> str:
     """Function to set tool tip code for a role."""
     role_code = ad.md.get('Role', 'Role Code', db_r)
     role_name = ad.md.get('Role', 'Role Name', db_r)
@@ -96,7 +107,7 @@ def role_tip_text(ad: AppData, db_r: int, service_code: str) -> str:
     return tip_text
 
 
-def yes_no(value: any) -> str:
+def yes_no(value: Any) -> str:
     """Return a Yes/No string for a value depending on if it is set."""
     if value:
         return 'Yes'

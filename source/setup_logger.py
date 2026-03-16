@@ -10,12 +10,12 @@ from source.appdata import AppData
 class StreamToLogger(object):
     """Fake file-like stream object that redirects writes to a logger instance.
        https://stackoverflow.com/questions/19425736/how-to-redirect-stdout-and-stderr-to-logger-in-python"""
-    def __init__(self, logger, level):
+    def __init__(self, logger: logging.Logger, level: int):
         self.logger = logger
         self.level = level
         self.linebuf = ''
 
-    def write(self, buf):
+    def write(self, buf: str):
         for line in buf.rstrip().splitlines():
             self.logger.log(self.level, line.rstrip())
 
@@ -62,6 +62,7 @@ def setup_logger(ad: AppData) -> None:
         logger.addHandler(stream_handler)
     else:
         # If not attached to console redirect stdout and stderr to logger
+        print(f"logger {type(logger)} logging.INFO {type(logging.INFO)}")
         sys.stdout = StreamToLogger(logger, logging.INFO)
         sys.stderr = StreamToLogger(logger, logging.ERROR)
 

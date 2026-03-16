@@ -19,8 +19,11 @@ class StaffRoleLogic:
         """
         self.ad = ad
 
-    def save_staff_roles(self, staff_name: str, role_list: list,
-                         bank_list: list, nightshift_list: list) -> tuple[bool, int, str]:
+    def save_staff_roles(self,
+                         staff_name: str,
+                         role_list: list,
+                         bank_list: list,
+                         nightshift_list: list) -> tuple[bool, int, str]:
         """Saves all changes made to the staff roles.
 
         Args:

@@ -6,8 +6,8 @@ import os
 import re
 import shutil
 import time
-from typing import Union, List
 import warnings
+from typing import Any, List, Union
 
 import customtkinter as ctk
 import pandas as pd
@@ -18,7 +18,12 @@ logger = logging.getLogger(__name__)
 
 
 class MasterData:
-    def __init__(self, master_excel_path: str, retention: int, wnd_parent=None, password='unlock') -> None:
+    def __init__(self,
+                 master_excel_path: str,
+                 retention: int,
+                 wnd_parent: ctk.CTk | ctk.CTkToplevel | None = None,
+                 password: str = '') -> None:
+
         logger.info(f"Creating MasterData for Excel {master_excel_path} with retention {retention}")
         self.tables = [
             'Service', 'Role', 'Staff', 'Competency', 'Staff Role', 'Role Competency', 'Staff Competency']
@@ -99,6 +104,9 @@ class MasterData:
             portalocker.unlock(self._file_lock)
             self._file_lock.close()
             self._file_lock = None
+            user_file_path = os.path.splitext(self.master_excel_path)[0] + '.txt'
+            if os.path.exists(user_file_path):
+                os.remove(user_file_path)
 
     def _pkey_check(self, table: str) -> None:
         """Check a dataframe for duplicate primary keys."""
@@ -163,7 +171,7 @@ class MasterData:
         if not readonly:
             self._lock()
 
-    def _lock_error(self, excel_path: str, e):
+    def _lock_error(self, excel_path: str, e: OSError):
         if not str(e).startswith('[Errno 13]') and not str(e).startswith('[WinError 32]'):
             raise IOError(e)
         try:
@@ -171,7 +179,7 @@ class MasterData:
             with open(user_file_path, 'r') as f:
                 current_user = f.readline()
         except IOError:
-            logger.info(f"Master Excel {excel_path} in use")
+            logger.info(f"Master Excel {excel_path} in use e {e}")
             raise IOError(f"Master Excel in use")
         logger.info(f"Master Excel {excel_path} in use by {current_user}")
         raise IOError(f"Master Excel in use by {current_user}")
@@ -254,7 +262,7 @@ class MasterData:
                     except OSError as e:
                         logger.warning(f"Failed remove archive Master Excel {file_path} error {e}")
 
-    def add_table(self, table: str, columns: List[str], data) -> None:
+    def add_table(self, table: str, columns: List[str], data: List[List]) -> None:
         """Add a table to the dataframe dictionary with specified columns."""
         self._df[table] = pd.DataFrame(data, columns=columns)
 
@@ -274,22 +282,22 @@ class MasterData:
                                                                'Change Date': datetime.datetime.now()}
         self.sort_table(table)
 
-    def get(self, table: str, column: str, index: int) -> any:
+    def get(self, table: str, column: str, index: int) -> Any:
         """Return the value of a colum in a table at an index."""
         return self._df[table].at[index, column]
 
-    def get_list(self, table: str, column: str) -> List[any]:
+    def get_list(self, table: str, column: str) -> List[Any]:
         """Return a column of a table as a list."""
         return self._df[table][column].tolist()
 
-    def count(self, table: str, column: str, value: any) -> int:
+    def count(self, table: str, column: str, value: Any) -> int:
         """Count the occurrences of a value in a dataframe column."""
         try:
             return self._df[table][column].value_counts()[value]
         except KeyError:
             return 0
 
-    def count_two(self, table: str, column1: str, value1: any, column2: str, value2: any) -> int:
+    def count_two(self, table: str, column1: str, value1: Any, column2: str, value2: Any) -> int:
         """Count the occurrences of a pair of value in a dataframe column."""
         try:
             return len(self._df[table][(self._df[table][column1] == value1) & (self._df[table][column2] == value2)])
@@ -300,7 +308,7 @@ class MasterData:
         """Return the length of a table."""
         return len(self._df[table])
 
-    def replace(self, table: str, column: str, old_value: any, new_value: any) -> None:
+    def replace(self, table: str, column: str, old_value: Any, new_value: Any) -> None:
         """Replace all occurrences of a value with a new value in a column of a table."""
         mask = self._df[table][column] == old_value
         self._df[table].loc[mask, column] = new_value
@@ -310,18 +318,18 @@ class MasterData:
         self._df[table].drop(index, inplace=True)
         self._df[table].reset_index(drop=True, inplace=True)
 
-    def delete_value(self, table: str, column: str, value: any) -> None:
+    def delete_value(self, table: str, column: str, value: Any) -> None:
         """Delete rows in a table where the specified colum has the supplied value."""
         self._df[table].drop(
             self._df[table][self._df[table][column] == value].index, inplace=True)
         self._df[table].reset_index(drop=True, inplace=True)
 
-    def index(self, table: str, column: str, value: any) -> int:
+    def index(self, table: str, column: str, value: Any) -> int:
         """Find a value in a colum of a dataframe and return its index.
            If the value is not found it wil raise an IndexError exception."""
         return int(self._df[table][self._df[table][column] == value].index[0])
 
-    def find_next(self, table: str, value: any, column: str) -> int:
+    def find_next(self, table: str, value: Any, column: str) -> int:
         """Return a dataframe index for the first occurrence of a value in a column greater
            than the supplied value. If the value is greater than the last value then
            the length of the table is returned."""
@@ -330,7 +338,7 @@ class MasterData:
         except IndexError:
             return len(self._df[table])
         
-    def find_one(self, table: str, value: any, column: str, start: int = 0) -> int:
+    def find_one(self, table: str, value: Any, column: str, start: int = 0) -> int:
         """Return a dataframe index for the first occurrence of a value in a column.
            An index of -1 indicates that the value was not found."""
         warnings.filterwarnings(action='ignore', category=UserWarning, message=r"Boolean Series.*")
@@ -339,7 +347,7 @@ class MasterData:
             return int(idx[0])
         return -1
 
-    def find_two(self, table: str, value1: any, column1: str, value2: any, column2: str) -> int:
+    def find_two(self, table: str, value1: Any, column1: str, value2: Any, column2: str) -> int:
         """Return a dataframe index for the first occurrence of a pair of values in a
            pair of columns. An index of -1 indicates that the values were not found."""
         idx1 = self._df[table][self._df[table][column1] == value1].index
@@ -350,8 +358,11 @@ class MasterData:
         except IndexError:
             return -1
 
-    def find_three(self, table: str, value1: any, column1: str,
-                   value2: any, column2: str, value3: any, column3: str) -> int:
+    def find_three(self,
+                   table: str,
+                   value1: Any, column1: str,
+                   value2: Any, column2: str,
+                   value3: Any, column3: str) -> int:
         """Return a dataframe index for the first occurrence of a set of three values in a
            set of three columns. An index of -1 indicates that the values were not found."""
         idx1 = self._df[table][self._df[table][column1] == value1].index
@@ -363,7 +374,7 @@ class MasterData:
         except IndexError:
             return -1
 
-    def data_error(self, error_text) -> None:
+    def data_error(self, error_text: str) -> None:
         """Function to display data errors in a window."""
         # This uses a CustomTinker window, if the UI changed this is the only routine that would have to be changed
         logger.warning(error_text)

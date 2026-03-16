@@ -3,10 +3,13 @@
 import logging
 import os
 import re
+from typing import Any, Tuple
 
 import customtkinter as ctk
 import datetime
 import tkinter as tk
+
+from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
 from source.window import child_window, input_warning
@@ -22,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 class CompetencyTracking(object):
     """Window to offer user list of competency tracking options."""
-
     def __init__(self, ad: AppData, wnd_track: ctk.CTkToplevel) -> None:
         logger.info("Creating Competency Tracking window")
 
@@ -111,9 +113,9 @@ class StaffCompetencyGridSelect(object):
                                               values=['RN', 'HCA'], command=self.call_review)
         self.cmb_staff_type.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
-    # noinspection PyUnusedLocal
-    def call_review(self, event) -> None:
+    def call_review(self, event: Any) -> None:
         """Function to review inputs and call staff competency grid window if required."""
+        logger.debug(f"Called with event {event}")
         if not self.ent_font_size.get():
             font_size = 10
         elif not self.ent_font_size.get().isdigit():
@@ -207,8 +209,8 @@ class ReportSelect(object):
         self.report_path = self.ad.args.report_directory + '//dummy.xlsx'
         self.set_default_file()
 
-    def set_default_file(self, event: str = None) -> None:
-        logger.debug(f"ReportSelect set_default_file called with event {event}")
+    def set_default_file(self, event: Any = None) -> None:
+        logger.debug(f"Called with event {event}")
 
         service_code_list, staff_type_list = self.set_report_lists()
         scope = ' '.join(service_code_list) + ' - ' + ' '.join(staff_type_list)
@@ -218,7 +220,7 @@ class ReportSelect(object):
         self.report_path = str(os.path.join(report_directory, report_file))
         self.lbl_report_path.configure(text=self.report_path)
 
-    def set_report_lists(self) -> [list, list]:
+    def set_report_lists(self) -> Tuple[list[str], list[str]]:
         """Function to read check boxes for service codes and staff types and return selections in two lists."""
         
         # Set service code list from list of check boxs
@@ -249,8 +251,11 @@ class ReportSelect(object):
             input_warning(self.wnd_report_select, "Check required Staff Types")
             return
 
-        # Call external routine to generate the report
+        #  Call external routine to generate the report
         self.report_procedure(self.ad, self.report_path, service_code_list, staff_type_list)
+
+        # Close report select window
+        self.wnd_report_select.destroy()
 
     def file_select(self) -> None:
         """Function to provide Excel report path to competency grid export generation."""
@@ -276,6 +281,8 @@ class ReportSelect(object):
 
 
 class StaffDocumentSelect(object):
+    """Windows for the user to enter a list of staff members and generate word documents
+       for them giving the status for each competency that is relevant to their role."""
     def __init__(self, ad: AppData, wnd_sd_select: ctk.CTkToplevel) -> None:
         logger.info("Creating Staff Document Selection window")
 
@@ -448,8 +455,12 @@ class StaffDocumentSelect(object):
 
         staff_document(self.ad, self.staff_list, self.template_path, self.document_directory)
 
-    def apply_filters(self, event: str = None):
-        logger.debug(f"apply_filters called with event {event}")
+        # Clear staff list
+        self.staff_list = []
+        self.refresh_list()
+
+    def apply_filters(self, event: Any = None):
+        logger.debug(f"Called with event {event}")
         rn_filter = self.cmb_rn_filter.get()
         role_filter = self.cmb_role_filter.get()
 

@@ -1,5 +1,6 @@
 """This module displays the windows to select data management processes."""
 import logging
+from typing import Any
 
 import customtkinter as ctk
 
@@ -85,10 +86,9 @@ class RoleCompetencyGridSelect(object):
                                               values=['RN', 'HCA'], command=self.call_review)
         self.cmb_staff_type.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
-    # noinspection PyUnusedLocal
-    def call_review(self, event):
+    def call_review(self, event: Any):
         """Function to review inputs and call role competency grid window if required."""
-
+        logger.debug(f"Called with event {event}")
         service_code = self.cmb_service_code.get()
         staff_type = self.cmb_staff_type.get()
         if service_code and staff_type:

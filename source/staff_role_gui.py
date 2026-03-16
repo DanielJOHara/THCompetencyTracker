@@ -1,5 +1,6 @@
-
+"""This module contains the GUI routines to manage the Staff Role table."""
 import logging
+from typing import Any
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
@@ -13,7 +14,10 @@ logger = logging.getLogger(__name__)
 
 class StaffRoleUpdate(object):
     """Window to allow user to update Staff Role data."""
-    def __init__(self, ad: AppData, wnd_staff_role: ctk.CTkToplevel, staff_name: str = None) -> None:
+    def __init__(self,
+                 ad: AppData,
+                 wnd_staff_role: ctk.CTkToplevel,
+                 staff_name: str = None) -> None:
         logger.info("Creating Staff Role data update window")
 
         self.wnd_staff_role = wnd_staff_role
@@ -115,9 +119,9 @@ class StaffRoleUpdate(object):
             self.cmb_staff_name.configure(state='disabled')
             self.refresh_staff()
 
-    # noinspection PyUnusedLocal
-    def refresh_staff(self, event=None):
+    def refresh_staff(self, event: Any = None):
         """When a Staff Name is selected load its Staff Role records."""
+        logger.debug(f"Called with event {event}")
         staff_name = self.cmb_staff_name.get()
         if staff_name:
             db_s = self.ad.md.find_one('Staff', staff_name, 'Staff Name')
@@ -180,10 +184,10 @@ class StaffRoleUpdate(object):
         if number_changes > 0:
             self.refresh_staff()
 
-    def filter_names(self, event: str = None) -> None:
+    def filter_names(self, event: Any = None) -> None:
         """Filter the names in the Staff Name drop down to those that match
            the filter entered by the user."""
-        logger.debug(f"filter_name called with event {event}")
+        logger.debug(f"Called with event {event}")
         name_filter = self.ent_name_filter.get()
         filtered_names = self.srl.filter_staff_names(name_filter)
         self.cmb_staff_name.configure(values=filtered_names)

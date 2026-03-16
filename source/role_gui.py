@@ -1,5 +1,6 @@
-"""This module contains the routines to manage the Role table."""
+"""This module contains the GUI routines to manage the Role table."""
 import logging
+from typing import Any
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
@@ -111,7 +112,7 @@ class RoleUpdate(object):
         for db_r in range(self.ad.md.len('Role')):
             self.add_role_to_display(db_r)
 
-    def add_role_to_display(self, db_r):
+    def add_role_to_display(self, db_r: int):
         if db_r + 1 > len(self.role_widgets):
             self.role_widgets.append({'Display Order': ctk.CTkEntry(self.frm_s, width=self.width[0]),
                                       'Role Code': ctk.CTkEntry(self.frm_s, width=self.width[1]),
@@ -184,9 +185,9 @@ class RoleDelete(object):
         self.btn_exit = ctk.CTkButton(wnd_role_del, text="Exit", command=wnd_role_del.destroy)
         self.btn_exit.pack(pady=6, padx=10)
 
-    # noinspection PyUnusedLocal
-    def refresh_role(self, event):
+    def refresh_role(self, event: Any):
         """Display the role record selected."""
+        logger.debug(f"Called with event {event}")
         # Identify selected role code
         role_code = self.cmb_role_code.get()
         db_r = self.ad.md.index('Role', 'Role Code', role_code)

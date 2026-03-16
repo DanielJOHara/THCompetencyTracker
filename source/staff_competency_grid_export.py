@@ -7,12 +7,15 @@ import xlsxwriter
 
 from source.appdata import AppData
 from source.competency_display import set_display_value, staff_competency_lists
-from source.write_cell import write_cell, write_cell_y
+from source.excel_functions import write_cell, write_cell_y
 
 logger = logging.getLogger(__name__)
 
 
-def competency_grid_export(ad: AppData, report_excel_path: str, service_code_list, staff_type_list) -> None:
+def competency_grid_export(ad: AppData,
+                           report_excel_path: str,
+                           service_code_list: list[str],
+                           staff_type_list: list[str]) -> None:
     """Export the competency grids for specified service codes and staff types to sheets on a spreadsheet."""
     logger.info("Exporting Competency Grid")
 

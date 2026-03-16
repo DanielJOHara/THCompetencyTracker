@@ -5,8 +5,8 @@ import re
 import xlsxwriter
 
 from source.appdata import AppData
-from source.competency_display import set_competency_status, create_report_worksheet, write_row, format_status_column
-from source.write_cell import write_cell, yn
+from source.competency_display import set_competency_status
+from source.excel_functions import write_cell, yn, write_row, format_status_column, create_report_worksheet
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ def staff_report(ad: AppData, report_excel_path: str, service_code_list, staff_t
 
         # Write a row (excluding first colum) for each staff member in status blocks
         status_count = [0] * len(ad.status_dict)  # Initialise status count for summary row
-        row_status = [None]  # List to store status for each staff member, the first entry is None and will not be used
+        row_status = [0]  # List to store status for each staff member, the first entry is None and will not be used
         for status in range(len(ad.status_dict)):
             for db_c in range(ad.md.len('Competency')):
                 if competency_status_list[db_c] == status:
@@ -153,7 +153,7 @@ def staff_report(ad: AppData, report_excel_path: str, service_code_list, staff_t
                     write_row(ws_stf, ws_stf_row, data, formats)
                     row_status.append(status)
 
-        format_status_column(ws_stf, row_status, ad, wb)
+        format_status_column(ws_stf, row_status, ad.status_dict, wb)
 
         # Add filter to first 7 columns of staff sheet
         ws_stf.autofilter(0, 0, ws_stf_row, 6)

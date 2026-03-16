@@ -1,5 +1,6 @@
-
+"""This module contains the GUI routines to manage the Role Competency table."""
 import logging
+from typing import Any
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
@@ -185,19 +186,20 @@ class RoleCompetencyGrid(object):
         self.cnv_se.yview(*args)
         self.cnv_sw.yview(*args)
 
-    # noinspection PyUnusedLocal
-    def handle_configure(self, event):
+    def handle_configure(self, event: Any):
         """On window configure set frame scroll regions."""
+        logger.debug(f"Called with event {event}")
         self.cnv_ne.config(scrollregion=self.frm_cnv_ne.bbox())
         self.cnv_sw.config(scrollregion=self.frm_cnv_sw.bbox())
         self.cnv_se.config(scrollregion=self.frm_cnv_se.bbox())
 
-    def handle_mousewheel(self, event):
+    def handle_mousewheel(self, event: int):
         """Scroll vertically for mouse wheel."""
+        print(f"event {type(event)}")
         self.cnv_se.yview_scroll(int(-1 * (event / 120)), 'units')
         self.cnv_sw.yview_scroll(int(-1 * (event / 120)), 'units')
 
-    def handle_mousewheel_shift(self, event):
+    def handle_mousewheel_shift(self, event: int):
         """Scroll horizontally for mouse wheel."""
         self.cnv_ne.xview_scroll(int(-1 * (event / 120)), 'units')
         self.cnv_se.xview_scroll(int(-1 * (event / 120)), 'units')

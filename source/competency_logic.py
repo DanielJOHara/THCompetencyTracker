@@ -113,8 +113,13 @@ class CompetencyLogic:
         # Delete entries for Competency Name in Staff Competency table
         self.ad.md.delete_value('Staff Competency', 'Competency Name', competency_name)
 
-    def add_competency(self, competency_name: str, scope: str, display_order: str, expiry: str, prerequisite: int,
-                       nightshift: int, bank: int) -> tuple[bool, str]:
+    def add_competency(self, competency_name: str,
+                       scope: str,
+                       display_order: str,
+                       expiry: str,
+                       prerequisite: int,
+                       nightshift: int,
+                       bank: int) -> tuple[bool, str]:
         """Adds a new competency.
 
         Args:

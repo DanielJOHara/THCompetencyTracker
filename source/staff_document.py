@@ -4,6 +4,7 @@ import datetime
 import logging
 import os
 import subprocess
+from typing import Any
 
 from CTkMessagebox import CTkMessagebox
 from docxtpl import DocxTemplate
@@ -16,7 +17,10 @@ from source.competency_display import set_competency_status
 logger = logging.getLogger(__name__)
 
 
-def staff_document(ad: AppData, staff_name_list: list[str], template_path: str, document_directory: str) -> None:
+def staff_document(ad: AppData,
+                   staff_name_list: list[str],
+                   template_path: str,
+                   document_directory: str) -> None:
     """Generate a document for a list of staff members showing competency statuses.
        It uses a template word document."""
     logger.info(f"Creating Staff Document(s) for {staff_name_list} from {template_path} in {document_directory}")
@@ -35,14 +39,15 @@ def staff_document(ad: AppData, staff_name_list: list[str], template_path: str, 
                 role_code_txt += f'{service_code} {ad.md.get('Staff Role', 'Role Code', db_sr)}, '
 
         # Create content dictionary
-        content = {'StaffName': staff_name,
-                   'Role': role_code_txt[:-2],
-                   'Date': f'{datetime.date.today():%d %B %Y}'}
+        content: dict[str, str | list[dict[str, str]]] = \
+            {'StaffName': staff_name,
+             'Role': role_code_txt[:-2],
+             'Date': f'{datetime.date.today():%d %B %Y}'}
 
         # Add a blank list to hold competencies to content dictionary for each competency status
         for status in ad.status_dict:
             status_variable = ad.status_dict[status]['description'].replace(' ', '')
-            content.update({status_variable: []})
+            content.update({status_variable: list[dict]})
 
         # Add competencies to appropriate status list for staff member
         db_s = ad.md.index('Staff', 'Staff Name', staff_name)

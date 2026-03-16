@@ -97,10 +97,13 @@ Technical Changes:
 Version 0.1.2.11
 Technical Changes:
     Reset modify date on archived master files so that it will be retained for the full retention period.
+    Reviewed and completed type hints.
 Functional Changes:
     Added automatic filtering to staff delete that was missed in last version.
     Made name filter automatically apply when leaving the entry field.
     Formated date fields in staff report.
     Added window to select service codes and staff types for staff report.
     Standardised Competency Report Select to be same as Grid Export and new Staff Report Select.
-    Added password protection to master data excel spreadsheet.
+    Added protection without a password to the master data excel spreadsheet.
+    Added an INI file to set parameters.
+    Removed staff competency colours from the parameter.

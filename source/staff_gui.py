@@ -1,9 +1,11 @@
-"""This module contains the routines to manage the Staff table."""
+"""This module contains the GUI routines to manage the Staff table."""
 import logging
 import re
+from typing import Any
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
+import tkinter as tk
 
 from source.appdata import AppData
 from source.staff_logic import StaffLogic
@@ -196,8 +198,8 @@ class StaffUpdate(object):
             self.chc_role_filter[db_r].deselect()
         self.apply_filters()
 
-    def apply_filters(self, event: str = None) -> None:
-        logger.debug(f"In StaffUpdate apply_filters called with event {event}")
+    def apply_filters(self, event: Any = None) -> None:
+        logger.debug(f"Called with event {event}")
         # Remove every thing except letters and spaces from name filter string
         name_filter = self.ent_name_filter.get()
         if name_filter:
@@ -223,7 +225,7 @@ class StaffUpdate(object):
         self.display_staff_table()
 
     def handle_save_click(self):
-        """Read all values in table and update the table object if any values have changed."""
+        """Read all values in table and update the table object if Any values have changed."""
         # Validate date attribute
         for s, db_s in enumerate(self.db_s_list):
             start_date = self.ent_start_date[s].get()
@@ -267,7 +269,7 @@ class StaffUpdate(object):
         for s, db_s in enumerate(self.db_s_list):
             self.add_staff_to_display(s, db_s)
 
-        # Remove any rows from the end of table that have not been populated
+        # Remove Any rows from the end of table that have not been populated
         for i in range(len(self.ent_staff_name) - len(self.db_s_list)):
             # Remove last row of widgets
             self.ent_staff_name[-1].destroy()
@@ -340,7 +342,7 @@ class StaffUpdate(object):
                 roles += service_code + ' ' + role + ', '
         self.lbl_roles[s].configure(text=roles[:-2])
 
-    def handel_role_click(self, event):
+    def handel_role_click(self,  event: tk.Event):
         logger.debug(f"handel_role_click from event widget [{event.widget}]")
         # Extract label number from widget
         label_num_search = re.search(r'ctklabel(\d+)?', str(event.widget))
@@ -368,7 +370,9 @@ class StaffUpdate(object):
 
 class StaffDelete(object):
     """Window to allow user to delete Staff data records."""
-    def __init__(self, ad: AppData, wnd_staff_del: ctk.CTkToplevel) -> None:
+    def __init__(self,
+                 ad: AppData,
+                 wnd_staff_del: ctk.CTkToplevel) -> None:
         logger.info(f"Creating Staff Data Delete window")
 
         self.wnd_staff_del = wnd_staff_del
@@ -384,8 +388,10 @@ class StaffDelete(object):
         row = 0
         self.lbl_staff_name = ctk.CTkLabel(self.frm_attribute, text="Staff Name")
         self.lbl_staff_name.grid(row=row, column=0, pady=6, padx=10, sticky='e')
-        self.cmb_staff_name = ctk.CTkComboBox(self.frm_attribute, state='readonly',
-                                              values=ad.md.get_list('Staff', 'Staff Name'), command=self.refresh_staff)
+        self.cmb_staff_name = ctk.CTkComboBox(self.frm_attribute,
+                                              state='readonly',
+                                              values=ad.md.get_list('Staff', 'Staff Name'),
+                                              command=self.refresh_staff)
         self.cmb_staff_name.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
         row += 1
@@ -422,9 +428,9 @@ class StaffDelete(object):
         self.btn_exit = ctk.CTkButton(wnd_staff_del, text="Exit", command=wnd_staff_del.destroy)
         self.btn_exit.pack(pady=6, padx=10)
 
-    # noinspection PyUnusedLocal
-    def refresh_staff(self, event):
+    def refresh_staff(self, event: Any):
         """Display the staff record selected."""
+        logger.debug(f"Called with event {event}")
         # Identify selected staff
         staff_name = self.cmb_staff_name.get()
         db_s = self.ad.md.index('Staff', 'Staff Name', staff_name)
@@ -456,7 +462,7 @@ class StaffDelete(object):
         set_disabled_checkbox(self.chc_practice_supervisor, 0)
         set_disabled_checkbox(self.chc_practice_assessor, 0)
 
-    def filter_names(self, event):
+    def filter_names(self, event: Any):
         """Filter the names in the Staff Name drop down to those that match
            the filter entered by the user."""
         name_filter = self.ent_name_filter.get()
@@ -475,6 +481,7 @@ class StaffDelete(object):
             # If there is only one name in list set the name
             if len(filter_name_lst) == 1:
                 self.cmb_staff_name.set(filter_name_lst[0])
+                self.refresh_staff(None)
         else:
             self.cmb_staff_name.configure(values=self.ad.md.get_list('Staff', 'Staff Name'))
 

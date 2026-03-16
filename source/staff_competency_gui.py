@@ -2,6 +2,7 @@
    a grid or by directly accessing records."""
 import logging
 import re
+from typing import Any
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
@@ -213,10 +214,10 @@ class StaffCompetencyUpdate(object):
         self.btn_exit = ctk.CTkButton(wnd_staff_competency, text="Exit", command=wnd_staff_competency.destroy)
         self.btn_exit.pack(pady=6, padx=10)
 
-    # noinspection PyUnusedLocal
-    def refresh_competency(self, event=None) -> None:
+    def refresh_competency(self, event: Any = None) -> None:
         """Load the record for the Staff Name and Competency Name entered by the
            user. This will only be called when not in single record mode."""
+        logger.debug(f"Called with event {event}")
         staff_name = self.cmb_staff_name.get()
         competency_name = self.cmb_competency_name.get()
         if staff_name:
@@ -253,7 +254,7 @@ class StaffCompetencyUpdate(object):
                 self.chc_not_required.deselect()
                 self.chc_required.deselect()
 
-    def apply_filters(self, event: str = None) -> None:
+    def apply_filters(self, event: Any = None) -> None:
         """Apply the filter criteria entered by the user. This will only be called when not in single record mode."""
         logger.debug(f"apply_filters called with{event}")
         rn_filter = self.cmb_rn_filter.get()

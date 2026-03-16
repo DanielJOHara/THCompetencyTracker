@@ -51,8 +51,11 @@ class StaffLogic(object):
 
         return number_changes, f"{number_changes} changes saved"
 
-    def add_staff(self, staff_name: str, start_date: str,
-                  practice_supervisor: int, practice_assessor: int) -> tuple[bool, str, str]:
+    def add_staff(self,
+                  staff_name: str,
+                  start_date: str,
+                  practice_supervisor: int,
+                  practice_assessor: int) -> tuple[bool, str, str]:
         """Add a new staff member."""
         staff_name = re.sub(r' +', ' ', staff_name.strip())
         staff_name = staff_name.title()
@@ -105,8 +108,11 @@ class StaffLogic(object):
         # Delete entries for Staff Name in Staff Competency table
         self.ad.md.delete_value('Staff Competency', 'Staff Name', staff_name)
 
-    def apply_filters(self, name_filter: str, no_role_filter: int,
-                      service_filter: list, role_filter: list) -> list[int]:
+    def apply_filters(self,
+                      name_filter: str,
+                      no_role_filter: int,
+                      service_filter: list,
+                      role_filter: list) -> list[int]:
         """Apply filters to the staff list."""
         if name_filter:
             name_filter = re.sub(r"[^a-zA-Z -']", '', name_filter).strip()

@@ -5,8 +5,8 @@ import re
 import xlsxwriter
 
 from source.appdata import AppData
-from source.competency_display import set_competency_status, create_report_worksheet, write_row, format_status_column
-from source.write_cell import write_cell, yn
+from source.competency_display import set_competency_status
+from source.excel_functions import write_cell, yn, write_row, format_status_column, create_report_worksheet
 
 logger = logging.getLogger(__name__)
 
@@ -126,7 +126,7 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
 
         # Write a row (excluding first colum) for each competency in status blocks
         status_count = [0] * len(ad.status_dict)  # Initialise counts for each status
-        row_status = [None]  # List to store status for each competency, the first entry is None and will not be used
+        row_status = [0]  # List to store status for each competency, the first entry is None and will not be used
         for status in range(len(ad.status_dict)):
             for competency_status in competency_status_list:
                 if competency_status[0] == status:
@@ -177,7 +177,7 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
                     write_row(ws_cmp, ws_cmp_row, data, formats)
                     row_status.append(status)
 
-        format_status_column(ws_cmp, row_status, ad, wb)
+        format_status_column(ws_cmp, row_status, ad.status_dict, wb)
 
         # Add filter to first 7 columns of competency sheet
         ws_cmp.autofilter(0, 0, ws_cmp_row, 6)
