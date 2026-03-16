@@ -107,3 +107,4 @@ Functional Changes:
     Added protection without a password to the master data excel spreadsheet.
     Added an INI file to set parameters.
     Removed staff competency colours from the parameter.
+    Corrected Service Update Window save functionality.

@@ -96,8 +96,8 @@ class ServiceUpdate(object):
         # Remove a row from the table for each deleted record
         for i in range(len(self.service_widgets) - self.ad.md.len('Service')):
             # Remove last row of widgets
-            self.service_widgets[-1]['code'].destroy()
-            self.service_widgets[-1]['name'].destroy()
+            self.service_widgets[-1]['Service Code'].destroy()
+            self.service_widgets[-1]['Service Name'].destroy()
             self.service_widgets.pop()
 
         # Display widgets for all service records
@@ -106,16 +106,16 @@ class ServiceUpdate(object):
 
     def add_service_to_display(self, db_s: int):
         if db_s + 1 > len(self.service_widgets):
-            self.service_widgets.append({'code': ctk.CTkEntry(self.frm_s, width=self.width[0]),
-                                         'name': ctk.CTkEntry(self.frm_s, width=self.width[1])})
-            self.service_widgets[db_s]['code'].grid(row=db_s + 1, column=0, sticky='w')
-            self.service_widgets[db_s]['name'].grid(row=db_s + 1, column=1, sticky='w')
+            self.service_widgets.append({'Service Code': ctk.CTkEntry(self.frm_s, width=self.width[0]),
+                                         'Service Name': ctk.CTkEntry(self.frm_s, width=self.width[1])})
+            self.service_widgets[db_s]['Service Code'].grid(row=db_s + 1, column=0, sticky='w')
+            self.service_widgets[db_s]['Service Name'].grid(row=db_s + 1, column=1, sticky='w')
 
-        self.service_widgets[db_s]['code'].delete(0, 9999)
-        self.service_widgets[db_s]['code'].insert(0, self.ad.md.get('Service', 'Service Code', db_s))
+        self.service_widgets[db_s]['Service Code'].delete(0, 9999)
+        self.service_widgets[db_s]['Service Code'].insert(0, self.ad.md.get('Service', 'Service Code', db_s))
 
-        self.service_widgets[db_s]['name'].delete(0, 9999)
-        self.service_widgets[db_s]['name'].insert(0, self.ad.md.get('Service', 'Service Name', db_s))
+        self.service_widgets[db_s]['Service Name'].delete(0, 9999)
+        self.service_widgets[db_s]['Service Name'].insert(0, self.ad.md.get('Service', 'Service Name', db_s))
 
 
 class ServiceDelete(object):
