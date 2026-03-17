@@ -41,31 +41,30 @@ class RootWindow:
 
         self.wnd_root.title("Staff Competency Tracker")
 
-        if not ad.args.readonly:
-            self.frm_button = ctk.CTkFrame(self.wnd_root)
-            self.frm_button.pack(pady=20, padx=60, fill='both', expand=False)
+        self.frm_button = ctk.CTkFrame(self.wnd_root)
+        self.frm_button.pack(pady=20, padx=60, fill='both', expand=False)
 
-            self.btn_competency = ctk.CTkButton(self.frm_button, text="Competency Tracking", state='disabled',
-                                                command=lambda: child_window(CompetencyTracking, ad, self.wnd_root))
-            self.btn_competency.pack(pady=12, padx=20)
+        self.btn_competency = ctk.CTkButton(self.frm_button, text="Competency Tracking", state='disabled',
+                                            command=lambda: child_window(CompetencyTracking, ad, self.wnd_root))
+        self.btn_competency.pack(pady=12, padx=20)
 
-            self.btn_reload = ctk.CTkButton(self.frm_button,
-                                            text="Reload Master Data", command=self.handle_reload_click)
-            self.btn_reload.pack(pady=12, padx=20)
+        self.btn_reload = ctk.CTkButton(self.frm_button,
+                                        text="Reload Master Data", command=self.handle_reload_click)
+        self.btn_reload.pack(pady=12, padx=20)
 
-            self.btn_save = ctk.CTkButton(self.frm_button, text="Save Master Data",
-                                          state='disabled', command=self.handle_save_click)
-            self.btn_save.pack(pady=12, padx=20)
+        self.btn_save = ctk.CTkButton(self.frm_button, text="Save Master Data",
+                                      state='disabled', command=self.handle_save_click)
+        self.btn_save.pack(pady=12, padx=20)
 
-            self.btn_data_input = ctk.CTkButton(self.frm_button, text="Data Management", state='disabled',
-                                                command=lambda: child_window(DataManagement, ad, self.wnd_root))
-            self.btn_data_input.pack(pady=12, padx=20)
+        self.btn_data_input = ctk.CTkButton(self.frm_button, text="Data Management", state='disabled',
+                                            command=lambda: child_window(DataManagement, ad, self.wnd_root))
+        self.btn_data_input.pack(pady=12, padx=20)
 
-            self.lbl_about = ctk.CTkLabel(self.wnd_root, text=f"{ad.app_name} {ad.app_version}")
-            self.lbl_about.pack(pady=0, padx=20, anchor='e')
+        self.lbl_about = ctk.CTkLabel(self.wnd_root, text=f"{ad.app_name} {ad.app_version}")
+        self.lbl_about.pack(pady=0, padx=20, anchor='e')
 
-            # Call routine on exit to test for changes
-            self.wnd_root.protocol('WM_DELETE_WINDOW', self.on_closing)
+        # Call routine on exit to test for changes
+        self.wnd_root.protocol('WM_DELETE_WINDOW', self.on_closing)
 
         # Call routine on start up to read master data
         self.wnd_root.after_idle(self.on_startup)
@@ -99,14 +98,30 @@ class RootWindow:
         except (IOError, ValueError) as e:
             logger.warning(e)
             if self.ad.args.readonly:
+                self.frm_button.destroy()
                 self.wnd_root.textbox = ctk.CTkTextbox(master=self.wnd_root, width=400, height=100)
                 self.wnd_root.textbox.pack(pady=12, padx=20, fill='both', expand=False)
                 self.wnd_root.textbox.insert("0.0", f"Failed to read master data:\n{e}")
             else:
-                CTkMessagebox(title="Data Load Error", message=e, icon='warning')
+                if str(e).startswith("Master Excel in use"):
+                    msg = CTkMessagebox(title="Warning", message=str(e) + "\nHow would you like to continue",
+                                        option_1='Read Only', option_2='Full Access')
+                    if msg.get() == 'Read Only':
+                        self.ad.args.readonly = True
+                        try:
+                            self.ad.md.load(master_excel_path, readonly=self.ad.args.readonly)
+                            self.wnd_root.withdraw()
+                            child_window(CompetencyTracking, self.ad, self.wnd_root)
+                        except (IOError, ValueError) as e:
+                            self.frm_button.destroy()
+                            self.wnd_root.textbox = ctk.CTkTextbox(master=self.wnd_root, width=400, height=100)
+                            self.wnd_root.textbox.pack(pady=12, padx=20, fill='both', expand=False)
+                            self.wnd_root.textbox.insert("0.0", f"Failed to read master data:\n{e}")
+                else:
+                    CTkMessagebox(title="Data Load Error", message=e, icon='warning')
 
     def set_button_states(self) -> None:
-        """Enable (normal) or disable buttons depending on if the master spreadsheet has been loaded."""
+        """Enable (normal) buttons that dependant on the master spreadsheet being loaded."""
         if hasattr(self, 'btn_competency'):
             self.btn_competency.configure(state='normal')
         if hasattr(self, 'btn_save'):
