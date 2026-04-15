@@ -116,3 +116,6 @@ Functional Changes:
     Added Services column to Competency update grid window, when clicked this displays window to update the Services.
     Fixed bug on Staff update grid, clicking Roles failed after filtering reduced then increased rows displayed.
     Stopped filtering numbers from sheet names in Competency and Staff reports.
+    Corrected bug on Competency and Staff reports where competency status not visible for first row.
+    Added Services column to Competency report Competency summary sheet.
+    Added Competency Service to filtering on Competency and Staff reports.

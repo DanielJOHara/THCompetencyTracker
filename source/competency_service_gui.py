@@ -120,15 +120,16 @@ class CompetencyServiceGrid(object):
         wd_r = 60
         self.lbl_column = []
         for db_s in range(self.ad.md.len('Service')):
+            service_code = ad.md.get('Service', 'Service Code', db_s)
             self.lbl_column.append(ctk.CTkLabel(self.frm_cnv_ne,
-                                                text=ad.md.get('Service', 'Service Code', db_s),
+                                                text=service_code,
                                                 corner_radius=6,
                                                 width=wd_r,
                                                 height=ht,
                                                 fg_color='#00B0F0'))
-            self.lbl_column[db_s].grid(row=0, column=db_s, padx=1, pady=1)
-
-            ToolTip(self.lbl_column[db_s], ad.md.get('Service', 'Service Name', db_s))
+            if service_code != 'LEFT':
+                self.lbl_column[db_s].grid(row=0, column=db_s, padx=1, pady=1)
+                ToolTip(self.lbl_column[db_s], ad.md.get('Service', 'Service Name', db_s))
 
         # Create grid of check boxes for role competencies
         self.chc_cs = []
@@ -141,12 +142,13 @@ class CompetencyServiceGrid(object):
                                                          text='',
                                                          width=20,
                                                          height=ht))
-                self.chc_cs[db_c][db_s].grid(row=db_c, column=db_s, padx=15, pady=1, sticky='nsew')
-                db_cs = self.ad.md.find_two('Competency Service',
-                                            competency_name, 'Competency Name',
-                                            service_code, 'Service Code')
-                if db_cs > -1:
-                    self.chc_cs[db_c][db_s].select()
+                if service_code != 'LEFT':
+                    self.chc_cs[db_c][db_s].grid(row=db_c, column=db_s, padx=15, pady=1, sticky='nsew')
+                    db_cs = self.ad.md.find_two('Competency Service',
+                                                competency_name, 'Competency Name',
+                                                service_code, 'Service Code')
+                    if db_cs > -1:
+                        self.chc_cs[db_c][db_s].select()
 
         # Create button frame
         self.frm_btn = ctk.CTkFrame(wnd_cs_grid)
@@ -238,13 +240,14 @@ class CompetencyServiceUpdate:
         row -= 1
         for db_s in range(self.ad.md.len('Service')):
             service_code = self.ad.md.get('Service', 'Service Code', db_s)
-            row += 1
             self.chc_service_code_list.append(ctk.CTkCheckBox(self.frm_attribute, text=service_code, width=40))
-            self.chc_service_code_list[db_s].grid(row=row, column=1, pady=6, padx=10, sticky='w')
-            if self.ad.md.find_two('Competency Service',
-                                   competency_name, 'Competency Name',
-                                   service_code, 'Service Code') > -1:
-                self.chc_service_code_list[db_s].select()
+            if service_code != 'LEFT':
+                row += 1
+                self.chc_service_code_list[db_s].grid(row=row, column=1, pady=6, padx=10, sticky='w')
+                if self.ad.md.find_two('Competency Service',
+                                       competency_name, 'Competency Name',
+                                       service_code, 'Service Code') > -1:
+                    self.chc_service_code_list[db_s].select()
 
         self.btn_update = ctk.CTkButton(self.wnd_cs_update, text="Save", command=self.handle_save_click)
         self.btn_update.pack(pady=6, padx=10)

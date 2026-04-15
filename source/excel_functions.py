@@ -63,12 +63,12 @@ def format_status_column(ws: xlsxwriter.workbook.Worksheet,
         status_format = {'valign': 'vcentre', 'bg_color': status_colour}
 
         # Test if this is the only row with this status
-        if row_status[row] != row_status[row - 1] and (
+        if (row == 1 or row_status[row] != row_status[row - 1]) and (
                 row == len(row_status) - 1 or row_status[row] != row_status[row + 1]):
             this_format = wb.add_format(status_format | {'border': 1})
 
         # Test if this is the first row with this status
-        elif row_status[row] != row_status[row - 1]:
+        elif row == 1 or row_status[row] != row_status[row - 1]:
             this_format = wb.add_format(status_format | {'top': 1, 'left': 1, 'right': 1})
 
         # Test if this is the last row with this status

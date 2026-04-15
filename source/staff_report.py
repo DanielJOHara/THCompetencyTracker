@@ -113,9 +113,19 @@ def staff_report(ad: AppData, report_excel_path: str, service_code_list, staff_t
         ws_stf.write_url(0, len(header) - 1, f"internal:'Staff'!A{db_s + 2}", formats['hyper'], string='Staff')
         ws_stf_row = 0
 
+        # Create a list of the competencies for the service areas being reported
+        db_c_list = []
+        for db_c in range(ad.md.len('Competency')):
+            competency_name = ad.md.get('Competency', 'Competency Name', db_c)
+            for service_code in service_code_list:
+                if service_code == 'LEFT' or ad.md.find_two('Competency Service',
+                                                            competency_name, 'Competency Name',
+                                                            service_code, 'Service Code') > -1:
+                    db_c_list.append(db_c)
+
         # Create list of competency statuses for staff member
         competency_status_list = []
-        for db_c in range(ad.md.len('Competency')):
+        for db_c in db_c_list:
             status = set_competency_status(ad, db_s, db_c, ad.md.get_list('Service', 'Service Code'))
             competency_status_list.append(status)
 
@@ -123,7 +133,7 @@ def staff_report(ad: AppData, report_excel_path: str, service_code_list, staff_t
         status_count = [0] * len(ad.status_dict)  # Initialise status count for summary row
         row_status = [0]  # List to store status for each staff member, the first entry is None and will not be used
         for status in range(len(ad.status_dict)):
-            for db_c in range(ad.md.len('Competency')):
+            for db_c in db_c_list:
                 if competency_status_list[db_c] == status:
                     status_count[status] += 1
                     ws_stf_row += 1

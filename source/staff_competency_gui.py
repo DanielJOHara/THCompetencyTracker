@@ -279,7 +279,7 @@ class StaffCompetencyUpdate(object):
                     competency_scope = self.ad.md.get('Competency', 'Scope', db_c)
                     if competency_scope not in ['BOTH', rn_filter]:
                         continue
-                if service_filter:
+                if service_filter and service_filter != 'LEFT':
                     if self.ad.md.find_two('Competency Service',
                                            competency_name, 'Competency Name',
                                            service_filter, 'Service Code') < 0:

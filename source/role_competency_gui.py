@@ -110,8 +110,9 @@ class RoleCompetencyGrid(object):
         #  Generate competency list based on service code and scope
         self.db_c_list = []
         for db_c in range(ad.md.len('Competency')):
-            competency_service_code = ad.md.get('Competency', 'Service Code', db_c)
-            if competency_service_code and competency_service_code != service_code:
+            if ad.md.find_two('Competency Service',
+                              ad.md.get('Competency', 'Competency Name', db_c), 'Competency Name',
+                              service_code, 'Service Code') == -1:
                 continue
             if ad.md.get('Competency', 'Scope', db_c) not in ['BOTH', staff_type]:
                 continue

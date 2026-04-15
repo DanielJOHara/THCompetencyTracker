@@ -101,8 +101,11 @@ class StaffCompetencyGridSelect(object):
         row += 1
         self.lbl_service_code = ctk.CTkLabel(self.frm_attribute, text="Service Code")
         self.lbl_service_code.grid(row=row, column=0, pady=6, padx=10, sticky='e')
+        service_code_list = ad.md.get_list('Service', 'Service Code')
+        if 'LEFT' in service_code_list:
+            service_code_list.remove('LEFT')
         self.cmb_service_code = ctk.CTkComboBox(self.frm_attribute, state='readonly',
-                                                values=ad.md.get_list('Service', 'Service Code'),
+                                                values=service_code_list,
                                                 command=self.call_review)
         self.cmb_service_code.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
@@ -169,10 +172,11 @@ class ReportSelect(object):
 
         self.chc_service_code_list = []
         for s, service_code in enumerate(self.ad.md.get_list('Service', 'Service Code')):
-            row += 1
             self.chc_service_code_list.append(ctk.CTkCheckBox(self.frm_attribute, text=service_code))
-            self.chc_service_code_list[s].grid(row=row, column=0, pady=6, padx=20, sticky='e')
-            self.chc_service_code_list[s].bind("<Button-1>", command=self.set_default_file)
+            if report_type != 'GRID' or service_code != 'LEFT':
+                row += 1
+                self.chc_service_code_list[s].grid(row=row, column=0, pady=6, padx=20, sticky='e')
+                self.chc_service_code_list[s].bind("<Button-1>", command=self.set_default_file)
 
         # Generate check boxes for staff types in column 1
         row = 0

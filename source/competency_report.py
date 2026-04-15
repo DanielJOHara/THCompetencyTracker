@@ -53,7 +53,8 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
         {'label': 'Expiry', 'width': 10},
         {'label': 'Prerequisite', 'width': 12},
         {'label': 'Nightshift', 'width': 10},
-        {'label': 'Bank', 'width': 10}
+        {'label': 'Bank', 'width': 10},
+        {'label': 'Services', 'width': 15}
     ]
     for status in range(len(ad.status_dict)):
         header.append({'label': ad.status_dict[status]['description'], 'width': 11})
@@ -64,9 +65,14 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
     # Create list of relevant competencies
     db_c_list = []
     for db_c in range(ad.md.len('Competency')):
+        competency_name = ad.md.get('Competency', 'Competency Name', db_c)
         scope = ad.md.get('Competency', 'Scope', db_c)
         if scope == 'BOTH' or scope in staff_type_list:
-            db_c_list.append(db_c)
+            for service_code in service_code_list:
+                if ad.md.find_two('Competency Service',
+                                  competency_name, 'Competency Name',
+                                  service_code, 'Service Code') > -1:
+                    db_c_list.append(db_c)
 
     # Process each competency
     sheet_name_list = []
@@ -191,6 +197,15 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
         ws_cmp.autofilter(0, 0, ws_cmp_row, 6)
         ws_cmp.set_header('&L&14&A - &D')
 
+        # Create a list of services for the Competency in a string
+        service_list = ''
+        for db_s in range(ad.md.len('Service')):
+            service_code = ad.md.get('Service', 'Service Code', db_s)
+            if ad.md.find_two('Competency Service',
+                              competency_name, 'Competency Name',
+                              service_code, 'Service Code') > -1:
+                service_list += service_code + ', '
+
         # Write row for competency to summary sheet
         ws_sum_row += 1
         ws_sum.write_url(ws_sum_row, 0, f"internal:'{sheet_name}'!A1", formats['hyper'],
@@ -206,6 +221,8 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
                                 yn(ad.md.get('Competency', 'Nightshift', db_c)), formats['centre'])
         ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col,
                                 yn(ad.md.get('Competency', 'Bank', db_c)), formats['centre'])
+        ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col,
+                                service_list[:-2], formats['plain'])
         for status in range(len(ad.status_dict)):
             if (status == 0 and not ad.md.get('Competency', 'Expiry', db_c)
                     or status == 1 and not ad.md.get('Competency', 'Prerequisite', db_c)):
@@ -213,8 +230,8 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
             else:
                 ws_sum_col = write_cell(ws_sum, ws_sum_row, ws_sum_col, status_count[status], formats['plain'])
 
-    # Add filter to first 6 columns of summary sheet
-    ws_sum.autofilter(0, 0, ws_sum_row, 5)
+    # Add filter to first 7 columns of summary sheet
+    ws_sum.autofilter(0, 0, ws_sum_row, 6)
     ws_sum.set_header('&L&14&A - &D')
 
     wb.close()

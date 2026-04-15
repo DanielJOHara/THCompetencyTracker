@@ -79,16 +79,22 @@ class RoleCompetencyGridSelect(object):
         row = 0
         self.lbl_service_code = ctk.CTkLabel(self.frm_attribute, text="Service Code")
         self.lbl_service_code.grid(row=row, column=0, pady=6, padx=10, sticky='e')
-        self.cmb_service_code = ctk.CTkComboBox(self.frm_attribute, state='readonly',
-                                                values=ad.md.get_list('Service', 'Service Code'),
+        service_code_list = ad.md.get_list('Service', 'Service Code')
+        if 'LEFT' in service_code_list:
+            service_code_list.remove('LEFT')
+        self.cmb_service_code = ctk.CTkComboBox(self.frm_attribute,
+                                                state='readonly',
+                                                values=service_code_list,
                                                 command=self.call_review)
         self.cmb_service_code.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
         row += 1
         self.lbl_staff_type = ctk.CTkLabel(self.frm_attribute, text="Staff Type")
         self.lbl_staff_type.grid(row=row, column=0, pady=6, padx=10, sticky='e')
-        self.cmb_staff_type = ctk.CTkComboBox(self.frm_attribute, state='readonly',
-                                              values=['RN', 'HCA'], command=self.call_review)
+        self.cmb_staff_type = ctk.CTkComboBox(self.frm_attribute,
+                                              state='readonly',
+                                              values=['RN', 'HCA'],
+                                              command=self.call_review)
         self.cmb_staff_type.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
     def call_review(self, event: Any):
