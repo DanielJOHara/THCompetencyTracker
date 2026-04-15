@@ -25,7 +25,6 @@ class StaffUpdate(object):
         self.wnd_staff = wnd_staff
         self.ad = ad
         self.sl = StaffLogic(ad)
-        self.destroyed_label_count = 0
 
         # Add title top window
         self.wnd_staff.title("Staff Data Update")
@@ -136,6 +135,8 @@ class StaffUpdate(object):
         self.chc_practice_supervisor = []
         self.chc_practice_assessor = []
         self.lbl_roles = []
+        self.label_number = 0
+        self.label_number_list = []
 
         # Apply default filters to staff to be displayed
         self.db_s_list = []
@@ -282,7 +283,7 @@ class StaffUpdate(object):
                 self.ent_start_date[s].grid(row=s + 1, column=col, sticky='w')
 
                 self.chc_practice_supervisor.append(ctk.CTkCheckBox(
-                    self.frm_s,width=self.width[col] - 2 * int(self.width[col] / 3),text=""))
+                    self.frm_s, width=self.width[col] - 2 * int(self.width[col] / 3), text=""))
 
                 # Supervisor column is controlled by command line argument
                 if self.ad.args.supervisor:
@@ -301,6 +302,9 @@ class StaffUpdate(object):
                                                    text_color='#808080', fg_color='#FFFFFF', anchor='w'))
                 self.lbl_roles[s].grid(row=s + 1, column=col, sticky='w', pady=2)
                 self.lbl_roles[s].bind('<Button-1>', self.handel_role_click)
+
+                self.label_number += 1
+                self.label_number_list.append(self.label_number)
 
             # Set the values for the existing or just created widgets
             staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
@@ -342,34 +346,43 @@ class StaffUpdate(object):
             self.chc_practice_assessor.pop()
             self.lbl_roles[-1].destroy()
             self.lbl_roles.pop()
-            self.destroyed_label_count += 1
+            self.label_number_list.pop()
 
         self.lbl_staff_count.configure(text=f"{len(self.db_s_list)} of {self.ad.md.len('Staff')} staff displayed")
 
     def handel_role_click(self,  event: tk.Event) -> None:
         """ This routine used the number of the label that was clicked to calculate the index to
-            the filter staff table index list. It has to allow for the number of labels destroyed
-            when the staff list is filtered down as destroyed label numbers are not reused.
+            the filter staff table index list. The label numbers are stored in the self.label_number_list
+            when the labels are created.
             """
         logger.debug(f"Event widget [{event.widget}]")
         # Extract label number from widget
-        label_num_search = re.search(r'ctklabel(\d+)?', str(event.widget))
-        if not label_num_search:
+        label_number_search = re.search(r'ctklabel(\d+)?', str(event.widget))
+        if not label_number_search:
             logger.error(f"Failed to extract label number from event widget [{event.widget}]")
             return
 
         # First label has no number
-        if not label_num_search.group(1):
-            label_num = 1
-            s = 0
+        if not label_number_search.group(1):
+            widget_label_number = 1
+            s_index = 0
         else:
-            label_num = int(label_num_search.group(1))
-            s = label_num - 1 - self.destroyed_label_count
-        db_s = self.db_s_list[s]
+            widget_label_number = int(label_number_search.group(1))
+            s_index = -1
+            for s, label_num in enumerate(self.label_number_list):
+                if label_num == widget_label_number:
+                    s_index = s
+                    break
+            if s_index == -1:
+                logger.error(f"Failed to find widget label number {widget_label_number}"
+                             f" in label_number_list {self.label_number_list}")
+                return
+
+        db_s = self.db_s_list[s_index]
 
         staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
-        logger.debug(f"Label number {label_num}, destroyed label count {self.destroyed_label_count}, "
-                     f"filter list index {s}, Staff table index {db_s}, Staff Name {staff_name}]")
+        logger.debug(f"Label number {widget_label_number}, filter list index {s_index},"
+                     f" Staff table index {db_s}, Staff Name {staff_name}]")
 
         child_window(StaffRoleUpdate, self.ad, self.wnd_staff, staff_name)
 
@@ -379,7 +392,7 @@ class StaffUpdate(object):
             if db_sr > -1:
                 role = self.ad.md.get('Staff Role', 'Role Code', db_sr)
                 roles += service_code + ' ' + role + ', '
-        self.lbl_roles[s].configure(text=roles[:-2])
+        self.lbl_roles[s_index].configure(text=roles[:-2])
 
 
 class StaffDelete(object):

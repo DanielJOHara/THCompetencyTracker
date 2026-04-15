@@ -32,8 +32,8 @@ class CompetencyUpdate(object):
         self.frm_h.pack(padx=6, fill='x', expand=False)
 
         self.header = ['Display Order', 'Competency Name',
-                       'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank', 'Service']
-        self.width = [90, 250, 90, 90, 90, 90, 90, 90]
+                       'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank', 'Services']
+        self.width = [90, 250, 90, 90, 90, 90, 90, 150]
 
         # Create list to hold header labels
         self.lbl_header = []
@@ -380,6 +380,9 @@ class CompetencyAdd(object):
                                                   display_order, expiry, prerequisite, nightshift, bank)
 
         if success:
+            # Invoke windo to create Service area associations for new Competency
+            child_window(CompetencyServiceUpdate, self.ad, self.wnd_competency_add, competency_name)
+
             CTkMessagebox(title="Information", message=message, icon='info')
             self.ent_competency_name.delete(0, 9999)
             self.cmb_scope.set("")
