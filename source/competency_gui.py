@@ -7,9 +7,9 @@ import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 import tkinter as tk
 
-from competency_service_gui import CompetencyServiceUpdate
 from source.appdata import AppData
 from source.competency_logic import CompetencyLogic
+from source.competency_service_gui import CompetencyServiceUpdate
 from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning, widget_dict_values
 
 logger = logging.getLogger(__name__)

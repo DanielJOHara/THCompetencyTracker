@@ -160,8 +160,8 @@ class MasterData:
                     logger.info(f"Adding {table} table with all values set")
                     data = []
                     for competency_name in self._df['Competency']['Competency Name'].tolist():
-                        if competency_name != 'LEFT':
-                            for service_code in self._df['Service']['Service Code'].tolist():
+                        for service_code in self._df['Service']['Service Code'].tolist():
+                            if service_code != 'LEFT':
                                 data.append([competency_name, service_code])
                     self.add_table('Competency Service', self.table_columns['Competency Service'], data)
                 else:

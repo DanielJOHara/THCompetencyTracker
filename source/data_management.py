@@ -11,7 +11,7 @@ from source.service_gui import ServiceUpdate
 from source.role_gui import RoleUpdate
 from source.staff_gui import StaffUpdate
 from source.competency_gui import CompetencyUpdate
-from competency_service_gui import CompetencyServiceGrid
+from source.competency_service_gui import CompetencyServiceGrid
 from source.staff_role_gui import StaffRoleUpdate
 from source.choose_colours_gui import ChooseColours
 
