@@ -1,7 +1,6 @@
 Version 0.0.0.0
 Initial release
 
-
 Version 0.1.0.0
 Technical Changes:
     Code refactored.
@@ -11,7 +10,6 @@ Technical Changes:
 Functional Changes:
     Moved configuration file location to master data folder to make colour selection common for all users.
 
-
 Version 0.1.1.0
 Technical Changes:
     Logging defined in each file and logger removed from application data object.
@@ -19,7 +17,6 @@ Functional Changes:
     Report sheets protected with password.
     Out Standing Competencies column added to summary sheet of staff report.
     Header added to report sheets.
-
 
 Version 0.1.1.0 (no version update)
 Functional Changes:
@@ -72,7 +69,7 @@ Technical Changes:
 Functional Changes:
     Added Practice Assessor and Supervisor to Competency Grid
     Added filters to Staff Update window
-    Bank input fields after records added
+    Blank input fields after records added
     Automatically close Staff Role Update window when inputting data for a single staff member
 
 Version 0.1.2.8
@@ -109,3 +106,13 @@ Functional Changes:
     Removed staff competency colours from the parameter.
     Corrected Service Update Window save functionality.
     Offer readonly option when master data is in use.
+
+Version 0.1.2.12
+Technical Changes:
+    Additional DEBUG logging added.
+Functional Changes:
+    Added Competency Service table and an update grid window for it to Data Management.
+    New Competency Service table use to filter Competencies for Service specific Competency Role update grids.
+    Added Services column to Competency update grid window, when clicked this displays window to update the Services.
+    Fixed bug on Staff update grid, clicking Roles failed after filtering reduced then increased rows displayed.
+    Stopped filtering numbers from sheet names in Competency and Staff reports.

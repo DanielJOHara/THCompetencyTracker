@@ -69,10 +69,17 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
             db_c_list.append(db_c)
 
     # Process each competency
+    sheet_name_list = []
     for c, db_c in enumerate(db_c_list):
         competency_name = ad.md.get('Competency', 'Competency Name', db_c)
         # Create competency sheet and output header row
-        sheet_name = re.sub(r'[^a-zA-Z]', ' ', competency_name)[:30]
+        sheet_name = re.sub(r'[^0-9a-zA-Z]', ' ', competency_name)[:30]
+        duplicate_count = sheet_name_list.count(sheet_name.lower())
+        sheet_name_list.append(sheet_name.lower())
+        if duplicate_count > 0:
+            length_number = int(duplicate_count / 10) + 2
+            sheet_name = sheet_name[:30-length_number] + ' ' + str(duplicate_count)
+
         header = [
             {'label': 'Status', 'width': 20},
             {'label': 'Staff Name', 'width': 26},
@@ -90,6 +97,7 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
             {'label': 'Force Required', 'width': 10},
             {'label': 'Competency', 'width': 12}
         ]
+        logger.debug(f"Creating {sheet_name} sheet for {competency_name} Competency")
         ws_cmp = create_report_worksheet(wb, sheet_name, header,
                                          formats['header'], protect_options, ad.args.report_password)
         ws_cmp.write_url(0, len(header) - 1, f"internal:'Competency'!A{c + 2}", formats['hyper'], string='Competency')

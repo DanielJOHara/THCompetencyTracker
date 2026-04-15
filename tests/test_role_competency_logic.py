@@ -15,7 +15,7 @@ def ad(request):
     ad.md.load()
 
     def finalizer():
-        md._unlock()
+        ad.md._unlock()
 
     request.addfinalizer(finalizer)
     return ad
@@ -25,16 +25,6 @@ def ad(request):
 def role_competency_logic(ad):
     """Fixture to create a RoleCompetencyLogic instance."""
     return RoleCompetencyLogic(ad)
-
-
-def test_get_competency_list(role_competency_logic):
-    """Test getting a list of competencies for a given staff type."""
-    rn_competencies = role_competency_logic.get_competency_list('RN')
-    assert isinstance(rn_competencies, list)
-    # Based on the test data, we expect to see competencies with scope 'RN' or 'BOTH'
-    for db_c in rn_competencies:
-        scope = role_competency_logic.ad.md.get('Competency', 'Scope', db_c)
-        assert scope in ['RN', 'BOTH']
 
 
 def test_get_role_list(role_competency_logic):

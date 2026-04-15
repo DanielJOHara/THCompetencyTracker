@@ -1,6 +1,4 @@
-"""This module contains the business logic for the role competency management.
-
-"""
+"""This module contains the business logic for the role competency management."""
 import logging
 from source.appdata import AppData
 
@@ -18,22 +16,7 @@ class RoleCompetencyLogic:
         """
         self.ad = ad
 
-    def get_competency_list(self, staff_type: str) -> list:
-        """Gets a list of competencies for a given staff type.
-
-        Args:
-            staff_type: The staff type to filter by.
-
-        Returns:
-            A list of competency database indices.
-        """
-        db_c_list = []
-        for db_c in range(self.ad.md.len('Competency')):
-            if self.ad.md.get('Competency', 'Scope', db_c) in [staff_type, 'BOTH']:
-                db_c_list.append(db_c)
-        return db_c_list
-
-    def get_role_list(self, staff_type: str) -> list:
+    def get_role_list(self, staff_type: str) -> list[int]:
         """Gets a list of roles for a given staff type.
 
         Args:

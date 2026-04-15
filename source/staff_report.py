@@ -83,7 +83,7 @@ def staff_report(ad: AppData, report_excel_path: str, service_code_list, staff_t
             continue
 
         # Set sheet name and check it does not already exist, sheet duplicates are case-insensitive
-        sheet_name = re.sub(r'[^a-zA-Z]', ' ', staff_name)[:30]
+        sheet_name = re.sub(r'[^0-9a-zA-Z]', ' ', staff_name)[:30]
         duplicate_count = sheet_name_list.count(sheet_name.lower())
         sheet_name_list.append(sheet_name.lower())
         if duplicate_count > 0:

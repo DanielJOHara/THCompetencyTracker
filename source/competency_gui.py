@@ -1,10 +1,13 @@
 
 import logging
+import re
 from typing import Any
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
+import tkinter as tk
 
+from competency_service_gui import CompetencyServiceUpdate
 from source.appdata import AppData
 from source.competency_logic import CompetencyLogic
 from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning, widget_dict_values
@@ -28,8 +31,9 @@ class CompetencyUpdate(object):
         self.frm_h = ctk.CTkFrame(wnd_competency)
         self.frm_h.pack(padx=6, fill='x', expand=False)
 
-        self.header = ['Display Order', 'Competency Name', 'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank']
-        self.width = [90, 250, 90, 90, 90, 90, 90]
+        self.header = ['Display Order', 'Competency Name',
+                       'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank', 'Service']
+        self.width = [90, 250, 90, 90, 90, 90, 90, 90]
 
         # Create list to hold header labels
         self.lbl_header = []
@@ -121,7 +125,9 @@ class CompetencyUpdate(object):
                 'Expiry': ctk.CTkEntry(self.frm_s, width=self.width[3]),
                 'Prerequisite': ctk.CTkCheckBox(self.frm_s, width=self.width[4] - 2 * int(self.width[4] / 3), text=""),
                 'Nightshift': ctk.CTkCheckBox(self.frm_s, width=self.width[5] - 2 * int(self.width[5] / 3), text=""),
-                'Bank': ctk.CTkCheckBox(self.frm_s, width=self.width[6] - 2 * int(self.width[6] / 3), text="")
+                'Bank': ctk.CTkCheckBox(self.frm_s, width=self.width[6] - 2 * int(self.width[6] / 3), text=""),
+                'Service': ctk.CTkLabel(self.frm_s, width=self.width[7], height=24,
+                                        text_color='#808080', fg_color='#FFFFFF', anchor='w')
             })
             col = 0
             for key in self.competency_widgets[db_c]:
@@ -131,14 +137,16 @@ class CompetencyUpdate(object):
                 else:
                     self.competency_widgets[db_c][key].grid(row=db_c + 1, column=col, sticky='w')
                 col += 1
+            # Add binding so click on service entry calls routine to update the services
+            self.competency_widgets[db_c]['Service'].bind('<Button-1>', self.handel_service_click)
 
         # Set all widget values
         self.competency_widgets[db_c]['Display Order'].delete(0, 9999)
         self.competency_widgets[db_c]['Display Order'].insert(0, self.ad.md.get('Competency', 'Display Order', db_c))
 
+        competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
         self.competency_widgets[db_c]['Competency Name'].delete(0, 9999)
-        self.competency_widgets[db_c]['Competency Name'].insert(0,
-                                                                self.ad.md.get('Competency', 'Competency Name', db_c))
+        self.competency_widgets[db_c]['Competency Name'].insert(0, competency_name)
 
         self.competency_widgets[db_c]['Scope'].set(self.ad.md.get('Competency', 'Scope', db_c))
 
@@ -159,6 +167,43 @@ class CompetencyUpdate(object):
             self.competency_widgets[db_c]['Bank'].select()
         else:
             self.competency_widgets[db_c]['Bank'].deselect()
+
+        self.ad.md.get('Competency', 'Expiry', db_c)
+
+        service_list = ' '
+        for db_s in range(self.ad.md.len('Service')):
+            service_code = self.ad.md.get('Service', 'Service Code', db_s)
+            if self.ad.md.find_two('Competency Service',
+                                   competency_name, 'Competency Name',
+                                   service_code, 'Service Code') > -1:
+                service_list += service_code + ', '
+        self.competency_widgets[db_c]['Service'].configure(text=service_list[:-2])
+
+    def handel_service_click(self, event: tk.Event):
+        logger.debug(f"handel_service_click from event widget [{event.widget}]")
+        # Extract label number from widget
+        label_num_search = re.search(r'ctklabel(\d+)?', str(event.widget))
+        if not label_num_search:
+            logger.error(f"Failed to extract label number from event widget [{event.widget}]")
+            return
+
+        # First label has no number
+        if not label_num_search.group(1):
+            db_c = 0
+        else:
+            db_c = int(label_num_search.group(1)) - 1
+
+        competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
+        child_window(CompetencyServiceUpdate, self.ad, self.wnd_competency, competency_name)
+
+        service_list = ' '
+        for db_s in range(self.ad.md.len('Service')):
+            service_code = self.ad.md.get('Service', 'Service Code', db_s)
+            if self.ad.md.find_two('Competency Service',
+                                   competency_name, 'Competency Name',
+                                   service_code, 'Service Code') > -1:
+                service_list += service_code + ', '
+        self.competency_widgets[db_c]['Service'].configure(text=service_list[:-2])
 
 
 class CompetencyDelete(object):

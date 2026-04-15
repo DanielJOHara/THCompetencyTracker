@@ -26,9 +26,10 @@ tables. The following data management interfaces are available:
 2.	Roles: Define and update the roles within the organization.
 3.	Staff: Manage staff information.
 4.	Competencies: Define and update the list of competencies.
-5.	Staff Roles: Assign roles to staff members.
-6.	Role Competencies: Define the competencies required for each role.
-7.	Colour Selector: Customise the colours used in the application.
+5.	Competencies Services: Define which services are relevant for competencies.
+6.	Staff Roles: Assign roles to staff members.
+7.	Role Competencies: Define the competencies required for each role.
+8.	Colour Selector: Customise the colours used in the application.
 
 The tool only supports a single user at a time with update access. There is no limit on the number of users
 with read only access.

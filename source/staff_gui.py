@@ -25,6 +25,7 @@ class StaffUpdate(object):
         self.wnd_staff = wnd_staff
         self.ad = ad
         self.sl = StaffLogic(ad)
+        self.destroyed_label_count = 0
 
         # Add title top window
         self.wnd_staff.title("Staff Data Update")
@@ -114,7 +115,7 @@ class StaffUpdate(object):
             self.width = [250, 90, 90, 90, 180]
         else:
             self.header = ['Staff Name', 'Start Date', 'Assessor', 'Roles']
-            self.width = [250, 90, 90, 90, 180]
+            self.width = [250, 90, 90, 180]
 
         # Create list to hold header labels
         self.lbl_header = []
@@ -156,31 +157,31 @@ class StaffUpdate(object):
         self.btn_exit = ctk.CTkButton(self.frm_btn, text="Exit", command=self.wnd_staff.destroy)
         self.btn_exit.grid(row=0, column=3, pady=6, padx=10)
 
-    def set_rn(self):
+    def set_rn(self) -> None:
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             if self.ad.md.get('Role', 'RN', db_r) and self.ad.md.count('Staff Role', 'Role Code', role_code) > 0:
                 self.chc_role_filter[db_r].select()
         self.apply_filters()
 
-    def clear_rn(self):
+    def clear_rn(self) -> None:
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             if self.ad.md.get('Role', 'RN', db_r):
                 self.chc_role_filter[db_r].deselect()
         self.apply_filters()
 
-    def set_hca(self):
+    def set_hca(self) -> None:
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             if not self.ad.md.get('Role', 'RN', db_r) and self.ad.md.count('Staff Role', 'Role Code', role_code) > 0:
                 self.chc_role_filter[db_r].select()
         self.apply_filters()
 
-    def clear_hca(self):
+    def clear_hca(self) -> None:
         for db_r, role_code in enumerate(self.ad.md.get_list('Role', 'Role Code')):
             if not self.ad.md.get('Role', 'RN', db_r):
                 self.chc_role_filter[db_r].deselect()
         self.apply_filters()
 
-    def set_all(self):
+    def set_all(self) -> None:
         self.chc_no_role_filter.select()
         for db_sc, service_code in enumerate(self.ad.md.get_list('Service', 'Service Code')):
             self.chc_service_filter[db_sc].select()
@@ -189,7 +190,7 @@ class StaffUpdate(object):
                 self.chc_role_filter[db_r].select()
         self.apply_filters()
 
-    def clear_all(self):
+    def clear_all(self) -> None:
         self.ent_name_filter.delete(0, 9999)
         self.chc_no_role_filter.deselect()
         for db_sc, service_code in enumerate(self.ad.md.get_list('Service', 'Service Code')):
@@ -224,7 +225,7 @@ class StaffUpdate(object):
 
         self.display_staff_table()
 
-    def handle_save_click(self):
+    def handle_save_click(self) -> None:
         """Read all values in table and update the table object if Any values have changed."""
         # Validate date attribute
         for s, db_s in enumerate(self.db_s_list):
@@ -248,7 +249,7 @@ class StaffUpdate(object):
         if number_changes > 0:
             self.apply_filters()
 
-    def handle_add_click(self):
+    def handle_add_click(self) -> None:
         """Prompt user for row to be added."""
         # Invoke function to add row to table
         child_window(StaffAdd, self.ad, self.wnd_staff)
@@ -256,20 +257,79 @@ class StaffUpdate(object):
         # Refresh table, this will add the extra row
         self.apply_filters()
 
-    def handle_delete_click(self):
+    def handle_delete_click(self) -> None:
         # Call window to delete competencies
         child_window(StaffDelete, self.ad, self.wnd_staff)
 
         # Re-display table
         self.apply_filters()
 
-    def display_staff_table(self):
-        """Display widgets for all staff records."""
+    def display_staff_table(self) -> None:
+        """Display widgets for the filtered Staff table indexes in self.db_s_list."""
 
+        # Loop to populate widgets.
+        # s: widget row
+        # db_s: Staff table index from filtered list
         for s, db_s in enumerate(self.db_s_list):
-            self.add_staff_to_display(s, db_s)
+            # If widget row is beyond the end of the existing widget row add new widgets
+            if s + 1 > len(self.ent_staff_name):
+                col = 0
+                self.ent_staff_name.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
+                self.ent_staff_name[s].grid(row=s + 1, column=col, sticky='w')
 
-        # Remove Any rows from the end of table that have not been populated
+                col += 1
+                self.ent_start_date.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
+                self.ent_start_date[s].grid(row=s + 1, column=col, sticky='w')
+
+                self.chc_practice_supervisor.append(ctk.CTkCheckBox(
+                    self.frm_s,width=self.width[col] - 2 * int(self.width[col] / 3),text=""))
+
+                # Supervisor column is controlled by command line argument
+                if self.ad.args.supervisor:
+                    col += 1
+                    self.chc_practice_supervisor[s].grid(row=s + 1, column=col,
+                                                         sticky='nsew', padx=int(self.width[col] / 3))
+
+                col += 1
+                self.chc_practice_assessor.append(ctk.CTkCheckBox(
+                    self.frm_s, width=self.width[col] - 2 * int(self.width[col] / 3), text=""))
+                self.chc_practice_assessor[s].grid(row=s + 1, column=col,
+                                                   sticky='nsew', padx=int(self.width[col] / 3))
+
+                col += 1
+                self.lbl_roles.append(ctk.CTkLabel(self.frm_s, width=self.width[col], height=24,
+                                                   text_color='#808080', fg_color='#FFFFFF', anchor='w'))
+                self.lbl_roles[s].grid(row=s + 1, column=col, sticky='w', pady=2)
+                self.lbl_roles[s].bind('<Button-1>', self.handel_role_click)
+
+            # Set the values for the existing or just created widgets
+            staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
+
+            self.ent_staff_name[s].delete(0, 9999)
+            self.ent_staff_name[s].insert(0, staff_name)
+
+            self.ent_start_date[s].delete(0, 9999)
+            self.ent_start_date[s].insert(0, date_to_string(self.ad.md.get('Staff', 'Start Date', db_s)))
+
+            if self.ad.md.get('Staff', 'Practice Supervisor', db_s):
+                self.chc_practice_supervisor[s].select()
+            else:
+                self.chc_practice_supervisor[s].deselect()
+
+            if self.ad.md.get('Staff', 'Practice Assessor', db_s):
+                self.chc_practice_assessor[s].select()
+            else:
+                self.chc_practice_assessor[s].deselect()
+
+            roles = ' '
+            for service_code in self.ad.md.get_list('Service', 'Service Code'):
+                db_sr = self.ad.md.find_two('Staff Role', service_code, 'Service Code', staff_name, 'Staff Name')
+                if db_sr > -1:
+                    role = self.ad.md.get('Staff Role', 'Role Code', db_sr)
+                    roles += service_code + ' ' + role + ', '
+            self.lbl_roles[s].configure(text=roles[:-2])
+
+        # Remove any widgets from the end of display that were previously created but are now not required
         for i in range(len(self.ent_staff_name) - len(self.db_s_list)):
             # Remove last row of widgets
             self.ent_staff_name[-1].destroy()
@@ -282,68 +342,16 @@ class StaffUpdate(object):
             self.chc_practice_assessor.pop()
             self.lbl_roles[-1].destroy()
             self.lbl_roles.pop()
+            self.destroyed_label_count += 1
 
         self.lbl_staff_count.configure(text=f"{len(self.db_s_list)} of {self.ad.md.len('Staff')} staff displayed")
 
-    def add_staff_to_display(self, s, db_s):
-        if s + 1 > len(self.ent_staff_name):
-            col = 0
-            self.ent_staff_name.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
-            self.ent_staff_name[s].grid(row=s + 1, column=col, sticky='w')
-
-            col += 1
-            self.ent_start_date.append(ctk.CTkEntry(self.frm_s, width=self.width[col]))
-            self.ent_start_date[s].grid(row=s + 1, column=col, sticky='w')
-
-            self.chc_practice_supervisor.append(ctk.CTkCheckBox(self.frm_s,
-                                                width=self.width[col] - 2 * int(self.width[col] / 3),
-                                                text=""))
-            if self.ad.args.supervisor:
-                col += 1
-                self.chc_practice_supervisor[s].grid(row=s + 1, column=col,
-                                                     sticky='nsew', padx=int(self.width[col] / 3))
-
-            col += 1
-            self.chc_practice_assessor.append(ctk.CTkCheckBox(self.frm_s,
-                                                              width=self.width[col] - 2 * int(self.width[col] / 3),
-                                                              text=""))
-            self.chc_practice_assessor[s].grid(row=s + 1, column=col,
-                                               sticky='nsew', padx=int(self.width[col] / 3))
-
-            col += 1
-            self.lbl_roles.append(ctk.CTkLabel(self.frm_s, width=self.width[col], height=24,
-                                               text_color='#808080', fg_color='#FFFFFF', anchor='w'))
-            self.lbl_roles[s].grid(row=s + 1, column=col, sticky='w', pady=2)
-            self.lbl_roles[s].bind('<Button-1>', self.handel_role_click)
-
-        staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
-
-        self.ent_staff_name[s].delete(0, 9999)
-        self.ent_staff_name[s].insert(0, staff_name)
-
-        self.ent_start_date[s].delete(0, 9999)
-        self.ent_start_date[s].insert(0, date_to_string(self.ad.md.get('Staff', 'Start Date', db_s)))
-
-        if self.ad.md.get('Staff', 'Practice Supervisor', db_s):
-            self.chc_practice_supervisor[s].select()
-        else:
-            self.chc_practice_supervisor[s].deselect()
-
-        if self.ad.md.get('Staff', 'Practice Assessor', db_s):
-            self.chc_practice_assessor[s].select()
-        else:
-            self.chc_practice_assessor[s].deselect()
-
-        roles = ' '
-        for service_code in self.ad.md.get_list('Service', 'Service Code'):
-            db_sr = self.ad.md.find_two('Staff Role', service_code, 'Service Code', staff_name, 'Staff Name')
-            if db_sr > -1:
-                role = self.ad.md.get('Staff Role', 'Role Code', db_sr)
-                roles += service_code + ' ' + role + ', '
-        self.lbl_roles[s].configure(text=roles[:-2])
-
-    def handel_role_click(self,  event: tk.Event):
-        logger.debug(f"handel_role_click from event widget [{event.widget}]")
+    def handel_role_click(self,  event: tk.Event) -> None:
+        """ This routine used the number of the label that was clicked to calculate the index to
+            the filter staff table index list. It has to allow for the number of labels destroyed
+            when the staff list is filtered down as destroyed label numbers are not reused.
+            """
+        logger.debug(f"Event widget [{event.widget}]")
         # Extract label number from widget
         label_num_search = re.search(r'ctklabel(\d+)?', str(event.widget))
         if not label_num_search:
@@ -352,11 +360,17 @@ class StaffUpdate(object):
 
         # First label has no number
         if not label_num_search.group(1):
+            label_num = 1
             s = 0
         else:
-            s = int(label_num_search.group(1)) - 1
+            label_num = int(label_num_search.group(1))
+            s = label_num - 1 - self.destroyed_label_count
         db_s = self.db_s_list[s]
+
         staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
+        logger.debug(f"Label number {label_num}, destroyed label count {self.destroyed_label_count}, "
+                     f"filter list index {s}, Staff table index {db_s}, Staff Name {staff_name}]")
+
         child_window(StaffRoleUpdate, self.ad, self.wnd_staff, staff_name)
 
         roles = ' '
@@ -428,7 +442,7 @@ class StaffDelete(object):
         self.btn_exit = ctk.CTkButton(wnd_staff_del, text="Exit", command=wnd_staff_del.destroy)
         self.btn_exit.pack(pady=6, padx=10)
 
-    def refresh_staff(self, event: Any):
+    def refresh_staff(self, event: Any) -> None:
         """Display the staff record selected."""
         logger.debug(f"Called with event {event}")
         # Identify selected staff
@@ -439,7 +453,7 @@ class StaffDelete(object):
         set_disabled_checkbox(self.chc_practice_supervisor, self.ad.md.get('Staff', 'Practice Supervisor', db_s))
         set_disabled_checkbox(self.chc_practice_assessor, self.ad.md.get('Staff', 'Practice Assessor', db_s))
 
-    def handle_delete_click(self):
+    def handle_delete_click(self) -> None:
         """Delete current record."""
         staff_name = self.cmb_staff_name.get()
 
@@ -462,7 +476,7 @@ class StaffDelete(object):
         set_disabled_checkbox(self.chc_practice_supervisor, 0)
         set_disabled_checkbox(self.chc_practice_assessor, 0)
 
-    def filter_names(self, event: Any):
+    def filter_names(self, event: Any) -> None:
         """Filter the names in the Staff Name drop down to those that match
            the filter entered by the user."""
         name_filter = self.ent_name_filter.get()
@@ -530,7 +544,7 @@ class StaffAdd(object):
         self.btn_exit = ctk.CTkButton(wnd_staff_add, text="Exit", command=wnd_staff_add.destroy)
         self.btn_exit.pack(pady=6, padx=10)
 
-    def handle_add_click(self):
+    def handle_add_click(self) -> None:
         """Update current record or insert a new one if it does not exist."""
         staff_name = self.ent_staff_name.get()
         start_date = self.ent_start_date.get()
@@ -596,7 +610,7 @@ class StaffAssessorUpdate:
         self.btn_exit = ctk.CTkButton(wnd_staff_assessor, text="Exit", command=wnd_staff_assessor.destroy)
         self.btn_exit.pack(pady=6, padx=10)
 
-    def handle_update_click(self):
+    def handle_update_click(self) -> None:
         new_practice_assessor = self.chc_practice_assessor.get()
         old_practice_assessor = self.ad.md.get('Staff', 'Practice Assessor', self.db_s)
         new_practice_supervisor = self.chc_practice_supervisor.get()

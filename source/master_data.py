@@ -7,6 +7,7 @@ import re
 import shutil
 import time
 import warnings
+from msilib import add_tables
 from typing import Any, List, Union
 
 import customtkinter as ctk
@@ -26,13 +27,15 @@ class MasterData:
 
         logger.info(f"Creating MasterData for Excel {master_excel_path} with retention {retention}")
         self.tables = [
-            'Service', 'Role', 'Staff', 'Competency', 'Staff Role', 'Role Competency', 'Staff Competency']
+            'Service', 'Role', 'Staff', 'Competency',
+            'Competency Service', 'Staff Role', 'Role Competency', 'Staff Competency']
         self.table_columns = {
             'Service': ['Service Name', 'Service Code'],
             'Role': ['Role Name', 'Role Code', 'RN', 'Display Order'],
             'Staff': ['Staff Name', 'Start Date', 'Practice Supervisor', 'Practice Assessor'],
             'Competency': ['Competency Name', 'Competency Name', 'Scope', 'Display Order', 'Expiry',
                            'Prerequisite', 'Nightshift', 'Bank'],
+            'Competency Service': ['Competency Name', 'Service Code'],
             'Staff Role': ['Staff Name', 'Role Code', 'Service Code', 'Bank', 'Nightshift'],
             'Role Competency': ['Role Code', 'Competency Name', 'Service Code'],
             'Staff Competency': ['Staff Name', 'Competency Name', 'Prerequisite Date', 'Achieved',
@@ -42,6 +45,7 @@ class MasterData:
             'Role': ['Role Code'],
             'Staff': ['Staff Name'],
             'Competency': ['Competency Name'],
+            'Competency Service': ['Competency Name', 'Service Code'],
             'Staff Role': ['Staff Name', 'Role Code', 'Service Code'],
             'Role Competency': ['Role Code', 'Competency Name', 'Service Code'],
             'Staff Competency': ['Staff Name', 'Competency Name']}
@@ -50,16 +54,21 @@ class MasterData:
             'Role': ['Display Order'],
             'Staff': ['Staff Name'],
             'Competency': ['Display Order'],
+            'Competency Service': ['Competency Name', 'Service Code'],
             'Staff Role': ['Staff Name', 'Role Code', 'Service Code'],
             'Role Competency': ['Service Code', 'Role Code', 'Competency Name'],
             'Staff Competency': ['Staff Name', 'Competency Name']}
         self.fkeys = [
-            {'PTable': 'Staff', 'FTable': 'Staff Role', 'FKey': 'Staff Name'},
+            {'PTable': 'Service', 'FTable': 'Staff Role', 'FKey': 'Service Code'},
+            {'PTable': 'Service', 'FTable': 'Role Competency', 'FKey': 'Service Code'},
+            {'PTable': 'Service', 'FTable': 'Competency Service', 'FKey': 'Service Code'},
             {'PTable': 'Role', 'FTable': 'Staff Role', 'FKey': 'Role Code'},
             {'PTable': 'Role', 'FTable': 'Role Competency', 'FKey': 'Role Code'},
-            {'PTable': 'Competency', 'FTable': 'Role Competency', 'FKey': 'Competency Name'},
+            {'PTable': 'Competency', 'FTable': 'Staff Competency', 'FKey': 'Competency Name'},
+            {'PTable': 'Staff', 'FTable': 'Staff Role', 'FKey': 'Staff Name'},
             {'PTable': 'Staff', 'FTable': 'Staff Competency', 'FKey': 'Staff Name'},
-            {'PTable': 'Competency', 'FTable': 'Staff Competency', 'FKey': 'Competency Name'}]
+            {'PTable': 'Competency', 'FTable': 'Competency Service', 'FKey': 'Competency Name'},
+            {'PTable': 'Competency', 'FTable': 'Role Competency', 'FKey': 'Competency Name'}]
 
         self.user = os.getlogin()
         self.master_excel_path = master_excel_path
@@ -75,6 +84,7 @@ class MasterData:
                    f"Role\n{self._df['Role']}"
                    f"Staff\n{self._df['Staff']}"
                    f"Competency\n{self._df['Competency']}"
+                   f"Competency\n{self._df['Competency Service']}"
                    f"Staff Role\n{self._df['Staff Role']}"
                    f"Role Competency\n{self._df['Role Competency']}"
                    f"Staff Competency\n{self._df['Staff Competency']}")
@@ -138,10 +148,24 @@ class MasterData:
             excel_path = os.path.splitext(self.master_excel_path)[0] + '_copy.xlsx'
 
         self._unlock()
-        try:
-            self._df = pd.read_excel(excel_path, sheet_name=self.tables, keep_default_na=False)
-        except IOError as e:
-            self._lock_error(excel_path, e)
+
+        # Load sheets one at a time
+        self._df = {}
+        for table in self.tables:
+            try:
+                self._df[table] = pd.read_excel(excel_path, sheet_name=table, keep_default_na=False)
+            except (IOError, ValueError) as e:
+                # If Competency Service sheet is missing add it with all values set except for LEFT service code
+                if table == 'Competency Service':
+                    logger.info(f"Adding {table} table with all values set")
+                    data = []
+                    for competency_name in self._df['Competency']['Competency Name'].tolist():
+                        if competency_name != 'LEFT':
+                            for service_code in self._df['Service']['Service Code'].tolist():
+                                data.append([competency_name, service_code])
+                    self.add_table('Competency Service', self.table_columns['Competency Service'], data)
+                else:
+                    self._lock_error(excel_path, e)
 
         # Check columns exist on each sheet
         for table in self.table_columns:
@@ -414,7 +438,9 @@ def pandas_to_python_data(pandas_datetime: Union[None, datetime.date, float, int
     """Function to convert a pandas date to a python datetime.date."""
     if not pandas_datetime:
         return ''
-    elif isinstance(pandas_datetime, datetime.datetime):
+    if isinstance(pandas_datetime, datetime.datetime):
         return pandas_datetime.date()
-
-    return datetime.datetime.fromtimestamp(pandas_datetime / 1E9).date()
+    try:
+        return datetime.datetime.fromtimestamp(pandas_datetime / 1E9).date()
+    except TypeError:
+        return ''

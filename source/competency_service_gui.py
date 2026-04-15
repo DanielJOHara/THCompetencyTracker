@@ -1,4 +1,4 @@
-"""This module contains the GUI routines to manage the Role Competency table."""
+"""This module contains the GUI routines to manage the Competency Service table."""
 import logging
 from typing import Any
 
@@ -8,33 +8,30 @@ import tkinter as tk
 
 from source.appdata import AppData
 from source.competency_display import staff_competency_lists
-from source.role_competency_logic import RoleCompetencyLogic
+from source.competency_service_logic import CompetencyServiceLogic
 from source.tool_tip import ToolTip, competency_tip_text, role_tip_text
 
 logger = logging.getLogger(__name__)
 
 
-class RoleCompetencyGrid(object):
-    """Generate grid of checkboxes to set the roles required for competencies
-       for a service area staff type combination."""
-    def __init__(self, ad: AppData, wnd_rc_grid: ctk.CTkToplevel, service_code: str, staff_type: str) -> None:
-        logger.info(f"Creating Role Competency Grid window for {service_code} {staff_type}")
+class CompetencyServiceGrid(object):
+    """Generate grid of checkboxes to associate competencies with service areas."""
+    def __init__(self, ad: AppData, wnd_cs_grid: ctk.CTkToplevel) -> None:
+        logger.info(f"Creating Competency Service Grid window")
 
-        self.wnd_rc_grid = wnd_rc_grid
+        self.wnd_cs_grid = wnd_cs_grid
         self.ad = ad
-        self.service_code = service_code
-        self.staff_type = staff_type
-        self.rcl = RoleCompetencyLogic(ad)
+        self.csl = CompetencyServiceLogic(ad)
 
         # Set canvas sizes for grid, this will set starting size for scrollable portion of window
         ht_se = 700
         wd_se = 800
 
         # Add title top window
-        wnd_rc_grid.title(f"Role Competency Grid for {service_code} {staff_type}")
+        wnd_cs_grid.title(f"Competency Service Grid")
 
         # Define frame to hold grid
-        self.frm_rc_grid = ctk.CTkFrame(wnd_rc_grid)
+        self.frm_rc_grid = ctk.CTkFrame(wnd_cs_grid)
         self.frm_rc_grid.pack(fill='both', expand=True)
 
         # Define frames to split grid frame into
@@ -85,7 +82,7 @@ class RoleCompetencyGrid(object):
         self.cnv_se.create_window(0, 0, window=self.frm_cnv_se, anchor='nw')
 
         # Bind on window configure to set scroll regions
-        self.wnd_rc_grid.bind('<Configure>', self.handle_configure)
+        self.wnd_cs_grid.bind('<Configure>', self.handle_configure)
 
         # Bind mouse wheel for scrolling
         self.cnv_se.bind_all('<MouseWheel>', lambda e: self.handle_mousewheel(e.delta))
@@ -107,23 +104,9 @@ class RoleCompetencyGrid(object):
                                                 fg_color='#00B0F0')
         self.lbl_competency_name.grid(row=0, column=0, padx=1, pady=1)
 
-        #  Generate competency list based on service code and scope
-        self.db_c_list = []
-        for db_c in range(ad.md.len('Competency')):
-            competency_service_code = ad.md.get('Competency', 'Service Code', db_c)
-            if competency_service_code and competency_service_code != service_code:
-                continue
-            if ad.md.get('Competency', 'Scope', db_c) not in ['BOTH', staff_type]:
-                continue
-            self.db_c_list.append(db_c)
-
-        # Create a lists of Staff for the Service Code and Staff Type, the competency list generated is
-        # not used as this takes role competency settings into account so is not appropriate here.
-        db_s_list, db_c_list = staff_competency_lists(ad, service_code, staff_type)
-
         # Write competency rows labels
         self.lbl_row = []
-        for c, db_c in enumerate(self.db_c_list):
+        for db_c in range(self.ad.md.len('Competency')):
             self.lbl_row.append(ctk.CTkLabel(self.frm_cnv_sw,
                                              text=ad.md.get('Competency', 'Competency Name', db_c),
                                              corner_radius=6,
@@ -131,50 +114,42 @@ class RoleCompetencyGrid(object):
                                              height=ht,
                                              anchor='w',
                                              fg_color='#00B0F0'))
-            self.lbl_row[c].grid(row=c, column=0, padx=1, pady=1)
+            self.lbl_row[db_c].grid(row=db_c, column=0, padx=1, pady=1)
 
-            tip_text = competency_tip_text(ad, db_c, db_s_list, service_code, staff_type)
-            ToolTip(self.lbl_row[c], tip_text)
-
-        # Create list of Roles relevant to the staff type
-        self.db_r_list = self.rcl.get_role_list(staff_type)
-
-        # Write role colum headers
+        # Write service colum headers
         wd_r = 60
         self.lbl_column = []
-        for r, db_r in enumerate(self.db_r_list):
+        for db_s in range(self.ad.md.len('Service')):
             self.lbl_column.append(ctk.CTkLabel(self.frm_cnv_ne,
-                                                text=ad.md.get('Role', 'Role Code', db_r),
+                                                text=ad.md.get('Service', 'Service Code', db_s),
                                                 corner_radius=6,
                                                 width=wd_r,
                                                 height=ht,
                                                 fg_color='#00B0F0'))
-            self.lbl_column[r].grid(row=0, column=r, padx=1, pady=1)
+            self.lbl_column[db_s].grid(row=0, column=db_s, padx=1, pady=1)
 
-            tip_text = role_tip_text(ad, db_r, service_code)
-            ToolTip(self.lbl_column[r], tip_text)
+            ToolTip(self.lbl_column[db_s], ad.md.get('Service', 'Service Name', db_s))
 
         # Create grid of check boxes for role competencies
-        self.chc_rc = []
-        for c, db_c in enumerate(self.db_c_list):
+        self.chc_cs = []
+        for db_c in range(self.ad.md.len('Competency')):
             competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
-            self.chc_rc.append([])
-            for r, db_r in enumerate(self.db_r_list):
-                role_code = self.ad.md.get('Role', 'Role Code', db_r)
-                self.chc_rc[c].append(ctk.CTkCheckBox(self.frm_cnv_se,
-                                                      text='',
-                                                      width=20,
-                                                      height=ht))
-                self.chc_rc[c][r].grid(row=c, column=r, padx=15, pady=1, sticky='nsew')
-                db_rc = self.ad.md.find_three('Role Competency',
-                                              service_code, 'Service Code',
-                                              role_code, 'Role Code',
-                                              competency_name, 'Competency Name')
-                if db_rc > -1:
-                    self.chc_rc[c][r].select()
+            self.chc_cs.append([])
+            for db_s in range(self.ad.md.len('Service')):
+                service_code = self.ad.md.get('Service', 'Service Code', db_s)
+                self.chc_cs[db_c].append(ctk.CTkCheckBox(self.frm_cnv_se,
+                                                         text='',
+                                                         width=20,
+                                                         height=ht))
+                self.chc_cs[db_c][db_s].grid(row=db_c, column=db_s, padx=15, pady=1, sticky='nsew')
+                db_cs = self.ad.md.find_two('Competency Service',
+                                            competency_name, 'Competency Name',
+                                            service_code, 'Service Code')
+                if db_cs > -1:
+                    self.chc_cs[db_c][db_s].select()
 
         # Create button frame
-        self.frm_btn = ctk.CTkFrame(wnd_rc_grid)
+        self.frm_btn = ctk.CTkFrame(wnd_cs_grid)
         self.frm_btn.pack(fill='x', expand=False)
 
         self.btn_update = ctk.CTkButton(self.frm_btn, text="Save", command=self.handle_save_click)
@@ -183,7 +158,7 @@ class RoleCompetencyGrid(object):
         self.btn_add = ctk.CTkButton(self.frm_btn, text="Reset", command=self.handle_reset_click)
         self.btn_add.grid(row=0, column=1, pady=6, padx=10)
 
-        self.btn_exit = ctk.CTkButton(self.frm_btn, text="Exit", command=self.wnd_rc_grid.destroy)
+        self.btn_exit = ctk.CTkButton(self.frm_btn, text="Exit", command=self.wnd_cs_grid.destroy)
         self.btn_exit.grid(row=0, column=3, pady=6, padx=10)
 
     def scroll_horizontal(self, *args):
@@ -215,13 +190,78 @@ class RoleCompetencyGrid(object):
 
     def handle_save_click(self):
         """Read all values in checkbox grid and check them against the
-           Role Competency table and add and delete records as required."""
+           Competency Service table and add and delete records as required."""
 
-        number_changes = self.rcl.save_role_competencies(self.service_code, self.db_c_list, self.db_r_list, self.chc_rc)
+        number_changes = self.csl.save_all_competency_service(self.chc_cs)
         CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
 
     def handle_reset_click(self):
         """Read all values in checkbox grid and check them against the
            Role Competency table and set checkboxes to the table values."""
 
-        self.rcl.reset_role_competencies(self.service_code, self.db_c_list, self.db_r_list, self.chc_rc)
+        self.csl.reset_competency_service(self.chc_cs)
+
+
+class CompetencyServiceUpdate:
+    """Generate a window to update the Service Codes foe an individual Competency."""
+    def __init__(self,
+                 ad: AppData,
+                 wnd_cs_update: ctk.CTkToplevel,
+                 competency_name: str) -> None:
+        logger.info("Creating Competency Service data update window")
+
+        self.ad = ad
+        self.wnd_cs_update = wnd_cs_update
+        self.competency_name = competency_name
+        self.csl = CompetencyServiceLogic(ad)
+
+        # Add title top window
+        wnd_cs_update.title("Competency Service Data Update")
+
+        self.frm_attribute = ctk.CTkFrame(wnd_cs_update)
+        self.frm_attribute.pack(fill='both', side='left', expand=True)
+
+        row = 0
+        self.lbl_competency_name = ctk.CTkLabel(self.frm_attribute, text="Competency Name")
+        self.lbl_competency_name.grid(row=row, column=0, pady=6, padx=10, sticky='e')
+        self.cmb_competency_name = ctk.CTkEntry(self.frm_attribute, width=250)
+        self.cmb_competency_name.insert(0, self.competency_name)
+        self.cmb_competency_name.configure(state='disabled')
+        self.cmb_competency_name.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+
+        row += 1
+        self.lbl_service_code = ctk.CTkLabel(self.frm_attribute, text="Service Codes")
+        self.lbl_service_code.grid(row=row, column=0, pady=6, padx=10, sticky='w')
+
+        self.cmb_service_code_list = []
+        self.chc_service_code_list = []
+        row -= 1
+        for db_s in range(self.ad.md.len('Service')):
+            service_code = self.ad.md.get('Service', 'Service Code', db_s)
+            row += 1
+            self.chc_service_code_list.append(ctk.CTkCheckBox(self.frm_attribute, text=service_code, width=40))
+            self.chc_service_code_list[db_s].grid(row=row, column=1, pady=6, padx=10, sticky='w')
+            if self.ad.md.find_two('Competency Service',
+                                   competency_name, 'Competency Name',
+                                   service_code, 'Service Code') > -1:
+                self.chc_service_code_list[db_s].select()
+
+        self.btn_update = ctk.CTkButton(self.wnd_cs_update, text="Save", command=self.handle_save_click)
+        self.btn_update.pack(pady=6, padx=10)
+
+        self.btn_delete = ctk.CTkButton(self.wnd_cs_update, text="Delete", command=self.handle_delete_click)
+        self.btn_delete.pack(pady=6, padx=10)
+
+        self.btn_exit = ctk.CTkButton(self.wnd_cs_update, text="Exit", command=self.wnd_cs_update.destroy)
+        self.btn_exit.pack(pady=6, padx=10)
+
+    def handle_save_click(self):
+        """Apply the services selected for the competency by he user."""
+        number_changes = self.csl.save_competency_service(self.competency_name, self.chc_service_code_list)
+        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+
+    def handle_delete_click(self):
+        for chc_service_code in self.chc_service_code_list:
+            chc_service_code.deselect()
+        number_changes = self.csl.save_competency_service(self.competency_name, self.chc_service_code_list)
+        CTkMessagebox(title="Information", message=f"{number_changes} records deleted", icon='info')

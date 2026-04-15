@@ -17,10 +17,11 @@ def ad(request):
     ad = AppData()
     ad.md = MasterData('None', 30)
     ad.md.add_table('Competency',
-                    ['Competency Name', 'Display Order', 'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank'],
-                    [["VoED", 1, "BOTH", 2, 0, 0, 0],
-                     ["Cannulation", 2, "RN", 0, 0, 0, 0],
-                     ["Phlebotomy", 3, "HCA", 2, 0, 0, 0]])
+                    ['Competency Name', 'Display Order', 'Service Code',
+                     'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank'],
+                    [["VoED", 1, '', "BOTH", 2, 0, 0, 0],
+                     ["Cannulation", 2, '', "RN", 0, 0, 0, 0],
+                     ["Phlebotomy", 3, '', "HCA", 2, 0, 0, 0]])
     ad.md.add_table('Role Competency',
                     ['Service Code', 'Role Code', 'Competency Name'],
                     [["IPS", "SN", "VoED"]])
@@ -36,6 +37,7 @@ def competency_values(ad):
     for db_c in range(ad.md.len('Competency')):
         competency_values.append({'Competency Name': ad.md.get('Competency', 'Competency Name', db_c),
                                   'Display Order': str(ad.md.get('Competency', 'Display Order', db_c)),
+                                  'Service Code': ad.md.get('Competency', 'Service Code', db_c),
                                   'Scope': ad.md.get('Competency', 'Scope', db_c),
                                   'Expiry': str(ad.md.get('Competency', 'Expiry', db_c)),
                                   'Prerequisite': ad.md.get('Competency', 'Prerequisite', db_c),
@@ -48,7 +50,7 @@ def test_add_competency(ad):
     """Tests adding a new competency."""
     len_competency = ad.md.len('Competency')
     competency_name = "New Competency"
-    scope = 'RN' 
+    scope = 'RN'
     display_order = '1'
     expiry = '1'
     prerequisite = 1

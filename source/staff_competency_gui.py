@@ -270,19 +270,22 @@ class StaffCompetencyUpdate(object):
 
         service_filter = self.cmb_service_filter.get()
 
-        # Filter competency names for RN and service
+        # Filter competency names for staf type (RN or HCA) and service code
         if rn_filter or service_filter:
             filter_competency_lst = []
             for db_c in range(self.ad.md.len('Competency')):
                 competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
-                if ((not rn_filter
-                     or rn_filter == self.ad.md.get('Competency', 'Scope', db_c)
-                     or self.ad.md.get('Competency', 'Scope', db_c) == 'BOTH')
-                        and (not service_filter
-                             or self.ad.md.find_two('Role Competency',
-                                                    service_filter, 'Service Code',
-                                                    competency_name, 'Competency Name') > -1)):
-                    filter_competency_lst.append(competency_name)
+                if rn_filter:
+                    competency_scope = self.ad.md.get('Competency', 'Scope', db_c)
+                    if competency_scope not in ['BOTH', rn_filter]:
+                        continue
+                if service_filter:
+                    if self.ad.md.find_two('Competency Service',
+                                           competency_name, 'Competency Name',
+                                           service_filter, 'Service Code') < 0:
+                        continue
+
+                filter_competency_lst.append(competency_name)
             self.cmb_competency_name.configure(values=filter_competency_lst)
             if self.cmb_competency_name.get() not in filter_competency_lst:
                 self.cmb_competency_name.set('')

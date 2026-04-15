@@ -47,7 +47,7 @@ def staff_document(ad: AppData,
         # Add a blank list to hold competencies to content dictionary for each competency status
         for status in ad.status_dict:
             status_variable = ad.status_dict[status]['description'].replace(' ', '')
-            content.update({status_variable: list[dict]})
+            content[status_variable] = []
 
         # Add competencies to appropriate status list for staff member
         db_s = ad.md.index('Staff', 'Staff Name', staff_name)

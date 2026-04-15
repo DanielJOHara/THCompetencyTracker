@@ -18,7 +18,7 @@ class StaffRoleUpdate(object):
                  ad: AppData,
                  wnd_staff_role: ctk.CTkToplevel,
                  staff_name: str = None) -> None:
-        logger.info("Creating Staff Role data update window")
+        logger.info(f"Creating Staff Role data update window for Staff Name {staff_name}")
 
         self.wnd_staff_role = wnd_staff_role
         self.ad = ad

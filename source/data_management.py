@@ -11,6 +11,7 @@ from source.service_gui import ServiceUpdate
 from source.role_gui import RoleUpdate
 from source.staff_gui import StaffUpdate
 from source.competency_gui import CompetencyUpdate
+from competency_service_gui import CompetencyServiceGrid
 from source.staff_role_gui import StaffRoleUpdate
 from source.choose_colours_gui import ChooseColours
 
@@ -42,6 +43,10 @@ class DataManagement(object):
         self.btn_competency = ctk.CTkButton(self.frm_button, text="Competencies",
                                             command=lambda: child_window(CompetencyUpdate, ad, wnd_data))
         self.btn_competency.pack(pady=12, padx=20)
+
+        self.btn_competency_service = ctk.CTkButton(self.frm_button, text="Competency Services",
+                                                    command=lambda: child_window(CompetencyServiceGrid, ad, wnd_data))
+        self.btn_competency_service.pack(pady=12, padx=20)
 
         self.btn_staff_role = ctk.CTkButton(self.frm_button, text="Staff Roles",
                                             command=lambda: child_window(StaffRoleUpdate, ad, wnd_data))

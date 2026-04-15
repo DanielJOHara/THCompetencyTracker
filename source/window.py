@@ -90,7 +90,9 @@ def widget_dict_values(widget_dict_list: list) -> list:
     for widget_dict in widget_dict_list:
         value_dict = {}
         for widget in widget_dict:
-            value_dict[widget] = widget_dict[widget].get()
+            logger.debug(f"Widget {widget} type {type(widget_dict[widget])}")
+            if type(widget_dict[widget]) in [ctk.CTkEntry, ctk.CTkComboBox, ctk.CTkCheckBox, ctk.CTkTextbox]:
+                value_dict[widget] = widget_dict[widget].get()
         value_dict_list.append(value_dict)
 
     return value_dict_list

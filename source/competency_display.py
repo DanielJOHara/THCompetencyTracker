@@ -41,15 +41,22 @@ def staff_competency_lists(ad: AppData, service_code: str, staff_type: str) -> T
 
     logger.debug(f"Staff index list for {service_code} {staff_type}s: {db_s_list}")
 
-    # Create a list of Competency indexes for RN or HCA where the competency is
-    # assigned to a role for the service dependent
+    # Create a list of Competency indexes for the Service Code RN or HCA
+    # where the competency is assigned to a role for the service dependent
     db_c_list = []
     for db_c in range(ad.md.len('Competency')):
-        if (ad.md.get('Competency', 'Scope', db_c) in ['BOTH', staff_type]
-                and ad.md.find_two('Role Competency',
-                                   service_code, 'Service Code',
-                                   ad.md.get('Competency', 'Competency Name', db_c), 'Competency Name') > -1):
-            db_c_list.append(db_c)
+        competency_name = ad.md.get('Competency', 'Competency Name', db_c)
+        if ad.md.find_two('Competency Service',
+                          competency_name,'Competency Name',
+                          service_code, 'Service Code') < 0:
+            continue
+        if ad.md.get('Competency', 'Scope', db_c) not in ['BOTH', staff_type]:
+            continue
+        if ad.md.find_two('Role Competency',
+                          service_code, 'Service Code',
+                          competency_name, 'Competency Name') < 0:
+            continue
+        db_c_list.append(db_c)
 
     logger.debug(f"Competency index list for {service_code} {staff_type}s: {db_c_list}")
 

@@ -37,16 +37,19 @@ def ad(request):
     ad = AppData()
     ad.md = MasterData('None', 30)
     ad.md.add_table('Competency',
-                    ['Competency Name', 'Display Order', 'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank'],
-                    [["VoED", 1, "BOTH", 2, 0, 0, 0],
-                     ["Cannulation", 2, "RN", 0, 0, 0, 0],
-                     ["Phlebotomy", 3, "HCA", 2, 0, 0, 0]])
+                    ['Competency Name', 'Display Order', 'Service Code', 'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank'],
+                    [["VoED", 1, '', "BOTH", 2, 0, 0, 0],
+                     ["Cannulation", 2, '', "RN", 0, 0, 0, 0],
+                     ["Phlebotomy", 3, '', "HCA", 2, 0, 0, 0]])
     ad.md.add_table('Role Competency',
                     ['Service Code', 'Role Code', 'Competency Name'],
                     [["IPS", "SN", "VoED"]])
     ad.md.add_table('Staff Competency',
                     ['Staff Name', 'Competency Name'],
                     [["John Doe", "VoED"]])
+    ad.md.add_table('Service',
+                    ['Service Name', 'Service Code'],
+                    [["Service 1", "s1"]])
     yield ad
 
 

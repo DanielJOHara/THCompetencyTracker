@@ -38,34 +38,39 @@ class CompetencyLogic:
         number_changes = 0
         for db_c in range(self.ad.md.len('Competency')):
             # Propagate Competency Name changes to foreign keys in other tables
-            if self.ad.md.get('Competency', 'Competency Name', db_c) != competency_values[db_c]['Competency Name']:
+            new_competency_name = competency_values[db_c]['Competency Name']
+            old_competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
+            if self.ad.md.get('Competency', 'Competency Name', db_c) != new_competency_name:
                 self.ad.master_updated = True
-                old = self.ad.md.get('Competency', 'Competency Name', db_c)
-                new = competency_values[db_c]['Competency Name']
-                self.ad.md.replace('Role Competency', 'Competency Name', old, new)
-                self.ad.md.replace('Staff Competency', 'Competency Name', old, new)
+                self.ad.md.replace('Role Competency', 'Competency Name', old_competency_name, new_competency_name)
+                self.ad.md.replace('Staff Competency', 'Competency Name', old_competency_name, new_competency_name)
+                self.ad.md.replace('Competency Service', 'Competency Name', old_competency_name, new_competency_name)
 
             if competency_values[db_c]['Expiry']:
-                expiry = int(competency_values[db_c]['Expiry'])
+                new_expiry = int(competency_values[db_c]['Expiry'])
             else:
-                expiry = ''
-            if (self.ad.md.get('Competency', 'Competency Name', db_c) != competency_values[db_c]['Competency Name']
-                    or self.ad.md.get('Competency',
-                                      'Display Order', db_c) != int(competency_values[db_c]['Display Order'])
-                    or self.ad.md.get('Competency', 'Scope', db_c) != competency_values[db_c]['Scope']
-                    or self.ad.md.get('Competency', 'Prerequisite', db_c) != competency_values[db_c]['Prerequisite']
-                    or self.ad.md.get('Competency', 'Nightshift', db_c) != competency_values[db_c]['Nightshift']
-                    or self.ad.md.get('Competency', 'Bank', db_c) != competency_values[db_c]['Bank']):
+                new_expiry = ''
+            new_display_order = int(competency_values[db_c]['Display Order'])
+            new_scope = competency_values[db_c]['Scope']
+            new_prerequisite = competency_values[db_c]['Prerequisite']
+            new_nightshift = competency_values[db_c]['Nightshift']
+            new_bank = competency_values[db_c]['Bank']
+            if (old_competency_name != new_competency_name
+                    or self.ad.md.get('Competency', 'Display Order', db_c) != new_display_order
+                    or self.ad.md.get('Competency', 'Scope', db_c) != new_scope
+                    or self.ad.md.get('Competency', 'Prerequisite', db_c) != new_prerequisite
+                    or self.ad.md.get('Competency', 'Nightshift', db_c) != new_nightshift
+                    or self.ad.md.get('Competency', 'Bank', db_c) != new_bank):
                 number_changes += 1
                 self.ad.master_updated = True
                 self.ad.md.update_row('Competency', db_c,
-                                      {'Competency Name': competency_values[db_c]['Competency Name'],
-                                       'Display Order': int(competency_values[db_c]['Display Order']),
-                                       'Scope': competency_values[db_c]['Scope'],
-                                       'Expiry': expiry,
-                                       'Prerequisite': competency_values[db_c]['Prerequisite'],
-                                       'Nightshift': competency_values[db_c]['Nightshift'],
-                                       'Bank': competency_values[db_c]['Bank']})
+                                      {'Competency Name': new_competency_name,
+                                       'Display Order': new_display_order,
+                                       'Scope': new_scope,
+                                       'Expiry': new_expiry,
+                                       'Prerequisite': new_prerequisite,
+                                       'Nightshift': new_nightshift,
+                                       'Bank': new_bank})
 
         if number_changes > 0:
             self.ad.md.sort_table('Competency')
@@ -87,9 +92,10 @@ class CompetencyLogic:
         # Warn that dependent rows will be deleted
         rc_cnt = self.ad.md.count('Role Competency', 'Competency Name', competency_name)
         sc_cnt = self.ad.md.count('Staff Competency', 'Competency Name', competency_name)
-        if rc_cnt or sc_cnt:
-            warn_text = (f"{competency_name} is used {rc_cnt} times in Role Competency"
-                         f" and {sc_cnt} times in Staff Competency")
+        cs_cnt = self.ad.md.count('Competency Service', 'Competency Name', competency_name)
+        if rc_cnt or sc_cnt or cs_cnt:
+            warn_text = (f"{competency_name} is used {rc_cnt} times in Role Competency,"
+                         f" {sc_cnt} times in Staff Competency and {cs_cnt} times in Competency Service.")
             return False, True, warn_text
 
         self.delete_competency_with_dependents(competency_name)
@@ -112,6 +118,9 @@ class CompetencyLogic:
 
         # Delete entries for Competency Name in Staff Competency table
         self.ad.md.delete_value('Staff Competency', 'Competency Name', competency_name)
+
+        # Delete entries for Competency Name in Competency Service table
+        self.ad.md.delete_value('Competency Service', 'Competency Name', competency_name)
 
     def add_competency(self, competency_name: str,
                        scope: str,

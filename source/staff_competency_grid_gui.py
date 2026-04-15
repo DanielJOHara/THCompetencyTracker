@@ -173,7 +173,6 @@ class StaffCompetencyGrid(object):
         self.lbl_header = [[], []]
 
         # Write header
-        db_s_list, db_c_list = staff_competency_lists(ad, service_code, staff_type)
         for c, db_c in enumerate(self.db_c_list):
             # Competency name in first row of header
             self.lbl_header[0].append(tk.Label(self.frm_cnv_ne,
@@ -189,7 +188,7 @@ class StaffCompetencyGrid(object):
                                                bg='#D3D3D3'))
             self.lbl_header[0][c].grid(row=0, column=c)
 
-            tip_text = competency_tip_text(ad, db_c, db_s_list, service_code, staff_type)
+            tip_text = competency_tip_text(ad, db_c, self.db_s_list, service_code, staff_type)
             ToolTip(self.lbl_header[0][c], tip_text, y_offset=45)
 
             # Expiry in second row, initially put out a blank label
@@ -471,7 +470,6 @@ class StaffCompetencyGrid(object):
 
     def handel_staff_click(self, event: object):
         """When staff header is clicked display or hide assessor and supervisor columns."""
-        print(f"event {event}")
         logger.debug(f"handel_staff_click called for staff type {self.staff_type} with event: {event}")
         if self.staff_type != 'RN':
             return

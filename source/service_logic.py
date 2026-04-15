@@ -24,6 +24,7 @@ class ServiceLogic(object):
                 self.ad.master_updated = True
                 self.ad.md.replace('Staff Role', 'Service Code', old_code, new_code)
                 self.ad.md.replace('Role Competency', 'Service Code', old_code, new_code)
+                self.ad.md.replace('Competency Service', 'Service Code', old_code, new_code)
 
             if (old_code != new_code
                     or self.ad.md.get('Service', 'Service Name', db_s) != service_values[db_s]['Service Name']):
@@ -45,8 +46,10 @@ class ServiceLogic(object):
         # Warn that dependent rows will be deleted
         sr_cnt = self.ad.md.count('Staff Role', 'Service Code', service_code)
         rc_cnt = self.ad.md.count('Role Competency', 'Service Code', service_code)
+        cs_cnt = self.ad.md.count('Competency Service', 'Service Code', service_code)
         if rc_cnt or sr_cnt:
-            warn_text = f"{service_code} is used {sr_cnt} times in Staff Role and {rc_cnt} times in Role Competency"
+            warn_text = (f"{service_code} is used {sr_cnt} times in Staff Role,"
+                         f" {rc_cnt} times in Role Competency and {cs_cnt} times in Competency Service.")
             return False, True, warn_text
 
         self.delete_service_with_dependents(service_code)
@@ -62,14 +65,13 @@ class ServiceLogic(object):
         self.ad.md.delete_row('Service', db_s)
 
         # Delete entries for Service Code in Staff Role dataframe
-        sr_cnt = self.ad.md.count('Staff Role', 'Service Code', service_code)
-        if sr_cnt:
-            self.ad.md.delete_value('Staff Role', 'Service Code', service_code)
+        self.ad.md.delete_value('Staff Role', 'Service Code', service_code)
 
         # Delete entries for Service Code in Role Competency table
-        rc_cnt = self.ad.md.count('Role Competency', 'Service Code', service_code)
-        if rc_cnt:
-            self.ad.md.delete_value('Role Competency', 'Service Code', service_code)
+        self.ad.md.delete_value('Role Competency', 'Service Code', service_code)
+
+        # Delete entries for Service Code in Competency Service table
+        self.ad.md.delete_value('Competency Service', 'Service Code', service_code)
 
     def add_service(self, service_code: str, service_name: str) -> tuple[bool, str]:
         """Add a new service."""

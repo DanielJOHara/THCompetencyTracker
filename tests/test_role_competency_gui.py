@@ -45,27 +45,31 @@ def ad(request):
         6: {'description': 'Not Relevant', 'colour': '#D3D3D3'}
     }
     ad.md = MasterData('None', 30)
+    ad.md.add_table('Service', ['Service Code', 'Service Name'], [["SER", "Service"]])
+    ad.md.add_table('Staff',
+                    ['Staff Name'],
+                    [["Staff One"], ["Staff Two"], ["Staff Three"]])
     ad.md.add_table('Role',
                     ['Role Code', 'Role Name', 'RN', 'Display Order'],
-                    [["RC1", "Role Code One", 0, 1],
+                    [["RC1", "Role Code One", 1, 1],
                      ["RC2", 'Role Code Two', 1, 2],
                      ["RC3", "Role Code Three", 0, 3]])
     ad.md.add_table('Competency',
-                    ['Competency Code', 'Competency Name', 'Display Order',
+                    ['Competency Name', 'Display Order', 'Service Code',
                      'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank'],
-                    [["C1", "Competency One", 1, "ST1", 12, "", True, True],
-                     ["C2", "Competency Two", 2, "ST1", 12, "", False, True],
-                     ["C3", "Competency Three", 3, "ST2", 12, "", True, False]])
-    ad.md.add_table('Staff',
-                    ['Staff Code', 'Staff Name', 'Service', 'Staff Type'],
-                    [["S1", "Staff One", "SER", "ST1"],
-                     ["S2", "Staff Two", "SER", "ST1"],
-                     ["S3", "Staff Three", "SER", "ST2"]])
+                    [["Competency One", 1, '', "BOTH", 2, "", True, True],
+                     ["Competency Two", 2, '', "RN", 2, "", False, True],
+                     ["Competency Three", 3, '', "HCA", 2, "", True, False]])
+    ad.md.add_table('Role Competency',
+                    ['Service Code', 'Role Code', 'Competency Name'],
+                    [["SER", "RC1", "Competency One"],
+                     ["SER", "RC2", "Competency Two"],
+                     ["SER", "RC3", "Competency Three"]])
     ad.md.add_table('Staff Role',
-                    ['Staff', 'Role'],
-                    [["S1", "RC1"],
-                     ["S2", "RC2"],
-                     ["S3", "RC3"]])
+                    ['Staff Name', 'Role Code', 'Service Code'],
+                    [["Staff One", "RC1", "SEV"],
+                     ["Staff Two", "RC2", "SEV"],
+                     ["Staff Three", "RC3", "SEV"]])
     ad.md.add_table('Staff Competency',
                     ['Staff Name', 'Competency Name', 'Competency Date', 'Prerequisite Date',
                      'Notes', 'Required', 'Not Required', 'Completed', 'Achieved'],
@@ -101,7 +105,7 @@ def test_role_competency_update(mock_staff_competency_lists, ctk_root, ad):
     wnd_role_competency_update.grab_set()
 
     # Populate role competency update window
-    role_competency_grid = RoleCompetencyGrid(ad, wnd_role_competency_update, "SER", "ST1")
+    role_competency_grid = RoleCompetencyGrid(ad, wnd_role_competency_update, "SER", "RN")
     pump_events(ctk_root)
 
-    assert len(role_competency_grid.chc_rc) == 3
+    assert len(role_competency_grid.chc_rc) == 2

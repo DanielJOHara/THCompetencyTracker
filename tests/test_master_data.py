@@ -29,11 +29,7 @@ def test_unlock(md):
     # It checks if the lock file is removed after unlock
     lock_file_path = os.path.splitext(md.master_excel_path)[0] + '.txt'
     md._unlock()
-    # The lock file is not actually deleted by the unlock method in the source code
-    # so this assertion would fail. The unlock method only releases the lock.
-    # To make this testable, the unlock method should also delete the .txt file.
-    # For now, we'll just assert that the file still exists.
-    assert os.path.exists(lock_file_path)
+    assert not os.path.exists(lock_file_path)
 
 
 def test_pkey_check(md):
@@ -123,6 +119,12 @@ def test_delete_value(md):
     initial_len = md.len('Service')
     md.delete_value('Service', 'Service Code', 'IPS')
     assert md.len('Service') < initial_len
+
+
+def test_delete_value_missing(md):
+    initial_len = md.len('Service')
+    md.delete_value('Service', 'Service Code', 'Missing')
+    assert md.len('Service') == initial_len
 
 
 def test_index_exception(md):
