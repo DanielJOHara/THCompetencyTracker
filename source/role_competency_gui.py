@@ -7,7 +7,7 @@ from CTkMessagebox import CTkMessagebox
 import tkinter as tk
 
 from source.appdata import AppData
-from source.competency_display import staff_competency_lists
+from source.competency_display import staff_list
 from source.role_competency_logic import RoleCompetencyLogic
 from source.tool_tip import ToolTip, competency_tip_text, role_tip_text
 
@@ -118,9 +118,8 @@ class RoleCompetencyGrid(object):
                 continue
             self.db_c_list.append(db_c)
 
-        # Create a lists of Staff for the Service Code and Staff Type, the competency list generated is
-        # not used as this takes role competency settings into account so is not appropriate here.
-        db_s_list, db_c_list = staff_competency_lists(ad, service_code, staff_type)
+        # Create a lists of Staff for the Service Code and Staff Type to be used in generating tool tips
+        db_s_list = staff_list(ad, service_code, staff_type)
 
         # Write competency rows labels
         self.lbl_row = []
@@ -144,16 +143,19 @@ class RoleCompetencyGrid(object):
         wd_r = 60
         self.lbl_column = []
         for r, db_r in enumerate(self.db_r_list):
+            role_code = ad.md.get('Role', 'Role Code', db_r)
             self.lbl_column.append(ctk.CTkLabel(self.frm_cnv_ne,
-                                                text=ad.md.get('Role', 'Role Code', db_r),
+                                                text=role_code,
                                                 corner_radius=6,
                                                 width=wd_r,
                                                 height=ht,
                                                 fg_color='#00B0F0'))
-            self.lbl_column[r].grid(row=0, column=r, padx=1, pady=1)
+            # Don't display role if it is not used for the service area
+            if self.ad.md.find_two('Role Service', role_code, 'Role Code', service_code, 'Service Code') > -1:
+                self.lbl_column[r].grid(row=0, column=r, padx=1, pady=1)
 
-            tip_text = role_tip_text(ad, db_r, service_code)
-            ToolTip(self.lbl_column[r], tip_text)
+                tip_text = role_tip_text(ad, db_r, service_code)
+                ToolTip(self.lbl_column[r], tip_text)
 
         # Create grid of check boxes for role competencies
         self.chc_rc = []
@@ -166,7 +168,9 @@ class RoleCompetencyGrid(object):
                                                       text='',
                                                       width=20,
                                                       height=ht))
-                self.chc_rc[c][r].grid(row=c, column=r, padx=15, pady=1, sticky='nsew')
+                # Don't display role if it is not used for the service area
+                if self.ad.md.find_two('Role Service', role_code, 'Role Code', service_code, 'Service Code') > -1:
+                    self.chc_rc[c][r].grid(row=c, column=r, padx=15, pady=1, sticky='nsew')
                 db_rc = self.ad.md.find_three('Role Competency',
                                               service_code, 'Service Code',
                                               role_code, 'Role Code',

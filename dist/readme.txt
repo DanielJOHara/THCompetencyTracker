@@ -110,10 +110,13 @@ Functional Changes:
 Version 0.1.2.12
 Technical Changes:
     Additional DEBUG logging added.
+    Decoupled master data error handling from GUI
 Functional Changes:
     Added Competency Service table and an update grid window for it to Data Management.
-    New Competency Service table use to filter Competencies for Service specific Competency Role update grids.
-    Added Services column to Competency update grid window, when clicked this displays window to update the Services.
+    Added Services column to Competency update window.
+    Added Role Service table and an update grid window for it to Data Management.
+    Added Services column to Role update window.
+    On Competency Role update grid window filter Roles and Competencies using the two new tables.
     Fixed bug on Staff update grid, clicking Roles failed after filtering reduced then increased rows displayed.
     Stopped filtering numbers from sheet names in Competency and Staff reports.
     Corrected bug on Competency and Staff reports where competency status not visible for first row.

@@ -7,10 +7,8 @@ import re
 import shutil
 import time
 import warnings
-from msilib import add_tables
 from typing import Any, List, Union
 
-import customtkinter as ctk
 import pandas as pd
 import portalocker
 import xlsxwriter
@@ -18,16 +16,20 @@ import xlsxwriter
 logger = logging.getLogger(__name__)
 
 
+class MasterDataError(Exception):
+    """Custom exception for MasterData errors."""
+    pass
+
+
 class MasterData:
     def __init__(self,
                  master_excel_path: str,
                  retention: int,
-                 wnd_parent: ctk.CTk | ctk.CTkToplevel | None = None,
                  password: str = '') -> None:
 
         logger.info(f"Creating MasterData for Excel {master_excel_path} with retention {retention}")
         self.tables = [
-            'Service', 'Role', 'Staff', 'Competency',
+            'Service', 'Role', 'Staff', 'Competency', 'Role Service',
             'Competency Service', 'Staff Role', 'Role Competency', 'Staff Competency']
         self.table_columns = {
             'Service': ['Service Name', 'Service Code'],
@@ -35,6 +37,7 @@ class MasterData:
             'Staff': ['Staff Name', 'Start Date', 'Practice Supervisor', 'Practice Assessor'],
             'Competency': ['Competency Name', 'Competency Name', 'Scope', 'Display Order', 'Expiry',
                            'Prerequisite', 'Nightshift', 'Bank'],
+            'Role Service': ['Role Code', 'Service Code'],
             'Competency Service': ['Competency Name', 'Service Code'],
             'Staff Role': ['Staff Name', 'Role Code', 'Service Code', 'Bank', 'Nightshift'],
             'Role Competency': ['Role Code', 'Competency Name', 'Service Code'],
@@ -45,6 +48,7 @@ class MasterData:
             'Role': ['Role Code'],
             'Staff': ['Staff Name'],
             'Competency': ['Competency Name'],
+            'Role Service': ['Role Code', 'Service Code'],
             'Competency Service': ['Competency Name', 'Service Code'],
             'Staff Role': ['Staff Name', 'Role Code', 'Service Code'],
             'Role Competency': ['Role Code', 'Competency Name', 'Service Code'],
@@ -54,6 +58,7 @@ class MasterData:
             'Role': ['Display Order'],
             'Staff': ['Staff Name'],
             'Competency': ['Display Order'],
+            'Role Service': ['Role Code', 'Service Code'],
             'Competency Service': ['Competency Name', 'Service Code'],
             'Staff Role': ['Staff Name', 'Role Code', 'Service Code'],
             'Role Competency': ['Service Code', 'Role Code', 'Competency Name'],
@@ -61,8 +66,10 @@ class MasterData:
         self.fkeys = [
             {'PTable': 'Service', 'FTable': 'Staff Role', 'FKey': 'Service Code'},
             {'PTable': 'Service', 'FTable': 'Role Competency', 'FKey': 'Service Code'},
+            {'PTable': 'Service', 'FTable': 'Role Service', 'FKey': 'Service Code'},
             {'PTable': 'Service', 'FTable': 'Competency Service', 'FKey': 'Service Code'},
             {'PTable': 'Role', 'FTable': 'Staff Role', 'FKey': 'Role Code'},
+            {'PTable': 'Role', 'FTable': 'Role Service', 'FKey': 'Role Code'},
             {'PTable': 'Role', 'FTable': 'Role Competency', 'FKey': 'Role Code'},
             {'PTable': 'Competency', 'FTable': 'Staff Competency', 'FKey': 'Competency Name'},
             {'PTable': 'Staff', 'FTable': 'Staff Role', 'FKey': 'Staff Name'},
@@ -75,7 +82,6 @@ class MasterData:
         self.retention = retention
         self._df = {}
         self._file_lock = None
-        self.wnd_parent = wnd_parent
         self.password = password
 
     def __str__(self):
@@ -155,15 +161,25 @@ class MasterData:
             try:
                 self._df[table] = pd.read_excel(excel_path, sheet_name=table, keep_default_na=False)
             except (IOError, ValueError) as e:
+                # If Role Service and/or Competency Service sheets are missing
+                # add them with all Srvice Codes set except for LEFT
+                if table == 'Role Service':
+                    logger.info(f"Adding {table} table with values set for all Service Codes except LEFT")
+                    data = []
+                    for role_code in self._df['Role']['Role Code'].tolist():
+                        for service_code in self._df['Service']['Service Code'].tolist():
+                            if service_code != 'LEFT':
+                                data.append([role_code, service_code])
+                    self.add_table(table, self.table_columns[table], data)
                 # If Competency Service sheet is missing add it with all values set except for LEFT service code
-                if table == 'Competency Service':
-                    logger.info(f"Adding {table} table with all values set")
+                elif table == 'Competency Service':
+                    logger.info(f"Adding {table} table with values set for all Service Codes except LEFT")
                     data = []
                     for competency_name in self._df['Competency']['Competency Name'].tolist():
                         for service_code in self._df['Service']['Service Code'].tolist():
                             if service_code != 'LEFT':
                                 data.append([competency_name, service_code])
-                    self.add_table('Competency Service', self.table_columns['Competency Service'], data)
+                    self.add_table(table, self.table_columns[table], data)
                 else:
                     self._lock_error(excel_path, e)
 
@@ -399,22 +415,9 @@ class MasterData:
             return -1
 
     def data_error(self, error_text: str) -> None:
-        """Function to display data errors in a window."""
-        # This uses a CustomTinker window, if the UI changed this is the only routine that would have to be changed
+        """Raise a MasterDataError with the supplied error text."""
         logger.warning(error_text)
-        wnd_error = ctk.CTkToplevel()
-        wnd_error.grab_set()
-        wnd_error.title("Data Error Warning")
-        txt_error = ctk.CTkTextbox(wnd_error, font=('Lucida Console', 14), width=700, wrap='none')
-        txt_error.pack(fill='both', expand=True)
-        txt_error.insert('0.0', error_text)
-        txt_error.configure(state='disabled')
-
-        # Set parent window cursor to wait (busy circle) then wait for this window to exit
-        if self.wnd_parent:
-            self.wnd_parent.config(cursor="watch")
-            self.wnd_parent.wait_window(wnd_error)
-            self.wnd_parent.config(cursor="")
+        raise MasterDataError(error_text)
 
 
 def add_date_to_filename(path_name: str, file_ext: str = 'xlsx') -> str:

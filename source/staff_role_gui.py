@@ -67,9 +67,19 @@ class StaffRoleUpdate(object):
             self.ent_service_code[db_sc].insert(0, service_code)
             self.ent_service_code[db_sc].configure(state='disabled')
 
+            # Filter role codes to those relevant to the service area
+            role_code_list = ad.md.get_list('Role', 'Role Code')
+            if service_code == 'LEFT':
+                service_code_role_list = role_code_list
+            else:
+                service_code_role_list = []
+                for role_code in role_code_list:
+                    if self.ad.md.find_two('Role Service', role_code, 'Role Code', service_code, 'Service Code') > -1:
+                        service_code_role_list.append(role_code)
+
             col += 1
             self.cmb_role_code.append(ctk.CTkComboBox(self.frm_attribute, state='readonly',
-                                                      values=[''] + ad.md.get_list('Role', 'Role Code')))
+                                                      values=[''] + service_code_role_list))
             self.cmb_role_code[db_sc].grid(row=row, column=col, pady=6, padx=10, sticky='w')
 
             col += 1

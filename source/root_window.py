@@ -10,8 +10,8 @@ from PIL import ImageTk
 
 from source.appdata import AppData
 from source.command_line import resource
-from source.master_data import MasterData
-from source.window import child_window
+from source.master_data import MasterData, MasterDataError
+from source.window import child_window, show_master_data_error
 from source.data_management import DataManagement
 from source.competency_tracking import CompetencyTracking
 
@@ -85,7 +85,7 @@ class RootWindow:
             sys.exit(1)
 
         master_excel_path = str(os.path.join(self.ad.args.master_excel_directory, self.ad.args.master_excel_file_name))
-        self.ad.md = MasterData(master_excel_path, self.ad.args.retention, self.wnd_root)
+        self.ad.md = MasterData(master_excel_path, self.ad.args.retention)
         try:
             self.ad.md.load(master_excel_path, readonly=self.ad.args.readonly)
             self.set_button_states()
@@ -95,6 +95,8 @@ class RootWindow:
                 self.wnd_root.withdraw()
                 child_window(CompetencyTracking, self.ad, self.wnd_root)
 
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_root)
         except (IOError, ValueError) as e:
             logger.warning(e)
             if self.ad.args.readonly:
@@ -141,6 +143,8 @@ class RootWindow:
             try:
                 self.ad.md.load(str(excel_path))
                 self.set_button_states()
+            except MasterDataError as e:
+                show_master_data_error(str(e), self.wnd_root)
             except (IOError, ValueError) as e:
                 logger.warning(e)
                 CTkMessagebox(title="Data Load Error", message=e, icon='warning')

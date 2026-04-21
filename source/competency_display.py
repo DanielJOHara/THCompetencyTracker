@@ -13,6 +13,14 @@ logger = logging.getLogger(__name__)
 def staff_competency_lists(ad: AppData, service_code: str, staff_type: str) -> Tuple[list[int], list[int]]:
     """Generate list of Staff and Competency indexes needed to generate the staff competency grid
        or the staff competency Excel report for a Service Code and Staff Type combination."""
+    db_s_list = staff_list(ad, service_code, staff_type)
+    db_c_list = competency_list(ad, service_code, staff_type)
+    return db_s_list, db_c_list
+
+
+def staff_list(ad: AppData, service_code: str, staff_type: str) -> list[int]:
+    """Generate list of Staff indexes needed to generate the staff competency grid
+       or the staff competency Excel report for a Service Code and Staff Type combination."""
     # Create a list of the role code for RNs or HCAs
     rn_flg = staff_type == 'RN'
     role_code_lst = []
@@ -41,13 +49,20 @@ def staff_competency_lists(ad: AppData, service_code: str, staff_type: str) -> T
 
     logger.debug(f"Staff index list for {service_code} {staff_type}s: {db_s_list}")
 
+    return db_s_list
+
+
+def competency_list(ad: AppData, service_code: str, staff_type: str) -> list[int]:
+    """Generate list of Competency indexes needed to generate the staff competency grid
+       or the staff competency Excel report for a Service Code and Staff Type combination."""
+
     # Create a list of Competency indexes for the Service Code RN or HCA
     # where the competency is assigned to a role for the service dependent
     db_c_list = []
     for db_c in range(ad.md.len('Competency')):
         competency_name = ad.md.get('Competency', 'Competency Name', db_c)
         if ad.md.find_two('Competency Service',
-                          competency_name,'Competency Name',
+                          competency_name, 'Competency Name',
                           service_code, 'Service Code') < 0:
             continue
         if ad.md.get('Competency', 'Scope', db_c) not in ['BOTH', staff_type]:
@@ -60,7 +75,7 @@ def staff_competency_lists(ad: AppData, service_code: str, staff_type: str) -> T
 
     logger.debug(f"Competency index list for {service_code} {staff_type}s: {db_c_list}")
 
-    return db_s_list, db_c_list
+    return db_c_list
 
 
 def set_display_value(ad: AppData, service_code: str, db_s: int, db_c: int) -> tuple[Union[str, datetime.date], str]:

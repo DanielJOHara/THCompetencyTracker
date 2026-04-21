@@ -5,8 +5,6 @@ import logging
 import customtkinter as ctk
 import _tkinter
 
-from source.master_data import MasterData
-from source.appdata import AppData
 from source.service_gui import ServiceAdd, ServiceDelete, ServiceUpdate
 
 
@@ -21,28 +19,6 @@ stream_handler = logging.StreamHandler()
 logger.addHandler(stream_handler)
 
 
-@pytest.fixture(scope="module")
-def ctk_root():
-    try:
-        root = ctk.CTk()
-        yield root
-        root.destroy()
-    except _tkinter.TclError:
-        pytest.skip("Skipping GUI tests: No display available")
-
-
-@pytest.fixture
-def ad():
-    ad = AppData()
-    ad.md = MasterData('None', 30)
-    ad.md.add_table('Service',
-                    ['Service Code', 'Service Name'],
-                    [["SC1", "Service Code One"],
-                     ["SC2", 'Service Code Two'],
-                     ["SC3", "Service Code Three"]])
-    yield ad
-
-
 @pytest.fixture
 def mock_input_warning():
     with patch('source.service_gui.input_warning') as mock_warn:
@@ -52,10 +28,16 @@ def mock_input_warning():
 @pytest.fixture
 def mock_ctk_messagebox():
     with patch('source.service_gui.CTkMessagebox') as mock_msgbox:
+        mock_msgbox.return_value.get.return_value = 'Delete'
         yield mock_msgbox
 
+@pytest.fixture
+def mock_child_window():
+    with patch('source.service_gui.child_window') as mock_child:
+        yield mock_child
 
-def test_service_update(ctk_root, ad):
+
+def test_service_update(ctk_root, ad, mock_child_window):
     # Create service update window
     wnd_service_update = ctk.CTkToplevel(ctk_root)
     wnd_service_update.grab_set()
@@ -67,7 +49,7 @@ def test_service_update(ctk_root, ad):
     assert len(service_update.service_widgets) == ad.md.len('Service')
 
 
-def test_service_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad):
+def test_service_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad, mock_child_window):
     # Create service add window
     wnd_service_add = ctk.CTkToplevel(ctk_root)
     wnd_service_add.grab_set()
@@ -104,7 +86,7 @@ def test_service_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad):
     pump_events(ctk_root)
 
 
-def test_service_delete(ctk_root, ad):
+def test_service_delete(ctk_root, ad, mock_ctk_messagebox, mock_child_window):
     # Create service delete window
     wnd_service_delete = ctk.CTkToplevel(ctk_root)
     wnd_service_delete.grab_set()
@@ -117,7 +99,7 @@ def test_service_delete(ctk_root, ad):
     service_delete.cmb_service_code.set('SC2')
     service_delete.refresh_service(None)
     pump_events(ctk_root)
-    assert service_delete.ent_service_name.get() == 'Service Code Two'
+    assert service_delete.ent_service_name.get() == 'Service Two'
 
     # Delete the new record
     service_delete.btn_delete.invoke()

@@ -1,6 +1,8 @@
 """This module contains the business logic for managing roles."""
 import logging
 from source.appdata import AppData
+from source.master_data import MasterDataError
+from source.window import show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -20,29 +22,32 @@ class RoleUpdateLogic(object):
 
         # Check every value to see if it has changed
         number_changes = 0
-        for db_r in range(self.ad.md.len('Role')):
-            # Propagate Role Code changes to foreign keys in Role Competency and Staff Role tables
-            if self.ad.md.get('Role', 'Role Code', db_r) != role_values[db_r]['Role Code']:
-                self.ad.master_updated = True
-                old = self.ad.md.get('Role', 'Role Code', db_r)
-                new = role_values[db_r]['Role Code']
-                self.ad.md.replace('Role Competency', 'Role Code', old, new)
-                self.ad.md.replace('Staff Role', 'Role Code', old, new)
+        try:
+            for db_r in range(self.ad.md.len('Role')):
+                # Propagate Role Code changes to foreign keys in Role Competency and Staff Role tables
+                if self.ad.md.get('Role', 'Role Code', db_r) != role_values[db_r]['Role Code']:
+                    self.ad.master_updated = True
+                    old = self.ad.md.get('Role', 'Role Code', db_r)
+                    new = role_values[db_r]['Role Code']
+                    self.ad.md.replace('Role Competency', 'Role Code', old, new)
+                    self.ad.md.replace('Staff Role', 'Role Code', old, new)
 
-            # Update row if it has changed
-            if (self.ad.md.get('Role', 'Display Order', db_r) != int(role_values[db_r]['Display Order'])
-                    or self.ad.md.get('Role', 'Role Code', db_r) != role_values[db_r]['Role Code']
-                    or self.ad.md.get('Role', 'Role Name', db_r) != role_values[db_r]['Role Name']
-                    or self.ad.md.get('Role', 'RN', db_r) != role_values[db_r]['RN']):
-                number_changes += 1
-                self.ad.master_updated = True
-                self.ad.md.update_row('Role', db_r, {'Display Order': int(role_values[db_r]['Display Order']),
-                                                     'Role Code': role_values[db_r]['Role Code'],
-                                                     'Role Name': role_values[db_r]['Role Name'],
-                                                     'RN': role_values[db_r]['RN']})
+                # Update row if it has changed
+                if (self.ad.md.get('Role', 'Display Order', db_r) != int(role_values[db_r]['Display Order'])
+                        or self.ad.md.get('Role', 'Role Code', db_r) != role_values[db_r]['Role Code']
+                        or self.ad.md.get('Role', 'Role Name', db_r) != role_values[db_r]['Role Name']
+                        or self.ad.md.get('Role', 'RN', db_r) != role_values[db_r]['RN']):
+                    number_changes += 1
+                    self.ad.master_updated = True
+                    self.ad.md.update_row('Role', db_r, {'Display Order': int(role_values[db_r]['Display Order']),
+                                                        'Role Code': role_values[db_r]['Role Code'],
+                                                        'Role Name': role_values[db_r]['Role Name'],
+                                                        'RN': role_values[db_r]['RN']})
 
-        if number_changes > 0:
-            self.ad.md.sort_table('Role')
+            if number_changes > 0:
+                self.ad.md.sort_table('Role')
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.ad.wnd_root)
 
         return True, number_changes, f"{number_changes} changes saved"
 
@@ -97,11 +102,15 @@ class RoleUpdateLogic(object):
         try:
             self.ad.md.index('Role', 'Role Code', role_code)
         except IndexError:
-            self.ad.master_updated = True
-            self.ad.md.add_row('Role', {'Role Code': role_code,
-                                        'Role Name': role_name,
-                                        'Display Order': display_order,
-                                        'RN': rn})
-            return True, f"Added {role_code} - {role_name}"
+            try:
+                self.ad.master_updated = True
+                self.ad.md.add_row('Role', {'Role Code': role_code,
+                                            'Role Name': role_name,
+                                            'Display Order': display_order,
+                                            'RN': rn})
+                return True, f"Added {role_code} - {role_name}"
+            except MasterDataError as e:
+                show_master_data_error(str(e), self.ad.wnd_root)
+                return False, str(e)
         else:
             return False, f"Role Code {role_code} all ready defined!"

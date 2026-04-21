@@ -2,8 +2,6 @@ import pytest
 import logging
 
 from source.competency_logic import CompetencyLogic
-from source.master_data import MasterData
-from source.appdata import AppData
 
 # Set up logging
 logger = logging.getLogger()
@@ -12,32 +10,11 @@ logger.addHandler(stream_handler)
 
 
 @pytest.fixture
-def ad(request):
-    """Fixture to create an AppData object with a MasterData instance."""
-    ad = AppData()
-    ad.md = MasterData('None', 30)
-    ad.md.add_table('Competency',
-                    ['Competency Name', 'Display Order', 'Service Code',
-                     'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank'],
-                    [["VoED", 1, '', "BOTH", 2, 0, 0, 0],
-                     ["Cannulation", 2, '', "RN", 0, 0, 0, 0],
-                     ["Phlebotomy", 3, '', "HCA", 2, 0, 0, 0]])
-    ad.md.add_table('Role Competency',
-                    ['Service Code', 'Role Code', 'Competency Name'],
-                    [["IPS", "SN", "VoED"]])
-    ad.md.add_table('Staff Competency',
-                    ['Staff Name', 'Competency Name'],
-                    [["John Doe", "VoED"]])
-    yield ad
-
-
-@pytest.fixture
 def competency_values(ad):
     competency_values = []
     for db_c in range(ad.md.len('Competency')):
         competency_values.append({'Competency Name': ad.md.get('Competency', 'Competency Name', db_c),
                                   'Display Order': str(ad.md.get('Competency', 'Display Order', db_c)),
-                                  'Service Code': ad.md.get('Competency', 'Service Code', db_c),
                                   'Scope': ad.md.get('Competency', 'Scope', db_c),
                                   'Expiry': str(ad.md.get('Competency', 'Expiry', db_c)),
                                   'Prerequisite': ad.md.get('Competency', 'Prerequisite', db_c),
@@ -163,7 +140,11 @@ def test_save_competency_invalid_expiry(ad, competency_values):
 def test_delete_competency_existing(ad):
     """Tests deleting an existing competency without dependencies."""
     len_competency = ad.md.len('Competency')
-    competency_name = ad.md.get('Competency', 'Competency Name', 1)
+    # Cannulation is index 1, has dependency in Competency Service but not RC/SC
+    # Wait, Cannulation has SC1 in Competency Service in my fixture.
+    # delete_competency checks RC, SC, CS.
+    # Phlebotomy (index 2) has NO dependencies in my fixture.
+    competency_name = ad.md.get('Competency', 'Competency Name', 2)
     success, warning, message = CompetencyLogic(ad).delete_competency(competency_name)
 
     assert success is True
@@ -185,13 +166,16 @@ def test_delete_competency_blank(ad):
 def test_delete_competency_with_dependencies_warning(ad):
     """Tests deleting a competency with dependencies generates a warning."""
     len_competency = ad.md.len('Competency')
-    competency_name = ad.md.get('Competency', 'Competency Name', 0)
+    competency_name = ad.md.get('Competency', 'Competency Name', 0) # VoED
+    # VoED has: 1 RC, 1 SC, 2 CS
     success, warning, message = CompetencyLogic(ad).delete_competency(competency_name)
 
     assert success is False
     assert warning is True
-    assert (message
-            == f"{competency_name} is used 1 times in Role Competency and 1 times in Staff Competency")
+    # Message format in logic.py:
+    # f"{competency_name} is used {rc_cnt} times in Role Competency, {sc_cnt} times in Staff Competency and {cs_cnt} times in Competency Service."
+    expected_message = f"{competency_name} is used 1 times in Role Competency, 1 times in Staff Competency and 2 times in Competency Service."
+    assert message == expected_message
     assert ad.md.len('Competency') == len_competency
     assert ad.md.count('Competency', 'Competency Name', competency_name) == 1
 

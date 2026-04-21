@@ -1,6 +1,8 @@
 """This module contains the business logic for the role competency management."""
 import logging
 from source.appdata import AppData
+from source.master_data import MasterDataError
+from source.window import show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -45,31 +47,35 @@ class RoleCompetencyLogic:
             The number of changes made.
         """
         number_changes = 0
-        for c, db_c in enumerate(db_c_list):
-            competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
-            for r, db_r in enumerate(db_r_list):
-                role_code = self.ad.md.get('Role', 'Role Code', db_r)
-                chc_status = chc_rc[c][r].get()
-                db_rc = self.ad.md.find_three('Role Competency',
-                                              service_code, 'Service Code',
-                                              role_code, 'Role Code',
-                                              competency_name, 'Competency Name')
+        try:
+            for c, db_c in enumerate(db_c_list):
+                competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
+                for r, db_r in enumerate(db_r_list):
+                    role_code = self.ad.md.get('Role', 'Role Code', db_r)
+                    chc_status = chc_rc[c][r].get()
+                    db_rc = self.ad.md.find_three('Role Competency',
+                                                service_code, 'Service Code',
+                                                role_code, 'Role Code',
+                                                competency_name, 'Competency Name')
 
-                # If there is a record for Role Competency combination and its checkbox is unchecked then delete it
-                if db_rc > -1:
-                    if not chc_status:
-                        number_changes += 1
-                        self.ad.master_updated = True
-                        self.ad.md.delete_row('Role Competency', db_rc)
+                    # If there is a record for Role Competency combination and its checkbox is unchecked then delete it
+                    if db_rc > -1:
+                        if not chc_status:
+                            number_changes += 1
+                            self.ad.master_updated = True
+                            self.ad.md.delete_row('Role Competency', db_rc)
 
-                # If there is no record for Role Competency combination and its checkbox is checked add one
-                else:
-                    if chc_status:
-                        number_changes += 1
-                        self.ad.master_updated = True
-                        self.ad.md.add_row('Role Competency', {'Service Code': service_code,
-                                                               'Role Code': role_code,
-                                                               'Competency Name': competency_name})
+                    # If there is no record for Role Competency combination and its checkbox is checked add one
+                    else:
+                        if chc_status:
+                            number_changes += 1
+                            self.ad.master_updated = True
+                            self.ad.md.add_row('Role Competency', {'Service Code': service_code,
+                                                                'Role Code': role_code,
+                                                                'Competency Name': competency_name})
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.ad.wnd_root)
+
         return number_changes
 
     def reset_role_competencies(self, service_code: str, db_c_list: list, db_r_list: list, chc_rc: list) -> None:

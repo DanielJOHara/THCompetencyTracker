@@ -4,6 +4,8 @@
 import logging
 import re
 from source.appdata import AppData
+from source.master_data import MasterDataError
+from source.window import show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -39,35 +41,38 @@ class StaffRoleLogic:
             return False, 0, "No staff member selected."
 
         number_changes = 0
-        for db_sc, service_code in enumerate(self.ad.md.get_list('Service', 'Service Code')):
-            role_code = role_list[db_sc]
-            db_sr = self.ad.md.find_two('Staff Role', service_code, 'Service Code', staff_name, 'Staff Name')
-            if not role_code:
-                if db_sr > -1:
-                    self.ad.md.delete_row('Staff Role', db_sr)
-                    number_changes += 1
-                    self.ad.master_updated = True
-                continue
+        try:
+            for db_sc, service_code in enumerate(self.ad.md.get_list('Service', 'Service Code')):
+                role_code = role_list[db_sc]
+                db_sr = self.ad.md.find_two('Staff Role', service_code, 'Service Code', staff_name, 'Staff Name')
+                if not role_code:
+                    if db_sr > -1:
+                        self.ad.md.delete_row('Staff Role', db_sr)
+                        number_changes += 1
+                        self.ad.master_updated = True
+                    continue
 
-            bank = bank_list[db_sc]
-            nightshift = nightshift_list[db_sc]
-            if db_sr < 0:
-                number_changes += 1
-                self.ad.master_updated = True
-                self.ad.md.add_row('Staff Role', {'Service Code': service_code,
-                                                  'Staff Name': staff_name,
-                                                  'Role Code': role_code,
-                                                  'Bank': bank,
-                                                  'Nightshift': nightshift})
-            else:
-                if (self.ad.md.get('Staff Role', 'Role Code', db_sr) != role_code
-                        or self.ad.md.get('Staff Role', 'Bank', db_sr) != bank
-                        or self.ad.md.get('Staff Role', 'Nightshift', db_sr) != nightshift):
+                bank = bank_list[db_sc]
+                nightshift = nightshift_list[db_sc]
+                if db_sr < 0:
                     number_changes += 1
                     self.ad.master_updated = True
-                    self.ad.md.update_row('Staff Role', db_sr, {'Role Code': role_code,
-                                                                'Bank': bank,
-                                                                'Nightshift': nightshift})
+                    self.ad.md.add_row('Staff Role', {'Service Code': service_code,
+                                                    'Staff Name': staff_name,
+                                                    'Role Code': role_code,
+                                                    'Bank': bank,
+                                                    'Nightshift': nightshift})
+                else:
+                    if (self.ad.md.get('Staff Role', 'Role Code', db_sr) != role_code
+                            or self.ad.md.get('Staff Role', 'Bank', db_sr) != bank
+                            or self.ad.md.get('Staff Role', 'Nightshift', db_sr) != nightshift):
+                        number_changes += 1
+                        self.ad.master_updated = True
+                        self.ad.md.update_row('Staff Role', db_sr, {'Role Code': role_code,
+                                                                    'Bank': bank,
+                                                                    'Nightshift': nightshift})
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.ad.wnd_root)
 
         return True, number_changes, f"{number_changes} changes saved"
 

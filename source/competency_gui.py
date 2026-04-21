@@ -180,7 +180,7 @@ class CompetencyUpdate(object):
         self.competency_widgets[db_c]['Service'].configure(text=service_list[:-2])
 
     def handel_service_click(self, event: tk.Event):
-        logger.debug(f"handel_service_click from event widget [{event.widget}]")
+        logger.debug(f"Click from event widget [{event.widget}]")
         # Extract label number from widget
         label_num_search = re.search(r'ctklabel(\d+)?', str(event.widget))
         if not label_num_search:

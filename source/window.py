@@ -84,6 +84,24 @@ def parse_date(text: str) -> str | datetime.date:
     return ''
 
 
+def show_master_data_error(error_text: str, wnd_parent: ctk.CTk | ctk.CTkToplevel | None = None) -> None:
+    """Function to display data errors in a window."""
+    logger.warning(error_text)
+    wnd_error = ctk.CTkToplevel()
+    wnd_error.grab_set()
+    wnd_error.title("Data Error Warning")
+    txt_error = ctk.CTkTextbox(wnd_error, font=('Lucida Console', 14), width=700, wrap='none')
+    txt_error.pack(fill='both', expand=True)
+    txt_error.insert('0.0', error_text)
+    txt_error.configure(state='disabled')
+
+    # Set parent window cursor to wait (busy circle) then wait for this window to exit
+    if wnd_parent:
+        wnd_parent.config(cursor="watch")
+        wnd_parent.wait_window(wnd_error)
+        wnd_parent.config(cursor="")
+
+
 def widget_dict_values(widget_dict_list: list) -> list:
     """Get the values for a list of widget dictionaries and return values as a list of dictionaries."""
     value_dict_list = []

@@ -9,7 +9,8 @@ from CTkMessagebox import CTkMessagebox
 from tkcalendar import Calendar
 
 from source.appdata import AppData
-from source.window import input_warning, date_to_string, parse_date
+from source.master_data import MasterDataError
+from source.window import input_warning, date_to_string, parse_date, show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -374,8 +375,11 @@ class StaffCompetencyUpdate(object):
                                         staff_name, 'Staff Name',
                                         competency_name, 'Competency Name')
             if db_sc > -1:
-                self.ad.master_updated = True
-                self.ad.md.delete_row('Staff Competency', db_sc)
+                try:
+                    self.ad.master_updated = True
+                    self.ad.md.delete_row('Staff Competency', db_sc)
+                except MasterDataError as e:
+                    show_master_data_error(str(e), self.wnd_staff_competency)
 
         # Clear data widgets as entry deleted
         self.ent_prerequisite_date.delete(0, 9999)
@@ -438,27 +442,33 @@ class StaffCompetencyUpdate(object):
                         or self.ad.md.get('Staff Competency', 'Not Required', db_sc) != not_required
                         or self.ad.md.get('Staff Competency', 'Required', db_sc) != required):
                     number_changes += 1
-                    self.ad.master_updated = True
-                    self.ad.md.update_row('Staff Competency', db_sc, {'Prerequisite Date': prerequisite_date,
-                                                                      'Achieved': achieved,
-                                                                      'Competency Date': competency_date,
-                                                                      'Completed': completed,
-                                                                      'Notes': notes,
-                                                                      'Not Required': not_required,
-                                                                      'Required': required})
+                    try:
+                        self.ad.master_updated = True
+                        self.ad.md.update_row('Staff Competency', db_sc, {'Prerequisite Date': prerequisite_date,
+                                                                        'Achieved': achieved,
+                                                                        'Competency Date': competency_date,
+                                                                        'Completed': completed,
+                                                                        'Notes': notes,
+                                                                        'Not Required': not_required,
+                                                                        'Required': required})
+                    except MasterDataError as e:
+                        show_master_data_error(str(e), self.wnd_staff_competency)
             # Insert new record
             else:
                 number_changes += 1
-                self.ad.master_updated = True
-                self.ad.md.add_row('Staff Competency', {'Staff Name': staff_name,
-                                                        'Competency Name': competency_name,
-                                                        'Prerequisite Date': prerequisite_date,
-                                                        'Achieved': achieved,
-                                                        'Competency Date': competency_date,
-                                                        'Completed': completed,
-                                                        'Notes': notes,
-                                                        'Not Required': not_required,
-                                                        'Required': required})
+                try:
+                    self.ad.master_updated = True
+                    self.ad.md.add_row('Staff Competency', {'Staff Name': staff_name,
+                                                            'Competency Name': competency_name,
+                                                            'Prerequisite Date': prerequisite_date,
+                                                            'Achieved': achieved,
+                                                            'Competency Date': competency_date,
+                                                            'Completed': completed,
+                                                            'Notes': notes,
+                                                            'Not Required': not_required,
+                                                            'Required': required})
+                except MasterDataError as e:
+                    show_master_data_error(str(e), self.wnd_staff_competency)
 
         # In single record mode close the window to return to grid
         if self.single_record_mode:

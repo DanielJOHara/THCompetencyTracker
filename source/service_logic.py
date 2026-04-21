@@ -1,6 +1,8 @@
 """This module contains the business logic for managing services."""
 import logging
 from source.appdata import AppData
+from source.master_data import MasterDataError
+from source.window import show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -15,26 +17,29 @@ class ServiceLogic(object):
         """Read all values in table and update the table object if any values
            have changed."""
         number_changes = 0
-        for db_s in range(self.ad.md.len('Service')):
-            old_code = self.ad.md.get('Service', 'Service Code', db_s)
-            new_code = service_values[db_s]['Service Code']
+        try:
+            for db_s in range(self.ad.md.len('Service')):
+                old_code = self.ad.md.get('Service', 'Service Code', db_s)
+                new_code = service_values[db_s]['Service Code']
 
-            # Propagate Service Code changes to foreign keys in Staff Role and Role Competency tables
-            if old_code != new_code:
-                self.ad.master_updated = True
-                self.ad.md.replace('Staff Role', 'Service Code', old_code, new_code)
-                self.ad.md.replace('Role Competency', 'Service Code', old_code, new_code)
-                self.ad.md.replace('Competency Service', 'Service Code', old_code, new_code)
+                # Propagate Service Code changes to foreign keys in Staff Role and Role Competency tables
+                if old_code != new_code:
+                    self.ad.master_updated = True
+                    self.ad.md.replace('Staff Role', 'Service Code', old_code, new_code)
+                    self.ad.md.replace('Role Competency', 'Service Code', old_code, new_code)
+                    self.ad.md.replace('Competency Service', 'Service Code', old_code, new_code)
 
-            if (old_code != new_code
-                    or self.ad.md.get('Service', 'Service Name', db_s) != service_values[db_s]['Service Name']):
-                number_changes += 1
-                self.ad.master_updated = True
-                self.ad.md.update_row('Service', db_s, {'Service Code': service_values[db_s]['Service Code'],
-                                                        'Service Name': service_values[db_s]['Service Name']})
-        
-        if number_changes > 0:
-            self.ad.md.sort_table('Service')
+                if (old_code != new_code
+                        or self.ad.md.get('Service', 'Service Name', db_s) != service_values[db_s]['Service Name']):
+                    number_changes += 1
+                    self.ad.master_updated = True
+                    self.ad.md.update_row('Service', db_s, {'Service Code': service_values[db_s]['Service Code'],
+                                                            'Service Name': service_values[db_s]['Service Name']})
+            
+            if number_changes > 0:
+                self.ad.md.sort_table('Service')
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.ad.wnd_root)
 
         return number_changes
 
@@ -86,8 +91,12 @@ class ServiceLogic(object):
         try:
             self.ad.md.index('Service', 'Service Code', service_code)
         except IndexError:
-            self.ad.master_updated = True
-            self.ad.md.add_row('Service', {'Service Code': service_code, 'Service Name': service_name})
-            return True, f"Added {service_code} - {service_name}"
+            try:
+                self.ad.master_updated = True
+                self.ad.md.add_row('Service', {'Service Code': service_code, 'Service Name': service_name})
+                return True, f"Added {service_code} - {service_name}"
+            except MasterDataError as e:
+                show_master_data_error(str(e), self.ad.wnd_root)
+                return False, str(e)
         else:
             return False, f"Service Code {service_code} all ready defined!"

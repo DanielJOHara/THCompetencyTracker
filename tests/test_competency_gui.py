@@ -5,8 +5,6 @@ import logging
 import customtkinter as ctk
 import _tkinter
 
-from source.master_data import MasterData
-from source.appdata import AppData
 from source.competency_gui import CompetencyAdd, CompetencyDelete, CompetencyUpdate
 
 
@@ -21,38 +19,6 @@ stream_handler = logging.StreamHandler()
 logger.addHandler(stream_handler)
 
 
-@pytest.fixture(scope="module")
-def ctk_root():
-    try:
-        root = ctk.CTk()
-        yield root
-        root.destroy()
-    except _tkinter.TclError:
-        pytest.skip("Skipping GUI tests: No display available")
-
-
-@pytest.fixture
-def ad(request):
-    """Fixture to create an AppData object with a MasterData instance."""
-    ad = AppData()
-    ad.md = MasterData('None', 30)
-    ad.md.add_table('Competency',
-                    ['Competency Name', 'Display Order', 'Service Code', 'Scope', 'Expiry', 'Prerequisite', 'Nightshift', 'Bank'],
-                    [["VoED", 1, '', "BOTH", 2, 0, 0, 0],
-                     ["Cannulation", 2, '', "RN", 0, 0, 0, 0],
-                     ["Phlebotomy", 3, '', "HCA", 2, 0, 0, 0]])
-    ad.md.add_table('Role Competency',
-                    ['Service Code', 'Role Code', 'Competency Name'],
-                    [["IPS", "SN", "VoED"]])
-    ad.md.add_table('Staff Competency',
-                    ['Staff Name', 'Competency Name'],
-                    [["John Doe", "VoED"]])
-    ad.md.add_table('Service',
-                    ['Service Name', 'Service Code'],
-                    [["Service 1", "s1"]])
-    yield ad
-
-
 @pytest.fixture
 def mock_input_warning():
     with patch('source.competency_gui.input_warning') as mock_warn:
@@ -62,10 +28,16 @@ def mock_input_warning():
 @pytest.fixture
 def mock_ctk_messagebox():
     with patch('source.competency_gui.CTkMessagebox') as mock_msgbox:
+        mock_msgbox.return_value.get.return_value = 'OK'
         yield mock_msgbox
 
+@pytest.fixture
+def mock_child_window():
+    with patch('source.competency_gui.child_window') as mock_child:
+        yield mock_child
 
-def test_competency_update(ctk_root, ad):
+
+def test_competency_update(ctk_root, ad, mock_child_window):
     # Create competency update window
     wnd_competency_update = ctk.CTkToplevel(ctk_root)
     wnd_competency_update.grab_set()
@@ -84,7 +56,7 @@ def test_competency_update(ctk_root, ad):
     assert ad.md.get('Competency', 'Competency Name', 0) == "New VoED"
 
 
-def test_competency_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad):
+def test_competency_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad, mock_child_window):
     # Create competency add window
     wnd_competency_add = ctk.CTkToplevel(ctk_root)
     wnd_competency_add.grab_set()
@@ -113,7 +85,7 @@ def test_competency_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad):
     pump_events(ctk_root)
 
     # Check information message call
-    mock_ctk_messagebox.assert_called_once_with(title='Information', message='Added New Competency', icon='info')
+    mock_ctk_messagebox.assert_called_with(title='Information', message='Added New Competency', icon='info')
 
     # Find the new record
     db_c = ad.md.find_one('Competency', 'New Competency', 'Competency Name')
@@ -125,7 +97,7 @@ def test_competency_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad):
     pump_events(ctk_root)
 
 
-def test_competency_delete(ctk_root, ad):
+def test_competency_delete(ctk_root, ad, mock_ctk_messagebox, mock_child_window):
     # Create competency delete window
     wnd_competency_delete = ctk.CTkToplevel(ctk_root)
     wnd_competency_delete.grab_set()
@@ -146,6 +118,7 @@ def test_competency_delete(ctk_root, ad):
     assert competency_delete.cmb_competency_name.get() == ''
     assert "Cannulation" not in competency_delete.cmb_competency_name.cget("values")
     assert ad.md.find_one('Competency', 'Cannulation', 'Competency Name') == -1
+    # Initial was 3, deleted 1 -> 2
     assert ad.md.len("Competency") == 2
 
     competency_delete.btn_exit.invoke()

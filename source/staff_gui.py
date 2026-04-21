@@ -8,10 +8,11 @@ from CTkMessagebox import CTkMessagebox
 import tkinter as tk
 
 from source.appdata import AppData
+from source.master_data import MasterDataError
 from source.staff_logic import StaffLogic
 from source.staff_role_gui import StaffRoleUpdate
 from source.window import (child_window, set_disabled_checkbox,
-                           set_disabled_entry, input_warning, parse_date, date_to_string)
+                           set_disabled_entry, input_warning, parse_date, date_to_string, show_master_data_error)
 
 logger = logging.getLogger(__name__)
 
@@ -629,9 +630,12 @@ class StaffAssessorUpdate:
         new_practice_supervisor = self.chc_practice_supervisor.get()
         old_practice_supervisor = self.ad.md.get('Staff', 'Practice Supervisor', self.db_s)
         if new_practice_assessor != old_practice_assessor or new_practice_supervisor != old_practice_supervisor:
-            self.ad.md.update_row('Staff', self.db_s,
-                                  {'Practice Assessor': new_practice_assessor,
-                                   'Practice Supervisor': new_practice_supervisor})
-            self.ad.master_updated = True
+            try:
+                self.ad.md.update_row('Staff', self.db_s,
+                                      {'Practice Assessor': new_practice_assessor,
+                                       'Practice Supervisor': new_practice_supervisor})
+                self.ad.master_updated = True
+            except MasterDataError as e:
+                show_master_data_error(str(e), self.wnd_staff_assessor)
 
         self.wnd_staff_assessor.destroy()

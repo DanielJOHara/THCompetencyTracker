@@ -5,13 +5,14 @@ from typing import Any
 import customtkinter as ctk
 
 from source.appdata import AppData
-from source.role_competency_gui import RoleCompetencyGrid
 from source.window import child_window
 from source.service_gui import ServiceUpdate
 from source.role_gui import RoleUpdate
 from source.staff_gui import StaffUpdate
 from source.competency_gui import CompetencyUpdate
+from source.role_service_gui import RoleServiceGrid
 from source.competency_service_gui import CompetencyServiceGrid
+from source.role_competency_gui import RoleCompetencyGrid
 from source.staff_role_gui import StaffRoleUpdate
 from source.choose_colours_gui import ChooseColours
 
@@ -43,6 +44,10 @@ class DataManagement(object):
         self.btn_competency = ctk.CTkButton(self.frm_button, text="Competencies",
                                             command=lambda: child_window(CompetencyUpdate, ad, wnd_data))
         self.btn_competency.pack(pady=12, padx=20)
+
+        self.btn_role_service = ctk.CTkButton(self.frm_button, text="Role Services",
+                                              command=lambda: child_window(RoleServiceGrid, ad, wnd_data))
+        self.btn_role_service.pack(pady=12, padx=20)
 
         self.btn_competency_service = ctk.CTkButton(self.frm_button, text="Competency Services",
                                                     command=lambda: child_window(CompetencyServiceGrid, ad, wnd_data))

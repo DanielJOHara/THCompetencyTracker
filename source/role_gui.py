@@ -1,12 +1,15 @@
 """This module contains the GUI routines to manage the Role table."""
 import logging
+import re
 from typing import Any
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
+import tkinter as tk
 
 from source.appdata import AppData
 from source.role_logic import RoleUpdateLogic
+from source.role_service_gui import RoleServiceUpdate
 from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning, widget_dict_values
 
 logger = logging.getLogger(__name__)
@@ -29,8 +32,8 @@ class RoleUpdate(object):
         self.frm_h = ctk.CTkFrame(self.wnd_role)
         self.frm_h.pack(padx=6, fill='x', expand=False)
 
-        self.header = ['Display Order', 'Role Code', 'Role Name', 'RN']
-        self.width = [90, 90, 250, 90]
+        self.header = ['Display Order', 'Role Code', 'Role Name', 'RN', 'Services']
+        self.width = [90, 90, 250, 90, 150]
 
         # Create list to hold header labels
         self.lbl_header = []
@@ -113,23 +116,30 @@ class RoleUpdate(object):
             self.add_role_to_display(db_r)
 
     def add_role_to_display(self, db_r: int):
+        """Display a row of widgets for a specified Role table index."""
         if db_r + 1 > len(self.role_widgets):
-            self.role_widgets.append({'Display Order': ctk.CTkEntry(self.frm_s, width=self.width[0]),
-                                      'Role Code': ctk.CTkEntry(self.frm_s, width=self.width[1]),
-                                      'Role Name': ctk.CTkEntry(self.frm_s, width=self.width[2]),
-                                      'RN': ctk.CTkCheckBox(self.frm_s,
-                                                            width=self.width[3] - 2 * int(self.width[3] / 3),
-                                                            text="")})
+            self.role_widgets.append({
+                'Display Order': ctk.CTkEntry(self.frm_s, width=self.width[0]),
+                'Role Code': ctk.CTkEntry(self.frm_s, width=self.width[1]),
+                'Role Name': ctk.CTkEntry(self.frm_s, width=self.width[2]),
+                'RN': ctk.CTkCheckBox(self.frm_s, width=self.width[3] - 2 * int(self.width[3] / 3), text=""),
+                'Service': ctk.CTkLabel(self.frm_s, width=self.width[4], height=24,
+                                        text_color='#808080', fg_color='#FFFFFF', anchor='w')
+            })
             self.role_widgets[db_r]['Display Order'].grid(row=db_r + 1, column=0, sticky='w')
             self.role_widgets[db_r]['Role Code'].grid(row=db_r + 1, column=1, sticky='w')
             self.role_widgets[db_r]['Role Name'].grid(row=db_r + 1, column=2, sticky='w')
             self.role_widgets[db_r]['RN'].grid(row=db_r + 1, column=3, sticky='nsew', padx=int(self.width[3] / 3))
+            self.role_widgets[db_r]['Service'].grid(row=db_r + 1, column=4, sticky='w')
+            # Add binding so click on service entry calls routine to update the services
+            self.role_widgets[db_r]['Service'].bind('<Button-1>', self.handel_service_click)
 
         self.role_widgets[db_r]['Display Order'].delete(0, 9999)
         self.role_widgets[db_r]['Display Order'].insert(0, self.ad.md.get('Role', 'Display Order', db_r))
 
+        role_code = self.ad.md.get('Role', 'Role Code', db_r)
         self.role_widgets[db_r]['Role Code'].delete(0, 9999)
-        self.role_widgets[db_r]['Role Code'].insert(0, self.ad.md.get('Role', 'Role Code', db_r))
+        self.role_widgets[db_r]['Role Code'].insert(0, role_code)
 
         self.role_widgets[db_r]['Role Name'].delete(0, 9999)
         self.role_widgets[db_r]['Role Name'].insert(0, self.ad.md.get('Role', 'Role Name', db_r))
@@ -138,6 +148,41 @@ class RoleUpdate(object):
             self.role_widgets[db_r]['RN'].select()
         else:
             self.role_widgets[db_r]['RN'].deselect()
+
+        service_list = ' '
+        for db_s in range(self.ad.md.len('Service')):
+            service_code = self.ad.md.get('Service', 'Service Code', db_s)
+            if self.ad.md.find_two('Role Service',
+                                   role_code, 'Role Code',
+                                   service_code, 'Service Code') > -1:
+                service_list += service_code + ', '
+        self.role_widgets[db_r]['Service'].configure(text=service_list[:-2])
+
+    def handel_service_click(self, event: tk.Event):
+        logger.debug(f"Click from event widget [{event.widget}]")
+        # Extract label number from widget
+        label_num_search = re.search(r'ctklabel(\d+)?', str(event.widget))
+        if not label_num_search:
+            logger.error(f"Failed to extract label number from event widget [{event.widget}]")
+            return
+
+        # First label has no number
+        if not label_num_search.group(1):
+            db_r = 0
+        else:
+            db_r = int(label_num_search.group(1)) - 1
+
+        role_code = self.ad.md.get('Role', 'Role Code', db_r)
+        child_window(RoleServiceUpdate, self.ad, self.wnd_role, role_code)
+
+        service_list = ' '
+        for db_s in range(self.ad.md.len('Service')):
+            service_code = self.ad.md.get('Service', 'Service Code', db_s)
+            if self.ad.md.find_two('Role Service',
+                                   role_code, 'Role Code',
+                                   service_code, 'Service Code') > -1:
+                service_list += service_code + ', '
+        self.role_widgets[db_r]['Service'].configure(text=service_list[:-2])
 
 
 class RoleDelete(object):
