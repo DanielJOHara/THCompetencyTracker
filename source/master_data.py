@@ -191,6 +191,13 @@ class MasterData:
                     logger.warning(msg)
                     raise ValueError(msg)
 
+        # Add any missing audit columns to all tables
+        for table in self.tables:
+            if 'User' not in self._df[table].columns:
+                self._df[table]['User'] = 'InitialLoad'
+            if 'Change Date' not in self._df[table].columns:
+                self._df[table]['Change Date'] = datetime.datetime.now()
+
         # For each table check primary keys and sort tables
         for table in self.tables:
             self._pkey_check(table)

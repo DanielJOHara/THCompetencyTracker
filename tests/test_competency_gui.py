@@ -31,6 +31,7 @@ def mock_ctk_messagebox():
         mock_msgbox.return_value.get.return_value = 'OK'
         yield mock_msgbox
 
+
 @pytest.fixture
 def mock_child_window():
     with patch('source.competency_gui.child_window') as mock_child:

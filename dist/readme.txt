@@ -110,7 +110,8 @@ Functional Changes:
 Version 0.1.2.12
 Technical Changes:
     Additional DEBUG logging added.
-    Decoupled master data error handling from GUI
+    Decoupled master data error handling from GUI.
+    Automatically add audit columns to tables if they are missing.
 Functional Changes:
     Added Competency Service table and an update grid window for it to Data Management.
     Added Services column to Competency update window.
