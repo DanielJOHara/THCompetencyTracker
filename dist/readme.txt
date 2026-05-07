@@ -123,3 +123,10 @@ Functional Changes:
     Corrected bug on Competency and Staff reports where competency status not visible for first row.
     Added Services column to Competency report Competency summary sheet.
     Added Competency Service to filtering on Competency and Staff reports.
+
+Version 0.1.2.13
+Technical Changes:
+    Improved test coverage.
+Functional Changes:
+    Open Role Service Update window when adding a new Role.
+    On change information windows specify the table that was changed.

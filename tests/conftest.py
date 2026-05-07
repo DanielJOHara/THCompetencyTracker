@@ -1,9 +1,24 @@
 import pytest
 import customtkinter as ctk
 import _tkinter
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from source.master_data import MasterData
 from source.appdata import AppData
+
+
+@pytest.fixture(autouse=True)
+def mock_ctkmessagebox_global():
+    """Globally mock CTkMessagebox to prevent UI popups during tests."""
+    with patch('CTkMessagebox.CTkMessagebox') as mock:
+        mock.return_value.get.return_value = 'OK'
+        yield mock
+
+
+@pytest.fixture(autouse=True)
+def mock_os_startfile_global():
+    """Globally mock os.startfile to prevent files from opening during tests."""
+    with patch('os.startfile') as mock:
+        yield mock
 
 
 @pytest.fixture(scope="session")
@@ -81,4 +96,18 @@ def ad():
                      'Competency Date', 'Completed', 'Notes', 'Not Required', 'Required'],
                     [["John Doe", "VoED", "", 1, parse_date("2023-03-01"), 1, "", 0, 1]])
     
+    return ad
+
+
+@pytest.fixture
+def ad_with_status(ad):
+    """Fixture to add status_dict to the centralized ad fixture."""
+    ad.status_dict = {
+        0: {'description': "Out of Date", 'colour': '#FF0000', 'default': '#FF0000'},
+        1: {'description': "FT Needed", 'colour': '#FFFF40', 'default': '#FFFF40'},
+        2: {'description': "Competency Needed", 'colour': '#B7DEE8', 'default': '#B7DEE8'},
+        3: {'description': "Next Three Months", 'colour': '#FCD5B4', 'default': '#FCD5B4'},
+        4: {'description': "In Date", 'colour': '#D8E4BC', 'default': '#D8E4BC'},
+        5: {'description': "Not Required", 'colour': '#D9D9D9', 'default': '#D9D9D9'},
+        6: {'description': "Not Relevant", 'colour': '#FFFFFF', 'default': '#FFFFFF'}}
     return ad

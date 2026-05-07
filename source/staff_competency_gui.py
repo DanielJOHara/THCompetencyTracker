@@ -445,12 +445,12 @@ class StaffCompetencyUpdate(object):
                     try:
                         self.ad.master_updated = True
                         self.ad.md.update_row('Staff Competency', db_sc, {'Prerequisite Date': prerequisite_date,
-                                                                        'Achieved': achieved,
-                                                                        'Competency Date': competency_date,
-                                                                        'Completed': completed,
-                                                                        'Notes': notes,
-                                                                        'Not Required': not_required,
-                                                                        'Required': required})
+                                                                          'Achieved': achieved,
+                                                                          'Competency Date': competency_date,
+                                                                          'Completed': completed,
+                                                                          'Notes': notes,
+                                                                          'Not Required': not_required,
+                                                                          'Required': required})
                     except MasterDataError as e:
                         show_master_data_error(str(e), self.wnd_staff_competency)
             # Insert new record
@@ -474,7 +474,7 @@ class StaffCompetencyUpdate(object):
         if self.single_record_mode:
             self.wnd_staff_competency.destroy()
         else:
-            CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+            CTkMessagebox(title="Information", message=f"{number_changes} Staff Competency changes saved", icon='info')
             if number_changes > 0:
                 self.refresh_competency()
 

@@ -8,9 +8,11 @@ from CTkMessagebox import CTkMessagebox
 import tkinter as tk
 
 from source.appdata import AppData
+from source.master_data import MasterDataError
 from source.role_logic import RoleUpdateLogic
 from source.role_service_gui import RoleServiceUpdate
-from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning, widget_dict_values
+from source.window import child_window, set_disabled_checkbox, set_disabled_entry, \
+    input_warning, widget_dict_values, show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +67,8 @@ class RoleUpdate(object):
         self.btn_add = ctk.CTkButton(self.frm_btn, text="Add", command=self.handle_add_click)
         self.btn_add.grid(row=0, column=1, pady=6, padx=10)
 
-        self.btn_add = ctk.CTkButton(self.frm_btn, text="Delete", command=self.handle_delete_click)
-        self.btn_add.grid(row=0, column=2, pady=6, padx=10)
+        self.btn_delete = ctk.CTkButton(self.frm_btn, text="Delete", command=self.handle_delete_click)
+        self.btn_delete.grid(row=0, column=2, pady=6, padx=10)
 
         self.btn_exit = ctk.CTkButton(self.frm_btn, text="Exit", command=wnd_role.destroy)
         self.btn_exit.grid(row=0, column=3, pady=6, padx=10)
@@ -74,17 +76,20 @@ class RoleUpdate(object):
     def handle_save_click(self):
         """Read all values in table and update the table object if any values have changed."""
         role_values = widget_dict_values(self.role_widgets)
-        input_valid, number_changes, message = self.rul.save_roles(role_values)
+        try:
+            input_valid, number_changes, message = self.rul.save_roles(role_values)
 
-        if not input_valid:
-            input_warning(self.wnd_role, message)
-            return
+            if not input_valid:
+                input_warning(self.wnd_role, message)
+                return
 
-        CTkMessagebox(title="Information", message=message, icon='info')
+            CTkMessagebox(title="Information", message=message, icon='info')
 
-        # Sort table and refresh display
-        if number_changes > 0:
-            self.display_role_table()
+            # Sort table and refresh display
+            if number_changes > 0:
+                self.display_role_table()
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_role)
 
     def handle_add_click(self):
         """Prompt user for row to be added."""
@@ -105,6 +110,7 @@ class RoleUpdate(object):
             self.role_widgets[-1]['Role Code'].destroy()
             self.role_widgets[-1]['Role Name'].destroy()
             self.role_widgets[-1]['RN'].destroy()
+            self.role_widgets[-1]['Services'].destroy()
             self.role_widgets.pop()
 
         # Re-display table
@@ -123,16 +129,16 @@ class RoleUpdate(object):
                 'Role Code': ctk.CTkEntry(self.frm_s, width=self.width[1]),
                 'Role Name': ctk.CTkEntry(self.frm_s, width=self.width[2]),
                 'RN': ctk.CTkCheckBox(self.frm_s, width=self.width[3] - 2 * int(self.width[3] / 3), text=""),
-                'Service': ctk.CTkLabel(self.frm_s, width=self.width[4], height=24,
+                'Services': ctk.CTkLabel(self.frm_s, width=self.width[4], height=24,
                                         text_color='#808080', fg_color='#FFFFFF', anchor='w')
             })
             self.role_widgets[db_r]['Display Order'].grid(row=db_r + 1, column=0, sticky='w')
             self.role_widgets[db_r]['Role Code'].grid(row=db_r + 1, column=1, sticky='w')
             self.role_widgets[db_r]['Role Name'].grid(row=db_r + 1, column=2, sticky='w')
             self.role_widgets[db_r]['RN'].grid(row=db_r + 1, column=3, sticky='nsew', padx=int(self.width[3] / 3))
-            self.role_widgets[db_r]['Service'].grid(row=db_r + 1, column=4, sticky='w')
+            self.role_widgets[db_r]['Services'].grid(row=db_r + 1, column=4, sticky='w')
             # Add binding so click on service entry calls routine to update the services
-            self.role_widgets[db_r]['Service'].bind('<Button-1>', self.handel_service_click)
+            self.role_widgets[db_r]['Services'].bind('<Button-1>', self.handel_service_click)
 
         self.role_widgets[db_r]['Display Order'].delete(0, 9999)
         self.role_widgets[db_r]['Display Order'].insert(0, self.ad.md.get('Role', 'Display Order', db_r))
@@ -149,14 +155,17 @@ class RoleUpdate(object):
         else:
             self.role_widgets[db_r]['RN'].deselect()
 
+        self.role_widgets[db_r]['Services'].configure(text=self.service_list(role_code))
+
+    def service_list(self, role_code) -> str:
+        """Generate a list of the Service Codes for a supplied Role Code."""
         service_list = ' '
-        for db_s in range(self.ad.md.len('Service')):
-            service_code = self.ad.md.get('Service', 'Service Code', db_s)
+        for service_code in self.ad.md.get_list('Service', 'Service Code'):
             if self.ad.md.find_two('Role Service',
                                    role_code, 'Role Code',
                                    service_code, 'Service Code') > -1:
                 service_list += service_code + ', '
-        self.role_widgets[db_r]['Service'].configure(text=service_list[:-2])
+        return service_list[:-2]
 
     def handel_service_click(self, event: tk.Event):
         logger.debug(f"Click from event widget [{event.widget}]")
@@ -175,14 +184,7 @@ class RoleUpdate(object):
         role_code = self.ad.md.get('Role', 'Role Code', db_r)
         child_window(RoleServiceUpdate, self.ad, self.wnd_role, role_code)
 
-        service_list = ' '
-        for db_s in range(self.ad.md.len('Service')):
-            service_code = self.ad.md.get('Service', 'Service Code', db_s)
-            if self.ad.md.find_two('Role Service',
-                                   role_code, 'Role Code',
-                                   service_code, 'Service Code') > -1:
-                service_list += service_code + ', '
-        self.role_widgets[db_r]['Service'].configure(text=service_list[:-2])
+        self.role_widgets[db_r]['Services'].configure(text=self.service_list(role_code))
 
 
 class RoleDelete(object):
@@ -244,24 +246,27 @@ class RoleDelete(object):
     def handle_delete_click(self):
         """Delete current record."""
         role_code = self.cmb_role_code.get()
-        success, warning, message = self.rul.delete_role(role_code)
+        try:
+            success, warning, message = self.rul.delete_role(role_code)
 
-        if not success:
-            if warning:
-                msg = CTkMessagebox(title="Dependent Record Warning", message=message,
-                                    icon='warning', option_1='Delete', option_2='Cancel')
-                if msg.get() == 'Cancel':
+            if not success:
+                if warning:
+                    msg = CTkMessagebox(title="Dependent Record Warning", message=message,
+                                        icon='warning', option_1='Delete', option_2='Cancel')
+                    if msg.get() == 'Cancel':
+                        self.wnd_role_del.grab_set()
+                        return
                     self.wnd_role_del.grab_set()
-                    return
-                self.wnd_role_del.grab_set()
-                self.rul.delete_role_with_dependents(role_code)
+                    self.rul.delete_role_with_dependents(role_code)
 
-        # Clear widgets
-        self.cmb_role_code.set('')
-        self.cmb_role_code.configure(values=self.ad.md.get_list('Role', 'Role Code'))
-        set_disabled_entry(self.ent_role_name, '')
-        set_disabled_entry(self.ent_display_order, '')
-        set_disabled_checkbox(self.chc_rn, 0)
+            # Clear widgets
+            self.cmb_role_code.set('')
+            self.cmb_role_code.configure(values=self.ad.md.get_list('Role', 'Role Code'))
+            set_disabled_entry(self.ent_role_name, '')
+            set_disabled_entry(self.ent_display_order, '')
+            set_disabled_checkbox(self.chc_rn, 0)
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_role_del)
 
 
 class RoleAdd(object):
@@ -317,13 +322,20 @@ class RoleAdd(object):
         display_order = self.ent_display_order.get()
         rn = self.chc_rn.get()
 
-        success, message = self.rul.add_role(role_code, role_name, display_order, rn)
+        try:
+            success, message = self.rul.add_role(role_code, role_name, display_order, rn)
 
-        if success:
-            CTkMessagebox(title="Information", message=message, icon='info')
-            self.ent_role_code.delete(0, 9999)
-            self.ent_role_name.delete(0, 9999)
-            self.ent_display_order.delete(0, 9999)
-            self.chc_rn.deselect()
-        else:
-            input_warning(self.wnd_role_add, message)
+            if success:
+                # Open window to add roles for the new staff member
+                child_window(RoleServiceUpdate, self.ad, self.wnd_role_add, role_code)
+
+                # Display information window with message from add the role
+                CTkMessagebox(title="Information", message=message, icon='info')
+                self.ent_role_code.delete(0, 9999)
+                self.ent_role_name.delete(0, 9999)
+                self.ent_display_order.delete(0, 9999)
+                self.chc_rn.deselect()
+            else:
+                input_warning(self.wnd_role_add, message)
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_role_add)

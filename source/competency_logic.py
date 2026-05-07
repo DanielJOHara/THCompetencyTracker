@@ -4,7 +4,6 @@
 import logging
 from source.appdata import AppData
 from source.master_data import MasterDataError
-from source.window import show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -38,49 +37,47 @@ class CompetencyLogic:
 
         # Check every value to see if it has changed
         number_changes = 0
-        try:
-            for db_c in range(self.ad.md.len('Competency')):
-                # Propagate Competency Name changes to foreign keys in other tables
-                new_competency_name = competency_values[db_c]['Competency Name']
-                old_competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
-                if self.ad.md.get('Competency', 'Competency Name', db_c) != new_competency_name:
-                    self.ad.master_updated = True
-                    self.ad.md.replace('Role Competency', 'Competency Name', old_competency_name, new_competency_name)
-                    self.ad.md.replace('Staff Competency', 'Competency Name', old_competency_name, new_competency_name)
-                    self.ad.md.replace('Competency Service', 'Competency Name', old_competency_name, new_competency_name)
+        for db_c in range(self.ad.md.len('Competency')):
+            # Propagate Competency Name changes to foreign keys in other tables
+            new_competency_name = competency_values[db_c]['Competency Name']
+            old_competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
+            if self.ad.md.get('Competency', 'Competency Name', db_c) != new_competency_name:
+                self.ad.master_updated = True
+                self.ad.md.replace('Role Competency', 'Competency Name', old_competency_name, new_competency_name)
+                self.ad.md.replace('Staff Competency', 'Competency Name', old_competency_name, new_competency_name)
+                self.ad.md.replace('Competency Service', 'Competency Name',
+                                   old_competency_name, new_competency_name)
 
-                if competency_values[db_c]['Expiry']:
-                    new_expiry = int(competency_values[db_c]['Expiry'])
-                else:
-                    new_expiry = ''
-                new_display_order = int(competency_values[db_c]['Display Order'])
-                new_scope = competency_values[db_c]['Scope']
-                new_prerequisite = competency_values[db_c]['Prerequisite']
-                new_nightshift = competency_values[db_c]['Nightshift']
-                new_bank = competency_values[db_c]['Bank']
-                if (old_competency_name != new_competency_name
-                        or self.ad.md.get('Competency', 'Display Order', db_c) != new_display_order
-                        or self.ad.md.get('Competency', 'Scope', db_c) != new_scope
-                        or self.ad.md.get('Competency', 'Prerequisite', db_c) != new_prerequisite
-                        or self.ad.md.get('Competency', 'Nightshift', db_c) != new_nightshift
-                        or self.ad.md.get('Competency', 'Bank', db_c) != new_bank):
-                    number_changes += 1
-                    self.ad.master_updated = True
-                    self.ad.md.update_row('Competency', db_c,
-                                        {'Competency Name': new_competency_name,
-                                        'Display Order': new_display_order,
-                                        'Scope': new_scope,
-                                        'Expiry': new_expiry,
-                                        'Prerequisite': new_prerequisite,
-                                        'Nightshift': new_nightshift,
-                                        'Bank': new_bank})
+            if competency_values[db_c]['Expiry']:
+                new_expiry = int(competency_values[db_c]['Expiry'])
+            else:
+                new_expiry = ''
+            new_display_order = int(competency_values[db_c]['Display Order'])
+            new_scope = competency_values[db_c]['Scope']
+            new_prerequisite = competency_values[db_c]['Prerequisite']
+            new_nightshift = competency_values[db_c]['Nightshift']
+            new_bank = competency_values[db_c]['Bank']
+            if (old_competency_name != new_competency_name
+                    or self.ad.md.get('Competency', 'Display Order', db_c) != new_display_order
+                    or self.ad.md.get('Competency', 'Scope', db_c) != new_scope
+                    or self.ad.md.get('Competency', 'Prerequisite', db_c) != new_prerequisite
+                    or self.ad.md.get('Competency', 'Nightshift', db_c) != new_nightshift
+                    or self.ad.md.get('Competency', 'Bank', db_c) != new_bank):
+                number_changes += 1
+                self.ad.master_updated = True
+                self.ad.md.update_row('Competency', db_c,
+                                      {'Competency Name': new_competency_name,
+                                       'Display Order': new_display_order,
+                                       'Scope': new_scope,
+                                       'Expiry': new_expiry,
+                                       'Prerequisite': new_prerequisite,
+                                       'Nightshift': new_nightshift,
+                                       'Bank': new_bank})
 
-            if number_changes > 0:
-                self.ad.md.sort_table('Competency')
-        except MasterDataError as e:
-            show_master_data_error(str(e), self.ad.wnd_root)
+        if number_changes > 0:
+            self.ad.md.sort_table('Competency')
 
-        return True, number_changes, f"{number_changes} changes saved"
+        return True, number_changes, f"{number_changes} Competency changes saved"
 
     def delete_competency(self, competency_name: str) -> tuple[bool, bool, str]:
         """Deletes a competency and its dependent records.
@@ -167,18 +164,14 @@ class CompetencyLogic:
         try:
             self.ad.md.index('Competency', 'Competency Name', competency_name)
         except IndexError:
-            try:
-                self.ad.master_updated = True
-                self.ad.md.add_row('Competency', {'Competency Name': competency_name,
-                                                  'Scope': scope,
-                                                  'Display Order': display_order,
-                                                  'Expiry': expiry,
-                                                  'Prerequisite': prerequisite,
-                                                  'Nightshift': nightshift,
-                                                  'Bank': bank})
-                return True, f"Added {competency_name}"
-            except MasterDataError as e:
-                show_master_data_error(str(e), self.ad.wnd_root)
-                return False, str(e)
+            self.ad.master_updated = True
+            self.ad.md.add_row('Competency', {'Competency Name': competency_name,
+                                              'Scope': scope,
+                                              'Display Order': display_order,
+                                              'Expiry': expiry,
+                                              'Prerequisite': prerequisite,
+                                              'Nightshift': nightshift,
+                                              'Bank': bank})
+            return True, f"Added {competency_name}"
         else:
             return False, f"Competency Name {competency_name} already defined!"

@@ -106,7 +106,7 @@ def test_delete_staff_success(ad):
     """Test successfully deleting a staff member."""
     # Add a fresh staff with no dependencies
     ad.md.add_row('Staff', {'Staff Name': 'No Dep Staff', 'Start Date': parse_date('2023-01-01'), 
-                           'Practice Supervisor': 0, 'Practice Assessor': 0})
+                            'Practice Supervisor': 0, 'Practice Assessor': 0})
     staff_len = ad.md.len('Staff')
     staff_name = "No Dep Staff"
 
@@ -165,7 +165,7 @@ def test_save_staff_no_changes(ad, value_list):
     number_changes, message = StaffLogic(ad).save_staff(value_list, db_s_list)
 
     assert number_changes == 0
-    assert message == "0 changes saved"
+    assert message == "0 Staff changes saved"
 
 
 def test_save_staff_no_changes_filtered_list(ad, value_list):
@@ -176,7 +176,7 @@ def test_save_staff_no_changes_filtered_list(ad, value_list):
     number_changes, message = StaffLogic(ad).save_staff(value_list, db_s_list)
 
     assert number_changes == 0
-    assert message == "0 changes saved"
+    assert message == "0 Staff changes saved"
 
 
 def test_save_staff_with_name_change(ad, value_list):
@@ -190,12 +190,13 @@ def test_save_staff_with_name_change(ad, value_list):
     number_changes, message = StaffLogic(ad).save_staff(value_list, db_s_list)
     
     assert number_changes == 1
-    assert message == "1 changes saved"
+    assert message == "1 Staff changes saved"
     assert ad.master_updated is True
     assert ad.md.count('Staff', 'Staff Name', old_name) == 0
     assert ad.md.count('Staff', 'Staff Name', new_name) == 1
     # Check that Staff Role and Staff Competency were updated
-    assert ad.md.count('Staff Role', 'Staff Name', new_name) > 0 or ad.md.count('Staff Competency', 'Staff Name', new_name) > 0
+    assert (ad.md.count('Staff Role', 'Staff Name', new_name) > 0
+            or ad.md.count('Staff Competency', 'Staff Name', new_name) > 0)
 
 
 def test_apply_no_filters(ad):
@@ -227,7 +228,7 @@ def test_apply_no_role_filters(ad):
     """Test applying no role filters to the staff list."""
     # Add a staff member with no role
     ad.md.add_row('Staff', {'Staff Name': 'No Role Staff', 'Start Date': parse_date('2023-01-01'), 
-                           'Practice Supervisor': 0, 'Practice Assessor': 0})
+                            'Practice Supervisor': 0, 'Practice Assessor': 0})
     
     name_filter = ""
     no_role_filter = 1

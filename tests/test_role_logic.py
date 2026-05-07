@@ -2,31 +2,11 @@ import pytest
 import logging
 
 from source.role_logic import RoleUpdateLogic
-from source.master_data import MasterData
-from source.appdata import AppData
 
 # Set up logging
 logger = logging.getLogger()
 stream_handler = logging.StreamHandler()
 logger.addHandler(stream_handler)
-
-
-@pytest.fixture
-def ad():
-    ad = AppData()
-    ad.md = MasterData('None', 30)
-    ad.md.add_table('Role',
-                    ['Display Order', 'Role Code', 'Role Name', 'RN'],
-                    [[1, "R1", "Role Code One", 1],
-                     [2, "R2", 'Role Code Two', 0],
-                     [3, "R3", "Role Code Three", 1]])
-    ad.md.add_table('Staff Role',
-                    ['Role Code'],
-                    [["R2"], ["R3"]])
-    ad.md.add_table('Role Competency',
-                    ['Role Code'],
-                    [["R2"], ["R3"]])
-    yield ad
 
 
 @pytest.fixture
@@ -46,7 +26,7 @@ def test_save_roles_no_changes(ad, role_values):
 
     assert input_valid
     assert changes == 0
-    assert message == "0 changes saved"
+    assert message == "0 Role changes saved"
 
 
 def test_save_roles_invalid_display_order(ad, role_values):
@@ -65,7 +45,7 @@ def test_save_roles_with_changes(ad, role_values):
     input_valid, changes, message = RoleUpdateLogic(ad).save_roles(role_values)
 
     assert changes == 1
-    assert message == "1 changes saved"
+    assert message == "1 Role changes saved"
     assert ad.md.get('Role', 'Role Name', 0) == "New Role Name"
 
 
@@ -98,7 +78,9 @@ def test_add_role_duplicate(ad):
 
 def test_delete_role_success(ad):
     """Test that a role can be deleted successfully."""
-    role_code_to_delete = "R1"
+    # First add a role that has no dependencies
+    ad.md.add_row('Role', {'Role Code': 'TEMP', 'Role Name': 'Temp Role', 'Display Order': 10, 'RN': 0})
+    role_code_to_delete = "TEMP"
     success, warning, message = RoleUpdateLogic(ad).delete_role(role_code_to_delete)
 
     assert success is True
@@ -121,3 +103,4 @@ def test_delete_role_with_dependents(ad):
     assert ad.md.count('Role', 'Role Code', role_code_with_deps) == 0
     assert ad.md.count('Staff Role', 'Role Code', role_code_with_deps) == 0
     assert ad.md.count('Role Competency', 'Role Code', role_code_with_deps) == 0
+    assert ad.md.count('Role Service', 'Role Code', role_code_with_deps) == 0

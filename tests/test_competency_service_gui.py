@@ -45,7 +45,8 @@ def test_competency_service_grid(ctk_root, ad, mock_ctk_messagebox):
     cs_grid.handle_save_click()
     pump_events(ctk_root)
     
-    mock_ctk_messagebox.assert_called_with(title="Information", message="1 changes saved", icon='info')
+    mock_ctk_messagebox.assert_called_with(title="Information",
+                                           message="1 Competency Service changes saved", icon='info')
     assert ad.md.find_two('Competency Service', 'VoED', 'Competency Name', 'SC3', 'Service Code') > -1
 
     # Test reset: Modify a checkbox but don't save, then reset
@@ -74,7 +75,8 @@ def test_competency_service_update(ctk_root, ad, mock_ctk_messagebox):
     cs_update.handle_save_click()
     pump_events(ctk_root)
     
-    mock_ctk_messagebox.assert_called_with(title="Information", message="1 changes saved", icon='info')
+    mock_ctk_messagebox.assert_called_with(title="Information",
+                                           message="1 Competency Service changes saved", icon='info')
     assert ad.md.find_two('Competency Service', competency_name, 'Competency Name', 'SC1', 'Service Code') > -1
     
     # Test delete (deselect all and save)

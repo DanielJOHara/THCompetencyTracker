@@ -4,7 +4,7 @@ import re
 
 from source.appdata import AppData
 from source.master_data import MasterDataError
-from source.window import parse_date, show_master_data_error
+from source.window import parse_date
 
 logger = logging.getLogger(__name__)
 
@@ -19,41 +19,39 @@ class StaffLogic(object):
         """Read all values in table and update the table object if any values
            have changed."""
         number_changes = 0
-        try:
-            for s, db_s in enumerate(db_s_list):
-                staff_name = re.sub(' +', ' ', staff_values[s]['Staff Name'].strip())
-                staff_name = staff_name.title()
-                old_staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
-                if old_staff_name != staff_name:
-                    logger.debug(f"Changing Staff Name from >{old_staff_name}< to >{staff_name}<")
-                    # Check name change does not conflict with an existing record
-                    if self.ad.md.count('Staff', 'Staff Name', staff_name) > 0:
-                        return 0, f"Can't change Staff Name {old_staff_name} to {staff_name} as it already exists"
-                    else:
-                        # Propagate Staff Name changes to foreign keys in other tables
-                        self.ad.master_updated = True
-                        self.ad.md.replace('Staff Role', 'Staff Name', old_staff_name, staff_name)
-                        self.ad.md.replace('Staff Competency', 'Staff Name', old_staff_name, staff_name)
-
-                start_date = parse_date(staff_values[s]['Start Date'])
-                if (old_staff_name != staff_name
-                        or self.ad.md.get('Staff', 'Start Date', db_s) != start_date
-                        or self.ad.md.get('Staff', 'Practice Supervisor', db_s) != staff_values[s]['Practice Supervisor']
-                        or self.ad.md.get('Staff', 'Practice Assessor', db_s) != staff_values[s]['Practice Assessor']):
-                    number_changes += 1
-                    logger.debug(f"Updating Staff Name {old_staff_name}")
+        for s, db_s in enumerate(db_s_list):
+            staff_name = re.sub(' +', ' ', staff_values[s]['Staff Name'].strip())
+            staff_name = staff_name.title()
+            old_staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
+            if old_staff_name != staff_name:
+                logger.debug(f"Changing Staff Name from >{old_staff_name}< to >{staff_name}<")
+                # Check name change does not conflict with an existing record
+                if self.ad.md.count('Staff', 'Staff Name', staff_name) > 0:
+                    return 0, f"Can't change Staff Name {old_staff_name} to {staff_name} as it already exists"
+                else:
+                    # Propagate Staff Name changes to foreign keys in other tables
                     self.ad.master_updated = True
-                    self.ad.md.update_row('Staff', db_s, {'Staff Name': staff_name,
-                                                        'Start Date': start_date,
-                                                        'Practice Supervisor': staff_values[s]['Practice Supervisor'],
-                                                        'Practice Assessor': staff_values[s]['Practice Assessor']})
-            
-            if number_changes > 0:
-                self.ad.md.sort_table('Staff')
-        except MasterDataError as e:
-            show_master_data_error(str(e), self.ad.wnd_root)
+                    self.ad.md.replace('Staff Role', 'Staff Name', old_staff_name, staff_name)
+                    self.ad.md.replace('Staff Competency', 'Staff Name', old_staff_name, staff_name)
 
-        return number_changes, f"{number_changes} changes saved"
+            start_date = parse_date(staff_values[s]['Start Date'])
+            if (old_staff_name != staff_name
+                    or self.ad.md.get('Staff', 'Start Date', db_s) != start_date
+                    or self.ad.md.get('Staff', 'Practice Supervisor', db_s)
+                    != staff_values[s]['Practice Supervisor']
+                    or self.ad.md.get('Staff', 'Practice Assessor', db_s) != staff_values[s]['Practice Assessor']):
+                number_changes += 1
+                logger.debug(f"Updating Staff Name {old_staff_name}")
+                self.ad.master_updated = True
+                self.ad.md.update_row('Staff', db_s, {'Staff Name': staff_name,
+                                                      'Start Date': start_date,
+                                                      'Practice Supervisor': staff_values[s]['Practice Supervisor'],
+                                                      'Practice Assessor': staff_values[s]['Practice Assessor']})
+        
+        if number_changes > 0:
+            self.ad.md.sort_table('Staff')
+
+        return number_changes, f"{number_changes} Staff changes saved"
 
     def add_staff(self,
                   staff_name: str,
@@ -73,16 +71,12 @@ class StaffLogic(object):
         try:
             self.ad.md.index('Staff', 'Staff Name', staff_name)
         except IndexError:
-            try:
-                self.ad.master_updated = True
-                self.ad.md.add_row('Staff', {'Staff Name': staff_name,
-                                             'Start Date': parse_date(start_date),
-                                             'Practice Supervisor': practice_supervisor,
-                                             'Practice Assessor': practice_assessor})
-                return True, staff_name, f"Added {staff_name}"
-            except MasterDataError as e:
-                show_master_data_error(str(e), self.ad.wnd_root)
-                return False, staff_name, str(e)
+            self.ad.master_updated = True
+            self.ad.md.add_row('Staff', {'Staff Name': staff_name,
+                                         'Start Date': parse_date(start_date),
+                                         'Practice Supervisor': practice_supervisor,
+                                         'Practice Assessor': practice_assessor})
+            return True, staff_name, f"Added {staff_name}"
         else:
             return False, staff_name, f"Staff Name {staff_name} is already defined!"
 

@@ -48,6 +48,10 @@ def test_role_update(ctk_root, ad, mock_child_window):
 
     assert len(role_update.role_widgets) == ad.md.len('Role')
 
+    # Close role update window
+    role_update.btn_exit.invoke()
+    pump_events(ctk_root)
+
 
 def test_role_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad, mock_child_window):
     # Create role add window

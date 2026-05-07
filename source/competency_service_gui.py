@@ -9,6 +9,7 @@ import tkinter as tk
 from source.appdata import AppData
 from source.competency_service_logic import CompetencyServiceLogic
 from source.tool_tip import ToolTip
+from source.window import widget_list_values, widget_2d_list_values
 
 logger = logging.getLogger(__name__)
 
@@ -193,14 +194,31 @@ class CompetencyServiceGrid(object):
         """Read all values in checkbox grid and check them against the
            Competency Service table and add and delete records as required."""
 
-        number_changes = self.csl.save_all_competency_service(self.chc_cs)
-        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+        value_cs = widget_2d_list_values(self.chc_cs)
+        number_changes = self.csl.save_competency_services(value_cs)
+        CTkMessagebox(title="Information", message=f"{number_changes} Competency Service changes saved", icon='info')
 
     def handle_reset_click(self):
         """Read all values in checkbox grid and check them against the
            Competency Service table and set checkboxes to the table values."""
 
-        self.csl.reset_competency_service(self.chc_cs)
+        for db_c in range(self.ad.md.len('Competency')):
+            competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
+            for db_s in range(self.ad.md.len('Service')):
+                service_code = self.ad.md.get('Service', 'Service Code', db_s)
+                chc_status = self.chc_cs[db_c][db_s].get()
+                db_cs = self.ad.md.find_two('Competency Service',
+                                            competency_name, 'Competency Name',
+                                            service_code, 'Service Code')
+
+                # If there is a record for Competency Service combination and its checkbox is not checked then check it
+                if db_cs > -1:
+                    if not chc_status:
+                        self.chc_cs[db_c][db_s].select()
+
+                # If there is no record for Competency Service combination and its checkbox is checked then uncheck it
+                elif chc_status:
+                    self.chc_cs[db_c][db_s].deselect()
 
 
 class CompetencyServiceUpdate:
@@ -259,11 +277,13 @@ class CompetencyServiceUpdate:
 
     def handle_save_click(self):
         """Apply the services selected for the competency by he user."""
-        number_changes = self.csl.save_competency_service(self.competency_name, self.chc_service_code_list)
-        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+        value_s = widget_list_values(self.chc_service_code_list)
+        number_changes = self.csl.save_competency_service(self.competency_name, value_s)
+        CTkMessagebox(title="Information", message=f"{number_changes} Competency Service changes saved", icon='info')
 
     def handle_delete_click(self):
         for chc_service_code in self.chc_service_code_list:
             chc_service_code.deselect()
-        number_changes = self.csl.save_competency_service(self.competency_name, self.chc_service_code_list)
+        value_s = widget_list_values(self.chc_service_code_list)
+        number_changes = self.csl.save_competency_service(self.competency_name, value_s)
         CTkMessagebox(title="Information", message=f"{number_changes} records deleted", icon='info')

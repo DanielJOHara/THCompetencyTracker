@@ -31,6 +31,7 @@ def mock_ctk_messagebox():
         mock_msgbox.return_value.get.return_value = 'Delete'
         yield mock_msgbox
 
+
 @pytest.fixture
 def mock_child_window():
     with patch('source.service_gui.child_window') as mock_child:
@@ -47,6 +48,10 @@ def test_service_update(ctk_root, ad, mock_child_window):
     pump_events(ctk_root)
 
     assert len(service_update.service_widgets) == ad.md.len('Service')
+
+    # Close service update window
+    service_update.btn_exit.invoke()
+    pump_events(ctk_root)
 
 
 def test_service_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad, mock_child_window):

@@ -10,6 +10,7 @@ from source.appdata import AppData
 from source.competency_display import staff_list
 from source.role_competency_logic import RoleCompetencyLogic
 from source.tool_tip import ToolTip, competency_tip_text, role_tip_text
+from source.window import widget_2d_list_values
 
 logger = logging.getLogger(__name__)
 
@@ -222,11 +223,30 @@ class RoleCompetencyGrid(object):
         """Read all values in checkbox grid and check them against the
            Role Competency table and add and delete records as required."""
 
-        number_changes = self.rcl.save_role_competencies(self.service_code, self.db_c_list, self.db_r_list, self.chc_rc)
-        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+        value_rc = widget_2d_list_values(self.chc_rc)
+        number_changes = self.rcl.save_role_competencies(self.service_code, self.db_c_list, self.db_r_list, value_rc)
+        CTkMessagebox(title="Information", message=f"{number_changes} Role Competency changes saved", icon='info')
 
     def handle_reset_click(self):
         """Read all values in checkbox grid and check them against the
            Role Competency table and set checkboxes to the table values."""
 
-        self.rcl.reset_role_competencies(self.service_code, self.db_c_list, self.db_r_list, self.chc_rc)
+        for c, db_c in enumerate(self.db_c_list):
+            competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
+            for r, db_r in enumerate(self.db_r_list):
+                role_code = self.ad.md.get('Role', 'Role Code', db_r)
+                chc_status = self.chc_rc[c][r].get()
+                db_rc = self.ad.md.find_three('Role Competency',
+                                              self.service_code, 'Service Code',
+                                              role_code, 'Role Code',
+                                              competency_name, 'Competency Name')
+
+                # If there is a record for Role Competency combination and its checkbox is not checked then check it
+                if db_rc > -1:
+                    if not chc_status:
+                        self.chc_rc[c][r].select()
+
+                # If there is no record for Role Competency combination and its checkbox is checked then uncheck it
+                else:
+                    if chc_status:
+                        self.chc_rc[c][r].deselect()

@@ -6,8 +6,9 @@ import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
+from source.master_data import MasterDataError
 from source.staff_role_logic import StaffRoleLogic
-from source.window import input_warning, widget_list_values
+from source.window import input_warning, widget_list_values, show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -176,23 +177,26 @@ class StaffRoleUpdate(object):
     def handle_save_click(self):
         """Update role records for current staff member."""
         staff_name = self.cmb_staff_name.get()
-        input_valid, number_changes, message = self.srl.save_staff_roles(staff_name,
-                                                                         widget_list_values(self.cmb_role_code),
-                                                                         widget_list_values(self.chc_bank),
-                                                                         widget_list_values(self.chc_nightshift))
-        if not input_valid:
-            input_warning(self.wnd_staff_role, message)
-            return
+        try:
+            input_valid, number_changes, message = self.srl.save_staff_roles(staff_name,
+                                                                             widget_list_values(self.cmb_role_code),
+                                                                             widget_list_values(self.chc_bank),
+                                                                             widget_list_values(self.chc_nightshift))
+            if not input_valid:
+                input_warning(self.wnd_staff_role, message)
+                return
 
-        # If we are entering data for a single staff member close on save
-        if self.staff_name:
-            self.wnd_staff_role.destroy()
-            return
+            # If we are entering data for a single staff member close on save
+            if self.staff_name:
+                self.wnd_staff_role.destroy()
+                return
 
-        CTkMessagebox(title="Information", message=message, icon='info')
+            CTkMessagebox(title="Information", message=message, icon='info')
 
-        if number_changes > 0:
-            self.refresh_staff()
+            if number_changes > 0:
+                self.refresh_staff()
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_staff_role)
 
     def filter_names(self, event: Any = None) -> None:
         """Filter the names in the Staff Name drop down to those that match

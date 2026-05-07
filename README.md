@@ -31,6 +31,7 @@ The application provides a "Data Management" window that allows for the maintena
 *   **Staff**: Manage staff information.
 *   **Competencies**: Define and update the list of competencies.
 *   **Competency Services**: Define which services are relevant for competencies.
+*   **Role Services**: Define which services are relevant for roles.
 *   **Staff Roles**: Assign roles to staff members.
 *   **Role Competencies**: Define the competencies required for each role.
 *   **Colour Selector**: Customize the colors used in the application.

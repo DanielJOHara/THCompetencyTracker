@@ -9,6 +9,7 @@ import tkinter as tk
 from source.appdata import AppData
 from source.role_service_logic import RoleServiceLogic
 from source.tool_tip import ToolTip
+from source.window import widget_list_values, widget_2d_list_values
 
 logger = logging.getLogger(__name__)
 
@@ -214,14 +215,31 @@ class RoleServiceGrid(object):
         """Read all values in checkbox grid and check them against the
            Role Service table and add and delete records as required."""
 
-        number_changes = self.rsl.save_all_role_service(self.chc_cs)
-        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+        value_rs = widget_2d_list_values(self.chc_cs)
+        number_changes = self.rsl.save_role_services(value_rs)
+        CTkMessagebox(title="Information", message=f"{number_changes} Role Service changes saved", icon='info')
 
     def handle_reset_click(self):
         """Read all values in checkbox grid and check them against the
            Role Service table and set checkboxes to the table values."""
 
-        self.rsl.reset_role_service(self.chc_cs)
+        for db_r in range(self.ad.md.len('Role')):
+            role_code = self.ad.md.get('Role', 'Role Code', db_r)
+            for db_s in range(self.ad.md.len('Service')):
+                service_code = self.ad.md.get('Service', 'Service Code', db_s)
+                chc_status = self.chc_cs[db_r][db_s].get()
+                db_rs = self.ad.md.find_two('Role Service',
+                                            role_code, 'Role Code',
+                                            service_code, 'Service Code')
+
+                # If there is a record for Role Service combination and its checkbox is not checked then check it
+                if db_rs > -1:
+                    if not chc_status:
+                        self.chc_cs[db_r][db_s].select()
+
+                # If there is no record for Role Service combination and its checkbox is checked then uncheck it
+                elif chc_status:
+                    self.chc_cs[db_r][db_s].deselect()
 
 
 class RoleServiceUpdate:
@@ -280,11 +298,13 @@ class RoleServiceUpdate:
 
     def handle_save_click(self):
         """Apply the services selected for the role by he user."""
-        number_changes = self.rsl.save_role_service(self.role_code, self.chc_service_code_list)
-        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+        value_s = widget_list_values(self.chc_service_code_list)
+        number_changes = self.rsl.save_role_service(self.role_code, value_s)
+        CTkMessagebox(title="Information", message=f"{number_changes} Role Service changes saved", icon='info')
 
     def handle_delete_click(self):
         for chc_service_code in self.chc_service_code_list:
             chc_service_code.deselect()
-        number_changes = self.rsl.save_role_service(self.role_code, self.chc_service_code_list)
+        value_s = widget_list_values(self.chc_service_code_list)
+        number_changes = self.rsl.save_role_service(self.role_code, value_s)
         CTkMessagebox(title="Information", message=f"{number_changes} records deleted", icon='info')

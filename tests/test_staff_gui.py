@@ -58,11 +58,15 @@ def test_staff_update(ctk_root, ad, mock_child_window):
     with patch('source.staff_gui.CTkMessagebox') as mock_msgbox:
         staff_update.handle_save_click()
         pump_events(ctk_root)
-        mock_msgbox.assert_called_with(title="Information", message="1 changes saved", icon='info')
+        mock_msgbox.assert_called_with(title="Information", message="1 Staff changes saved", icon='info')
     assert ad.md.find_one('Staff', 'Jonathan Doe', 'Staff Name') > -1
     # conftest: John Doe has 1 Staff Role, 1 Staff Competency
     assert ad.md.count('Staff Role', 'Staff Name', "Jonathan Doe") == 1
     assert ad.md.count('Staff Competency', 'Staff Name', "Jonathan Doe") == 1
+
+    # Close staff update window
+    staff_update.btn_exit.invoke()
+    pump_events(ctk_root)
 
 
 def test_staff_add(ctk_root, mock_input_warning, mock_ctk_messagebox, mock_child_window, ad):
@@ -159,8 +163,8 @@ def test_staff_assessor_update(ctk_root, ad, mock_child_window):
     wnd_staff_assessor = ctk.CTkToplevel(ctk_root)
 
     # Populate staff assessor update window
-    db_s = 0  # Jonathan Doe (name was changed in test_staff_update if they run in same process, but usually they are fresh)
-    # Actually John Doe since fixtures are function scoped.
+    db_s = 0
+    # Not affected by change in test_staff_update as fixtures are function scoped.
     staff_name = ad.md.get('Staff', 'Staff Name', db_s)
     practice_supervisor = ad.md.get('Staff', 'Practice Supervisor', db_s)
     practice_assessor = ad.md.get('Staff', 'Practice Assessor', db_s)

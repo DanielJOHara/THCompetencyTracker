@@ -69,8 +69,9 @@ class RootWindow:
         # Call routine on start up to read master data
         self.wnd_root.after_idle(self.on_startup)
 
+    def run(self) -> None:
+        """Start the CustomTkinter event loop."""
         self.wnd_root.mainloop()
-
         logger.info(f"Exited CustomTkinter mainloop")
 
     def on_startup(self) -> None:

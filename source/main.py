@@ -28,6 +28,7 @@ data tables. The following data management interfaces are available:
 3.  Staff: Manage staff information.
 4.  Competencies: Define and update the list of competencies.
 5.  Competencies Services: Define which services are relevant for competencies.
+5.  Roles Services: Define which services are relevant for roles.
 6.  Staff Roles: Assign roles to staff members.
 7.  Role Competencies: Define the competencies required for each role.
 8.  Colour Selector: Customise the colours used in the application.
@@ -56,7 +57,7 @@ def main() -> None:
     command_line(ad, __doc__)
 
     # Start GUI
-    RootWindow(ad)
+    RootWindow(ad).run()
 
     # Write configuration json file
     if not ad.args.readonly:

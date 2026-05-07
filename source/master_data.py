@@ -130,13 +130,13 @@ class MasterData:
                      subset=self.table_pkeys[table],
                      keep=False)].sort_values(self.table_pkeys[table])
         if len(df_dup) > 0:
-            self.data_error(f"{table} table contains duplicates\n{df_dup}")
+            data_error(f"{table} table contains duplicates\n{df_dup}")
 
     def _fkey_check(self, p_table: str, f_table: str, fkey: Union[list[str], str]) -> None:
         """Check that the foreign keys in a dataframe exist in the dataframe of primary keys."""
         df_missing = self._df[f_table].loc[~self._df[f_table][fkey].isin(self._df[p_table][fkey])].sort_values(fkey)
         if len(df_missing) > 0:
-            self.data_error(f"{fkey} foreign key in {f_table} table not in {p_table} table\n{df_missing}")
+            data_error(f"{fkey} foreign key in {f_table} table not in {p_table} table\n{df_missing}")
 
     def sort_table(self, table: str) -> None:
         """Sort table into predefined order."""
@@ -421,10 +421,11 @@ class MasterData:
         except IndexError:
             return -1
 
-    def data_error(self, error_text: str) -> None:
-        """Raise a MasterDataError with the supplied error text."""
-        logger.warning(error_text)
-        raise MasterDataError(error_text)
+
+def data_error(error_text: str) -> None:
+    """Raise a MasterDataError with the supplied error text."""
+    logger.warning(error_text)
+    raise MasterDataError(error_text)
 
 
 def add_date_to_filename(path_name: str, file_ext: str = 'xlsx') -> str:

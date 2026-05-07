@@ -123,3 +123,16 @@ def widget_list_values(widget_list: list) -> list:
         value_list.append(widget.get())
 
     return value_list
+
+
+def widget_2d_list_values(widget_2d_list: list[list]) -> list:
+    """Get the values for a 2D list of widgets and return as a 2D list of values."""
+    value_2d_list = []
+    list_index = -1
+    for widget_list in widget_2d_list:
+        value_2d_list.append([])
+        list_index += 1
+        for widget in widget_list:
+            value_2d_list[list_index].append(widget.get())
+
+    return value_2d_list

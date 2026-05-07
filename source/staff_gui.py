@@ -236,20 +236,23 @@ class StaffUpdate(object):
                 input_warning(self.wnd_staff, f"Start Date {start_date} is not a valid date!")
                 return
 
-        staff_widgets = []
+        staff_values = []
         for s, db_s in enumerate(self.db_s_list):
-            staff_widgets.append({'Staff Name': self.ent_staff_name[s].get(),
-                                  'Start Date': self.ent_start_date[s].get(),
-                                  'Practice Supervisor': self.chc_practice_supervisor[s].get(),
-                                  'Practice Assessor': self.chc_practice_assessor[s].get()})
+            staff_values.append({'Staff Name': self.ent_staff_name[s].get(),
+                                 'Start Date': self.ent_start_date[s].get(),
+                                 'Practice Supervisor': self.chc_practice_supervisor[s].get(),
+                                 'Practice Assessor': self.chc_practice_assessor[s].get()})
 
-        number_changes, message = self.sl.save_staff(staff_widgets, self.db_s_list)
+        try:
+            number_changes, message = self.sl.save_staff(staff_values, self.db_s_list)
 
-        CTkMessagebox(title="Information", message=message, icon='info')
+            CTkMessagebox(title="Information", message=message, icon='info')
 
-        # Sort table and refresh redisplay
-        if number_changes > 0:
-            self.apply_filters()
+            # Sort table and refresh redisplay
+            if number_changes > 0:
+                self.apply_filters()
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_staff)
 
     def handle_add_click(self) -> None:
         """Prompt user for row to be added."""
@@ -471,24 +474,27 @@ class StaffDelete(object):
         """Delete current record."""
         staff_name = self.cmb_staff_name.get()
 
-        success, warning, message = self.sl.delete_staff(staff_name)
+        try:
+            success, warning, message = self.sl.delete_staff(staff_name)
 
-        if not success:
-            if warning:
-                msg = CTkMessagebox(title="Dependent Record Warning", message=message,
-                                    icon='warning', option_1='Delete', option_2='Cancel')
-                if msg.get() == 'Cancel':
+            if not success:
+                if warning:
+                    msg = CTkMessagebox(title="Dependent Record Warning", message=message,
+                                        icon='warning', option_1='Delete', option_2='Cancel')
+                    if msg.get() == 'Cancel':
+                        self.wnd_staff_del.grab_set()
+                        return
                     self.wnd_staff_del.grab_set()
-                    return
-                self.wnd_staff_del.grab_set()
-                self.sl.delete_staff_with_dependents(staff_name)
+                    self.sl.delete_staff_with_dependents(staff_name)
 
-        # Clear widgets
-        self.cmb_staff_name.set('')
-        self.cmb_staff_name.configure(values=self.ad.md.get_list('Staff', 'Staff Name'))
-        set_disabled_entry(self.ent_start_date, '')
-        set_disabled_checkbox(self.chc_practice_supervisor, 0)
-        set_disabled_checkbox(self.chc_practice_assessor, 0)
+            # Clear widgets
+            self.cmb_staff_name.set('')
+            self.cmb_staff_name.configure(values=self.ad.md.get_list('Staff', 'Staff Name'))
+            set_disabled_entry(self.ent_start_date, '')
+            set_disabled_checkbox(self.chc_practice_supervisor, 0)
+            set_disabled_checkbox(self.chc_practice_assessor, 0)
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_staff_del)
 
     def filter_names(self, event: Any) -> None:
         """Filter the names in the Staff Name drop down to those that match
@@ -565,21 +571,27 @@ class StaffAdd(object):
         practice_supervisor = self.chc_practice_supervisor.get()
         practice_assessor = self.chc_practice_assessor.get()
 
-        success, staff_name, message = self.sl.add_staff(staff_name, start_date, practice_supervisor, practice_assessor)
+        try:
+            success, staff_name, message = self.sl.add_staff(staff_name, start_date,
+                                                             practice_supervisor, practice_assessor)
 
-        if success:
-            self.ent_staff_name.delete(0, 9999)
-            self.ent_staff_name.insert(0, staff_name)
+            if success:
+                self.ent_staff_name.delete(0, 9999)
+                self.ent_staff_name.insert(0, staff_name)
 
-            # Open window to add roles for the new staff member
-            child_window(StaffRoleUpdate, self.ad, self.wnd_staff_add, re.sub(' +', ' ', staff_name.strip()))
-            CTkMessagebox(title="Information", message=message, icon='info')
-            self.ent_staff_name.delete(0, 9999)
-            self.ent_start_date.delete(0, 9999)
-            self.chc_practice_supervisor.deselect()
-            self.chc_practice_assessor.deselect()
-        else:
-            input_warning(self.wnd_staff_add, message)
+                # Open window to add roles for the new staff member
+                child_window(StaffRoleUpdate, self.ad, self.wnd_staff_add, re.sub(' +', ' ', staff_name.strip()))
+
+                # Display message from adding the staff member
+                CTkMessagebox(title="Information", message=message, icon='info')
+                self.ent_staff_name.delete(0, 9999)
+                self.ent_start_date.delete(0, 9999)
+                self.chc_practice_supervisor.deselect()
+                self.chc_practice_assessor.deselect()
+            else:
+                input_warning(self.wnd_staff_add, message)
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_staff_add)
 
 
 class StaffAssessorUpdate:

@@ -88,12 +88,11 @@ def test_delete_service_failure_with_dependents(ad):
     """Test failing to delete a service that has dependent records."""
     service_len = ad.md.len('Service')
     service_code = "SC1" # Has dependents
-    # SC1 has: 1 Role Service, 2 Competency Service, 1 Staff Role, 1 Role Competency
+    # SC1 has: 1 Role Service, 2 Competency Service, 1 Staff Role
     success, warning, message = ServiceLogic(ad).delete_service(service_code)
     
     assert success is False
     assert warning is True
-    # Message format: f"{service_code} is used {sr_cnt} times in Staff Role, {rc_cnt} times in Role Competency and {cs_cnt} times in Competency Service."
     expected_message = f"{service_code} is used 1 times in Staff Role, 1 times in Role Competency and 2 times in Competency Service."
     assert message == expected_message
     assert ad.md.len('Service') == service_len

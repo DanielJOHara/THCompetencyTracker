@@ -101,7 +101,7 @@ def test_update_competency_success(ad, competency_values):
 
     assert input_valid is True
     assert number_changes == 1
-    assert message == f"{number_changes} changes saved"
+    assert message == f"{number_changes} Competency changes saved"
     assert ad.md.count('Role Competency', 'Competency Name', old_competency_name) == 0
     assert ad.md.count('Role Competency', 'Competency Name', new_competency_name) == 1
     assert ad.md.count('Staff Competency', 'Competency Name', old_competency_name) == 0
@@ -114,7 +114,7 @@ def test_save_competency_no_changes(ad, competency_values):
 
     assert input_valid is True
     assert number_changes == 0
-    assert message == f"{number_changes} changes saved"
+    assert message == f"{number_changes} Competency changes saved"
 
 
 def test_save_competency_invalid_order(ad, competency_values):
@@ -166,15 +166,15 @@ def test_delete_competency_blank(ad):
 def test_delete_competency_with_dependencies_warning(ad):
     """Tests deleting a competency with dependencies generates a warning."""
     len_competency = ad.md.len('Competency')
-    competency_name = ad.md.get('Competency', 'Competency Name', 0) # VoED
+    competency_name = ad.md.get('Competency', 'Competency Name', 0)  # VoED
     # VoED has: 1 RC, 1 SC, 2 CS
     success, warning, message = CompetencyLogic(ad).delete_competency(competency_name)
 
     assert success is False
     assert warning is True
     # Message format in logic.py:
-    # f"{competency_name} is used {rc_cnt} times in Role Competency, {sc_cnt} times in Staff Competency and {cs_cnt} times in Competency Service."
-    expected_message = f"{competency_name} is used 1 times in Role Competency, 1 times in Staff Competency and 2 times in Competency Service."
+    expected_message = (f"{competency_name} is used 1 times in Role Competency,"
+                        f" 1 times in Staff Competency and 2 times in Competency Service.")
     assert message == expected_message
     assert ad.md.len('Competency') == len_competency
     assert ad.md.count('Competency', 'Competency Name', competency_name) == 1

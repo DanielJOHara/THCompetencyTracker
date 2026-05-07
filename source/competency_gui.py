@@ -8,9 +8,11 @@ from CTkMessagebox import CTkMessagebox
 import tkinter as tk
 
 from source.appdata import AppData
+from source.master_data import MasterDataError
 from source.competency_logic import CompetencyLogic
 from source.competency_service_gui import CompetencyServiceUpdate
-from source.window import child_window, set_disabled_checkbox, set_disabled_entry, input_warning, widget_dict_values
+from source.window import child_window, set_disabled_checkbox, set_disabled_entry, \
+    input_warning, widget_dict_values, show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -65,26 +67,29 @@ class CompetencyUpdate(object):
         self.btn_add = ctk.CTkButton(self.frm_btn, text="Add", command=self.handle_add_click)
         self.btn_add.grid(row=0, column=1, pady=6, padx=10)
 
-        self.btn_add = ctk.CTkButton(self.frm_btn, text="Delete", command=self.handle_delete_click)
-        self.btn_add.grid(row=0, column=2, pady=6, padx=10)
+        self.btn_delete = ctk.CTkButton(self.frm_btn, text="Delete", command=self.handle_delete_click)
+        self.btn_delete.grid(row=0, column=2, pady=6, padx=10)
 
-        self.btn_add = ctk.CTkButton(self.frm_btn, text="Exit", command=wnd_competency.destroy)
-        self.btn_add.grid(row=0, column=3, pady=6, padx=10)
+        self.btn_exit = ctk.CTkButton(self.frm_btn, text="Exit", command=wnd_competency.destroy)
+        self.btn_exit.grid(row=0, column=3, pady=6, padx=10)
 
     def handle_save_click(self) -> None:
         """Read all values in table and update the table object if any values have changed."""
         competency_values = widget_dict_values(self.competency_widgets)
-        input_valid, number_changes, message = self.cl.save_competencies(competency_values)
+        try:
+            input_valid, number_changes, message = self.cl.save_competencies(competency_values)
 
-        if not input_valid:
-            input_warning(self.wnd_competency, message)
-            return
+            if not input_valid:
+                input_warning(self.wnd_competency, message)
+                return
 
-        CTkMessagebox(title="Information", message=message, icon='info')
+            CTkMessagebox(title="Information", message=message, icon='info')
 
-        # Sort table and fresh display
-        if number_changes > 0:
-            self.display_competency_table()
+            # Sort table and fresh display
+            if number_changes > 0:
+                self.display_competency_table()
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_competency)
 
     def handle_add_click(self) -> None:
         """Prompt user for row to be added."""
@@ -285,27 +290,30 @@ class CompetencyDelete(object):
     def handle_delete_click(self):
         """Delete current record."""
         competency_name = self.cmb_competency_name.get()
-        success, warning, message = self.cl.delete_competency(competency_name)
+        try:
+            success, warning, message = self.cl.delete_competency(competency_name)
 
-        if not success:
-            if warning:
-                msg = CTkMessagebox(title="Dependent Record Warning", message=message,
-                                    icon='warning', option_1='Delete', option_2='Cancel')
-                if msg.get() == 'Cancel':
+            if not success:
+                if warning:
+                    msg = CTkMessagebox(title="Dependent Record Warning", message=message,
+                                        icon='warning', option_1='Delete', option_2='Cancel')
+                    if msg.get() == 'Cancel':
+                        self.wnd_competency_del.grab_set()
+                        return
                     self.wnd_competency_del.grab_set()
-                    return
-                self.wnd_competency_del.grab_set()
-                self.cl.delete_competency_with_dependents(competency_name)
+                    self.cl.delete_competency_with_dependents(competency_name)
 
-        # Clear widgets
-        self.cmb_competency_name.set('')
-        self.cmb_competency_name.configure(values=self.ad.md.get_list('Competency', 'Competency Name'))
-        set_disabled_entry(self.ent_scope, '')
-        set_disabled_entry(self.ent_display_order, '')
-        set_disabled_entry(self.ent_expiry, '')
-        set_disabled_checkbox(self.chc_prerequisite, 0)
-        set_disabled_checkbox(self.chc_nightshift, 0)
-        set_disabled_checkbox(self.chc_bank, 0)
+            # Clear widgets
+            self.cmb_competency_name.set('')
+            self.cmb_competency_name.configure(values=self.ad.md.get_list('Competency', 'Competency Name'))
+            set_disabled_entry(self.ent_scope, '')
+            set_disabled_entry(self.ent_display_order, '')
+            set_disabled_entry(self.ent_expiry, '')
+            set_disabled_checkbox(self.chc_prerequisite, 0)
+            set_disabled_checkbox(self.chc_nightshift, 0)
+            set_disabled_checkbox(self.chc_bank, 0)
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_competency_del)
 
 
 class CompetencyAdd(object):
@@ -376,20 +384,23 @@ class CompetencyAdd(object):
         nightshift = self.chc_nightshift.get()
         bank = self.chc_bank.get()
 
-        success, message = self.cl.add_competency(competency_name, scope,
-                                                  display_order, expiry, prerequisite, nightshift, bank)
+        try:
+            success, message = self.cl.add_competency(competency_name, scope,
+                                                      display_order, expiry, prerequisite, nightshift, bank)
 
-        if success:
-            # Invoke windo to create Service area associations for new Competency
-            child_window(CompetencyServiceUpdate, self.ad, self.wnd_competency_add, competency_name)
+            if success:
+                # Invoke windo to create Service area associations for new Competency
+                child_window(CompetencyServiceUpdate, self.ad, self.wnd_competency_add, competency_name)
 
-            CTkMessagebox(title="Information", message=message, icon='info')
-            self.ent_competency_name.delete(0, 9999)
-            self.cmb_scope.set("")
-            self.ent_display_order.delete(0, 9999)
-            self.ent_expiry.delete(0, 9999)
-            self.chc_prerequisite.deselect()
-            self.chc_nightshift.deselect()
-            self.chc_bank.deselect()
-        else:
-            input_warning(self.wnd_competency_add, message)
+                CTkMessagebox(title="Information", message=message, icon='info')
+                self.ent_competency_name.delete(0, 9999)
+                self.cmb_scope.set("")
+                self.ent_display_order.delete(0, 9999)
+                self.ent_expiry.delete(0, 9999)
+                self.chc_prerequisite.deselect()
+                self.chc_nightshift.deselect()
+                self.chc_bank.deselect()
+            else:
+                input_warning(self.wnd_competency_add, message)
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_competency_add)

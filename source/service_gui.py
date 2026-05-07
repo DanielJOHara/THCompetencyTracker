@@ -6,8 +6,9 @@ import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
+from source.master_data import MasterDataError
 from source.service_logic import ServiceLogic
-from source.window import child_window, set_disabled_entry, input_warning, widget_dict_values
+from source.window import child_window, set_disabled_entry, input_warning, widget_dict_values, show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -72,13 +73,16 @@ class ServiceUpdate(object):
         """Read all values in table and update the table object if any values
            have changed."""
         service_values = widget_dict_values(self.service_widgets)
-        number_changes = self.sl.save_services(service_values)
-        CTkMessagebox(title="Information", message=f"{number_changes} changes saved", icon='info')
+        try:
+            number_changes = self.sl.save_services(service_values)
+            CTkMessagebox(title="Information", message=f"{number_changes} Service changes saved", icon='info')
 
-        # Sort table and redisplay widgets for all service records
-        if number_changes > 0:
-            for db_s in range(self.ad.md.len('Service')):
-                self.add_service_to_display(db_s)
+            # Sort table and redisplay widgets for all service records
+            if number_changes > 0:
+                for db_s in range(self.ad.md.len('Service')):
+                    self.add_service_to_display(db_s)
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_service)
 
     def handle_add_click(self):
         """Prompt user for row to be added."""
@@ -165,22 +169,25 @@ class ServiceDelete(object):
     def handle_delete_click(self):
         """Delete current record."""
         service_code = self.cmb_service_code.get()
-        success, warning, message = self.sl.delete_service(service_code)
+        try:
+            success, warning, message = self.sl.delete_service(service_code)
 
-        if not success:
-            if warning:
-                win_msg = CTkMessagebox(title="Dependent Record Warning", message=message,
-                                        icon='warning', option_1='Delete', option_2='Cancel')
-                if win_msg.get() != 'Delete':
+            if not success:
+                if warning:
+                    win_msg = CTkMessagebox(title="Dependent Record Warning", message=message,
+                                            icon='warning', option_1='Delete', option_2='Cancel')
+                    if win_msg.get() != 'Delete':
+                        self.wnd_service_del.grab_set()
+                        return
                     self.wnd_service_del.grab_set()
-                    return
-                self.wnd_service_del.grab_set()
-                self.sl.delete_service_with_dependents(service_code)
+                    self.sl.delete_service_with_dependents(service_code)
 
-        # Clear widgets
-        self.cmb_service_code.set('')
-        self.cmb_service_code.configure(values=self.ad.md.get_list('Service', 'Service Code'))
-        set_disabled_entry(self.ent_service_name, '')
+            # Clear widgets
+            self.cmb_service_code.set('')
+            self.cmb_service_code.configure(values=self.ad.md.get_list('Service', 'Service Code'))
+            set_disabled_entry(self.ent_service_name, '')
+        except MasterDataError as e:
+            show_master_data_error(str(e), self.wnd_service_del)
 
 
 class ServiceAdd(object):

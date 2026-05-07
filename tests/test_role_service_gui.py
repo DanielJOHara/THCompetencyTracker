@@ -25,6 +25,7 @@ def mock_ctk_messagebox():
         mock_msgbox.return_value.get.return_value = 'OK'
         yield mock_msgbox
 
+
 def test_role_service_grid(ctk_root, ad, mock_ctk_messagebox):
     # Create grid window
     wnd_rs_grid = ctk.CTkToplevel(ctk_root)
@@ -44,17 +45,18 @@ def test_role_service_grid(ctk_root, ad, mock_ctk_messagebox):
     rs_grid.handle_save_click()
     pump_events(ctk_root)
     
-    mock_ctk_messagebox.assert_called_with(title="Information", message="1 changes saved", icon='info')
+    mock_ctk_messagebox.assert_called_with(title="Information", message="1 Role Service changes saved", icon='info')
     assert ad.md.find_two('Role Service', 'R1', 'Role Code', 'SC2', 'Service Code') > -1
 
     # Test reset: Modify a checkbox but don't save, then reset
-    rs_grid.chc_cs[0][0].deselect() # R1 - SC1 was selected
+    rs_grid.chc_cs[0][0].deselect()  # R1 - SC1 was selected
     rs_grid.handle_reset_click()
     pump_events(ctk_root)
     assert rs_grid.chc_cs[0][0].get() == 1
     
     wnd_rs_grid.destroy()
     pump_events(ctk_root)
+
 
 def test_role_service_update(ctk_root, ad, mock_ctk_messagebox):
     # Create update window for a single role
@@ -72,7 +74,7 @@ def test_role_service_update(ctk_root, ad, mock_ctk_messagebox):
     rs_update.handle_save_click()
     pump_events(ctk_root)
     
-    mock_ctk_messagebox.assert_called_with(title="Information", message="1 changes saved", icon='info')
+    mock_ctk_messagebox.assert_called_with(title="Information", message="1 Role Service changes saved", icon='info')
     assert ad.md.find_two('Role Service', role_code, 'Role Code', 'SC2', 'Service Code') > -1
     
     # Test delete (deselect all and save)

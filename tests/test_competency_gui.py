@@ -38,7 +38,7 @@ def mock_child_window():
         yield mock_child
 
 
-def test_competency_update(ctk_root, ad, mock_child_window):
+def test_competency_update(ctk_root, ad, mock_child_window, mock_ctk_messagebox):
     # Create competency update window
     wnd_competency_update = ctk.CTkToplevel(ctk_root)
     wnd_competency_update.grab_set()
@@ -54,7 +54,16 @@ def test_competency_update(ctk_root, ad, mock_child_window):
     competency_update.competency_widgets[0]['Competency Name'].insert(0, "New VoED")
     competency_update.handle_save_click()
     pump_events(ctk_root)
+
+    # Check information message call
+    mock_ctk_messagebox.assert_called_with(title='Information', message='1 Competency changes saved', icon='info')
+
+    # Check update was saved
     assert ad.md.get('Competency', 'Competency Name', 0) == "New VoED"
+
+    # Close competency update window
+    competency_update.btn_exit.invoke()
+    pump_events(ctk_root)
 
 
 def test_competency_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad, mock_child_window):
