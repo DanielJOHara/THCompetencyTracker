@@ -58,7 +58,7 @@ def staff_report(ad: AppData, report_excel_path: str, service_code_list, staff_t
         {'label': 'Bank', 'width': 10}
     ]
     for status in range(len(ad.status_dict)):
-        header.append({'label': ad.status_dict[status]['description'], 'width': 11})
+        header.append({'label': ad.status_dict[status]['text'], 'width': 11})
     ws_sum = create_report_worksheet(wb, 'Staff', header, formats['header'], protect_options, ad.args.report_password)
     ws_sum_row = 0
 
@@ -118,9 +118,11 @@ def staff_report(ad: AppData, report_excel_path: str, service_code_list, staff_t
         for db_c in range(ad.md.len('Competency')):
             competency_name = ad.md.get('Competency', 'Competency Name', db_c)
             for service_code in service_code_list:
-                if service_code == 'LEFT' or ad.md.find_two('Competency Service',
-                                                            competency_name, 'Competency Name',
-                                                            service_code, 'Service Code') > -1:
+                db_s = ad.md.find_one('Service', service_code, 'Service Code')
+                special_service = ad.md.get('Service', 'Special', db_s)
+                if special_service or ad.md.find_two('Competency Service',
+                                                     competency_name, 'Competency Name',
+                                                     service_code, 'Service Code') > -1:
                     db_c_list.append(db_c)
 
         # Create list of competency statuses for staff member
@@ -140,7 +142,7 @@ def staff_report(ad: AppData, report_excel_path: str, service_code_list, staff_t
                     db_sc = ad.md.find_two('Staff Competency', staff_name, 'Staff Name',
                                            ad.md.get('Competency', 'Competency Name', db_c), 'Competency Name')
                     data = [
-                        {'value': ad.status_dict[status]['description']},
+                        {'value': ad.status_dict[status]['text']},
                         {'value': ad.md.get('Competency', 'Competency Name', db_c)},
                         {'value': ad.md.get('Competency', 'Scope', db_c)},
                         {'value': ad.md.get('Competency', 'Expiry', db_c)},

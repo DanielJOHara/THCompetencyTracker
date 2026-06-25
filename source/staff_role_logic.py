@@ -5,6 +5,7 @@ import logging
 import re
 from source.appdata import AppData
 from source.master_data import MasterDataError
+from source.window import staff_name_filter
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ class StaffRoleLogic:
         """
         if name_filter:
             # Remove every thing except letters and spaces from filter string
-            name_filter = re.sub(r'[^a-zA-Z -]', '', name_filter).strip()
+            name_filter = staff_name_filter(name_filter)
             filter_name_lst = []
             for staff_name in self.ad.md.get_list('Staff', 'Staff Name'):
                 if re.search(name_filter, staff_name, re.IGNORECASE):

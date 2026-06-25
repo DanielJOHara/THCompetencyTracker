@@ -8,7 +8,8 @@ from CTkMessagebox import CTkMessagebox
 from source.appdata import AppData
 from source.master_data import MasterDataError
 from source.service_logic import ServiceLogic
-from source.window import child_window, set_disabled_entry, input_warning, widget_dict_values, show_master_data_error
+from source.window import child_window, set_disabled_entry, input_warning, widget_dict_values, show_master_data_error, \
+    set_disabled_checkbox
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +31,8 @@ class ServiceUpdate(object):
         self.frm_h = ctk.CTkFrame(wnd_service)
         self.frm_h.pack(padx=6, fill='x', expand=False)
 
-        self.header = ['Service Code', 'Service Name']
-        self.width = [90, 250]
+        self.header = ['Display Order', 'Service Code', 'Service Name', 'Special']
+        self.width = [90, 90, 250, 90]
 
         # Create list to hold header labels
         self.lbl_header = []
@@ -50,8 +51,7 @@ class ServiceUpdate(object):
         self.service_widgets = []
 
         # Display widgets for all service records
-        for db_s in range(ad.md.len('Service')):
-            self.add_service_to_display(db_s)
+        self.display_service_table()
 
         # Create button frame
         self.frm_btn = ctk.CTkFrame(wnd_service)
@@ -74,13 +74,17 @@ class ServiceUpdate(object):
            have changed."""
         service_values = widget_dict_values(self.service_widgets)
         try:
-            number_changes = self.sl.save_services(service_values)
-            CTkMessagebox(title="Information", message=f"{number_changes} Service changes saved", icon='info')
+            input_valid, number_changes, message = self.sl.save_services(service_values)
+
+            if not input_valid:
+                input_warning(self.wnd_service, message)
+                return
+
+            CTkMessagebox(title="Information", message=message, icon='info')
 
             # Sort table and redisplay widgets for all service records
             if number_changes > 0:
-                for db_s in range(self.ad.md.len('Service')):
-                    self.add_service_to_display(db_s)
+                self.display_service_table()
         except MasterDataError as e:
             show_master_data_error(str(e), self.wnd_service)
 
@@ -90,8 +94,7 @@ class ServiceUpdate(object):
         child_window(ServiceAdd, self.ad, self.wnd_service)
 
         # Display widgets for all service records
-        for db_s in range(self.ad.md.len('Service')):
-            self.add_service_to_display(db_s)
+        self.display_service_table()
 
     def handle_delete_click(self):
         # Call window to delete services
@@ -100,26 +103,42 @@ class ServiceUpdate(object):
         # Remove a row from the table for each deleted record
         for i in range(len(self.service_widgets) - self.ad.md.len('Service')):
             # Remove last row of widgets
-            self.service_widgets[-1]['Service Code'].destroy()
-            self.service_widgets[-1]['Service Name'].destroy()
+            for widget_key in self.service_widgets[-1]:
+                self.service_widgets[-1][widget_key].destroy()
             self.service_widgets.pop()
 
         # Display widgets for all service records
+        self.display_service_table()
+
+    def display_service_table(self):
         for db_s in range(self.ad.md.len('Service')):
-            self.add_service_to_display(db_s)
+            if db_s + 1 > len(self.service_widgets):
+                self.service_widgets.append({'Display Order': ctk.CTkEntry(self.frm_s, width=self.width[0]),
+                                             'Service Code': ctk.CTkEntry(self.frm_s, width=self.width[1]),
+                                             'Service Name': ctk.CTkEntry(self.frm_s, width=self.width[2]),
+                                             'Special': ctk.CTkCheckBox(
+                                                 self.frm_s,
+                                                 width=self.width[3] - 2 * int(self.width[3] / 3),
+                                                 text="")})
+                self.service_widgets[db_s]['Display Order'].grid(row=db_s + 1, column=0, sticky='w')
+                self.service_widgets[db_s]['Service Code'].grid(row=db_s + 1, column=1, sticky='w')
+                self.service_widgets[db_s]['Service Name'].grid(row=db_s + 1, column=2, sticky='w')
+                self.service_widgets[db_s]['Special'].grid(row=db_s + 1, column=3,
+                                                           sticky='nsew', padx=int(self.width[3] / 3))
 
-    def add_service_to_display(self, db_s: int):
-        if db_s + 1 > len(self.service_widgets):
-            self.service_widgets.append({'Service Code': ctk.CTkEntry(self.frm_s, width=self.width[0]),
-                                         'Service Name': ctk.CTkEntry(self.frm_s, width=self.width[1])})
-            self.service_widgets[db_s]['Service Code'].grid(row=db_s + 1, column=0, sticky='w')
-            self.service_widgets[db_s]['Service Name'].grid(row=db_s + 1, column=1, sticky='w')
+            self.service_widgets[db_s]['Display Order'].delete(0, 9999)
+            self.service_widgets[db_s]['Display Order'].insert(0, self.ad.md.get('Service', 'Display Order', db_s))
 
-        self.service_widgets[db_s]['Service Code'].delete(0, 9999)
-        self.service_widgets[db_s]['Service Code'].insert(0, self.ad.md.get('Service', 'Service Code', db_s))
+            self.service_widgets[db_s]['Service Code'].delete(0, 9999)
+            self.service_widgets[db_s]['Service Code'].insert(0, self.ad.md.get('Service', 'Service Code', db_s))
 
-        self.service_widgets[db_s]['Service Name'].delete(0, 9999)
-        self.service_widgets[db_s]['Service Name'].insert(0, self.ad.md.get('Service', 'Service Name', db_s))
+            self.service_widgets[db_s]['Service Name'].delete(0, 9999)
+            self.service_widgets[db_s]['Service Name'].insert(0, self.ad.md.get('Service', 'Service Name', db_s))
+
+            if self.ad.md.get('Service', 'Special', db_s):
+                self.service_widgets[db_s]['Special'].select()
+            else:
+                self.service_widgets[db_s]['Special'].deselect()
 
 
 class ServiceDelete(object):
@@ -151,6 +170,16 @@ class ServiceDelete(object):
         self.ent_service_name = ctk.CTkEntry(self.frm_attribute, state='disabled')
         self.ent_service_name.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
+        row += 1
+        self.lbl_display_order = ctk.CTkLabel(self.frm_attribute, text="Display Order")
+        self.lbl_display_order.grid(row=row, column=0, pady=6, padx=10, sticky='e')
+        self.ent_display_order = ctk.CTkEntry(self.frm_attribute, state='disabled')
+        self.ent_display_order.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+
+        row += 1
+        self.chc_special = ctk.CTkCheckBox(self.frm_attribute, text="Special", state='disabled')
+        self.chc_special.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+
         # Action Buttons
         self.btn_delete = ctk.CTkButton(wnd_service_del, text="Delete", command=self.handle_delete_click)
         self.btn_delete.pack(pady=6, padx=10)
@@ -165,6 +194,8 @@ class ServiceDelete(object):
         service_code = self.cmb_service_code.get()
         db_s = self.ad.md.index('Service', 'Service Code', service_code)
         set_disabled_entry(self.ent_service_name, self.ad.md.get('Service', 'Service Name', db_s))
+        set_disabled_entry(self.ent_display_order, self.ad.md.get('Service', 'Display Order', db_s))
+        set_disabled_checkbox(self.chc_special, self.ad.md.get('Service', 'Special', db_s))
 
     def handle_delete_click(self):
         """Delete current record."""
@@ -186,6 +217,8 @@ class ServiceDelete(object):
             self.cmb_service_code.set('')
             self.cmb_service_code.configure(values=self.ad.md.get_list('Service', 'Service Code'))
             set_disabled_entry(self.ent_service_name, '')
+            set_disabled_entry(self.ent_display_order, '')
+            set_disabled_checkbox(self.chc_special, False)
         except MasterDataError as e:
             show_master_data_error(str(e), self.wnd_service_del)
 
@@ -217,6 +250,16 @@ class ServiceAdd(object):
         self.ent_service_name = ctk.CTkEntry(self.frm_attribute)
         self.ent_service_name.grid(row=row, column=1, pady=6, padx=10, sticky='w')
 
+        row += 1
+        self.lbl_display_order = ctk.CTkLabel(self.frm_attribute, text="Display Order")
+        self.lbl_display_order.grid(row=row, column=0, pady=6, padx=10, sticky='e')
+        self.ent_display_order = ctk.CTkEntry(self.frm_attribute)
+        self.ent_display_order.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+
+        row += 1
+        self.chc_special = ctk.CTkCheckBox(self.frm_attribute, text="Special")
+        self.chc_special.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+
         # Action Buttons
         self.btn_add = ctk.CTkButton(wnd_service_add, text="Add", command=self.handle_add_click)
         self.btn_add.pack(pady=6, padx=10)
@@ -228,12 +271,15 @@ class ServiceAdd(object):
         """Add new record if it does not exist."""
         service_code = self.ent_service_code.get()
         service_name = self.ent_service_name.get()
+        display_order = self.ent_display_order.get()
+        special = bool(self.chc_special.get())
 
-        success, message = self.sl.add_service(service_code, service_name)
+        success, message = self.sl.add_service(service_code, service_name, display_order, special)
 
         if success:
             CTkMessagebox(title="Information", message=message, icon='info')
             self.ent_service_code.delete(0, 9999)
             self.ent_service_name.delete(0, 9999)
+            self.chc_special.deselect()
         else:
             input_warning(self.wnd_service_add, message)

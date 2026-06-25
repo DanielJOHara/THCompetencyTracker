@@ -1,6 +1,7 @@
 """This module provides common functions used by the GUI windows."""
 import datetime
 import logging
+import re
 from typing import Any, Callable
 
 import customtkinter as ctk
@@ -108,9 +109,10 @@ def widget_dict_values(widget_dict_list: list) -> list:
     for widget_dict in widget_dict_list:
         value_dict = {}
         for widget in widget_dict:
-            logger.debug(f"Widget {widget} type {type(widget_dict[widget])}")
             if type(widget_dict[widget]) in [ctk.CTkEntry, ctk.CTkComboBox, ctk.CTkCheckBox, ctk.CTkTextbox]:
                 value_dict[widget] = widget_dict[widget].get()
+            else:
+                logger.warning(f"Widget {widget} type {type(widget_dict[widget])} not processed")
         value_dict_list.append(value_dict)
 
     return value_dict_list
@@ -136,3 +138,17 @@ def widget_2d_list_values(widget_2d_list: list[list]) -> list:
             value_2d_list[list_index].append(widget.get())
 
     return value_2d_list
+
+
+def staff_name_filter(raw_staff_name: str) -> str:
+    """Standardise user input staff name by removing every
+       thing except letters, spaces, hyphens and single quotes and replacing multiple spaces """
+    staff_name = re.sub(r"[^a-zA-Z \-']", '', raw_staff_name).strip()
+    return re.sub(' +', ' ', staff_name)
+
+
+def staff_name_title_case(raw_staff_name: str) -> str:
+    """Standardise user input staff name by removing every
+       thing except letters, spaces, hyphens and single quotes then convert to proper case."""
+    staff_name = staff_name_filter(raw_staff_name)
+    return staff_name.title()

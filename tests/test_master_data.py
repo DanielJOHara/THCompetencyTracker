@@ -1,20 +1,6 @@
 import glob
 import os
 import pytest
-from source.master_data import MasterData
-
-
-@pytest.fixture
-def md():
-    test_data_path = os.path.join(os.path.dirname(__file__), 'TestMasterData.xlsx')
-    md = MasterData(test_data_path, 30)
-    try:
-        md.load()
-        yield md
-    except OSError as e:
-        pytest.skip(f"Skipping tests because of OSError: {e}")
-    finally:
-        md._unlock()
 
 
 def test_lock(md):
@@ -97,7 +83,7 @@ def test_get_list(md):
 
 
 def test_count(md):
-    assert md.count('Staff Role', 'Role Code', 'SN') > 0
+    assert md.count('Staff Role', 'Role Code', 'R1') > 0
 
 
 def test_len(md):
@@ -154,7 +140,7 @@ def test_find_next_and_one_middle(md):
 
 
 def test_find_next_after(md):
-    assert md.find_next('Staff', 'Z', 'Staff Name') == 114
+    assert md.find_next('Staff', 'Z', 'Staff Name') == 4
 
 
 def test_find_one_before(md):
@@ -178,7 +164,7 @@ def test_find_two_second_match(md):
 
 
 def test_find_two_both_match(md):
-    assert md.find_two('Staff Competency', 'Huey Duck', 'Staff Name', 'VoED', 'Competency Name') == 582
+    assert md.find_two('Staff Competency', 'Huey Duck', 'Staff Name', 'VoED', 'Competency Name') == 1
 
 
 def test_find_three_no_match(md):
@@ -203,4 +189,4 @@ def test_find_three_not_third_match(md):
 
 def test_find_three_all_match(md):
     assert md.find_three('Staff Competency',
-                         'Huey Duck', 'Staff Name', 'VoED', 'Competency Name', 1, 'Completed') == 582
+                         'Huey Duck', 'Staff Name', 'VoED', 'Competency Name', 1, 'Completed') == 1

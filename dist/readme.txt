@@ -127,6 +127,9 @@ Functional Changes:
 Version 0.1.2.13
 Technical Changes:
     Improved test coverage.
+    User functions to filter and capitalise staff names.
 Functional Changes:
     Open Role Service Update window when adding a new Role.
     On change information windows specify the table that was changed.
+    Added Display Order and Special column to Service table.
+    Added ini file only parameters to change descriptions for competencies states.

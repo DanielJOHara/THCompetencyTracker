@@ -4,7 +4,7 @@ import re
 
 from source.appdata import AppData
 from source.master_data import MasterDataError
-from source.window import parse_date
+from source.window import parse_date, staff_name_filter, staff_name_title_case
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,7 @@ class StaffLogic(object):
            have changed."""
         number_changes = 0
         for s, db_s in enumerate(db_s_list):
-            staff_name = re.sub(' +', ' ', staff_values[s]['Staff Name'].strip())
-            staff_name = staff_name.title()
+            staff_name = staff_name_title_case(staff_values[s]['Staff Name'])
             old_staff_name = self.ad.md.get('Staff', 'Staff Name', db_s)
             if old_staff_name != staff_name:
                 logger.debug(f"Changing Staff Name from >{old_staff_name}< to >{staff_name}<")
@@ -59,9 +58,8 @@ class StaffLogic(object):
                   practice_supervisor: int,
                   practice_assessor: int) -> tuple[bool, str, str]:
         """Add a new staff member."""
-        staff_name = re.sub(r' +', ' ', staff_name.strip())
-        staff_name = staff_name.title()
-        
+        staff_name = staff_name_title_case(staff_name)
+
         if not staff_name:
             return False, staff_name, "Staff Name field must be set!"
         elif start_date and not parse_date(start_date):
@@ -117,7 +115,7 @@ class StaffLogic(object):
                       role_filter: list) -> list[int]:
         """Apply filters to the staff list."""
         if name_filter:
-            name_filter = re.sub(r"[^a-zA-Z -']", '', name_filter).strip()
+            name_filter = staff_name_filter(name_filter)
 
         db_s_list = []
         for db_s, staff_name in enumerate(self.ad.md.get_list("Staff", 'Staff Name')):

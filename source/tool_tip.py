@@ -83,7 +83,7 @@ def competency_tip_text(ad: AppData,
         status_list[status] += 1
 
     for status in range(len(ad.status_dict)):
-        tip_text += f"{ad.status_dict[status]["description"] : >18} : {status_list[status]}\n"
+        tip_text += f"{ad.status_dict[status]["title"] : >18} : {status_list[status]}\n"
 
     return tip_text
 

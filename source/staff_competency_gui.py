@@ -10,7 +10,7 @@ from tkcalendar import Calendar
 
 from source.appdata import AppData
 from source.master_data import MasterDataError
-from source.window import input_warning, date_to_string, parse_date, show_master_data_error
+from source.window import input_warning, date_to_string, parse_date, show_master_data_error, staff_name_filter
 
 logger = logging.getLogger(__name__)
 
@@ -270,8 +270,10 @@ class StaffCompetencyUpdate(object):
                 rn_filter = 'HCA'
 
         service_filter = self.cmb_service_filter.get()
+        db_s = self.ad.md.find_one('Service', service_filter, 'Service Code')
+        special_service = self.ad.md.get('Service', 'Special', db_s)
 
-        # Filter competency names for staf type (RN or HCA) and service code
+        # Filter competency names for staff type (RN or HCA) and service code
         if rn_filter or service_filter:
             filter_competency_lst = []
             for db_c in range(self.ad.md.len('Competency')):
@@ -280,7 +282,7 @@ class StaffCompetencyUpdate(object):
                     competency_scope = self.ad.md.get('Competency', 'Scope', db_c)
                     if competency_scope not in ['BOTH', rn_filter]:
                         continue
-                if service_filter and service_filter != 'LEFT':
+                if service_filter and not special_service:
                     if self.ad.md.find_two('Competency Service',
                                            competency_name, 'Competency Name',
                                            service_filter, 'Service Code') < 0:
@@ -296,7 +298,7 @@ class StaffCompetencyUpdate(object):
         # Remove every thing except letters and spaces from name filter string
         name_filter = self.ent_name_filter.get()
         if name_filter:
-            name_filter = re.sub(r"[^a-zA-Z -']", '', name_filter).strip()
+            name_filter = staff_name_filter(name_filter)
             self.ent_name_filter.delete(0, 9999)
             self.ent_name_filter.insert(0, name_filter)
 

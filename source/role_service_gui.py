@@ -142,13 +142,14 @@ class RoleServiceGrid(object):
         self.lbl_column = []
         for db_s in range(self.ad.md.len('Service')):
             service_code = ad.md.get('Service', 'Service Code', db_s)
+            special_service = ad.md.get('Service', 'Special', db_s)
             self.lbl_column.append(ctk.CTkLabel(self.frm_cnv_ne,
                                                 text=service_code,
                                                 corner_radius=6,
                                                 width=wd_r,
                                                 height=ht,
                                                 fg_color='#00B0F0'))
-            if service_code != 'LEFT':
+            if not special_service:
                 self.lbl_column[db_s].grid(row=0, column=db_s, padx=1, pady=1)
                 ToolTip(self.lbl_column[db_s], ad.md.get('Service', 'Service Name', db_s))
 
@@ -159,11 +160,12 @@ class RoleServiceGrid(object):
             self.chc_cs.append([])
             for db_s in range(self.ad.md.len('Service')):
                 service_code = self.ad.md.get('Service', 'Service Code', db_s)
+                special_service = ad.md.get('Service', 'Special', db_s)
                 self.chc_cs[db_r].append(ctk.CTkCheckBox(self.frm_cnv_se,
                                                          text='',
                                                          width=20,
                                                          height=ht))
-                if service_code != 'LEFT':
+                if not special_service:
                     self.chc_cs[db_r][db_s].grid(row=db_r, column=db_s, padx=15, pady=1, sticky='nsew')
                     db_rs = self.ad.md.find_two('Role Service',
                                                 role_code, 'Role Code',
@@ -278,8 +280,9 @@ class RoleServiceUpdate:
         row -= 1
         for db_s in range(self.ad.md.len('Service')):
             service_code = self.ad.md.get('Service', 'Service Code', db_s)
+            special_service = self.ad.md.get('Service', 'Special', db_s)
             self.chc_service_code_list.append(ctk.CTkCheckBox(self.frm_attribute, text=service_code, width=40))
-            if service_code != 'LEFT':
+            if not special_service:
                 row += 1
                 self.chc_service_code_list[db_s].grid(row=row, column=1, pady=6, padx=10, sticky='w')
                 if self.ad.md.find_two('Role Service',

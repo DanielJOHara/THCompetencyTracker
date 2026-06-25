@@ -41,7 +41,7 @@ class CompetencyLogic:
             # Propagate Competency Name changes to foreign keys in other tables
             new_competency_name = competency_values[db_c]['Competency Name']
             old_competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
-            if self.ad.md.get('Competency', 'Competency Name', db_c) != new_competency_name:
+            if old_competency_name != new_competency_name:
                 self.ad.master_updated = True
                 self.ad.md.replace('Role Competency', 'Competency Name', old_competency_name, new_competency_name)
                 self.ad.md.replace('Staff Competency', 'Competency Name', old_competency_name, new_competency_name)

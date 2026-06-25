@@ -11,8 +11,8 @@ from source.appdata import AppData
 from source.master_data import MasterDataError
 from source.staff_logic import StaffLogic
 from source.staff_role_gui import StaffRoleUpdate
-from source.window import (child_window, set_disabled_checkbox,
-                           set_disabled_entry, input_warning, parse_date, date_to_string, show_master_data_error)
+from source.window import (child_window, set_disabled_checkbox,  set_disabled_entry, input_warning,
+                           parse_date, date_to_string, show_master_data_error, staff_name_filter)
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,8 @@ class StaffUpdate(object):
             self.chc_service_filter.append(ctk.CTkCheckBox(self.frm_lookup, text=service_code))
             self.chc_service_filter[db_sc].grid(row=row, column=1, pady=1, padx=10, sticky='w')
             self.chc_service_filter[db_sc].bind("<Button-1>", command=self.apply_filters)
-            if service_code != 'LEFT':
+            # Select all non Special Service Codes
+            if not self.ad.md.get('Service', 'Special', db_sc):
                 self.chc_service_filter[db_sc].select()
 
         row += 1
@@ -206,7 +207,7 @@ class StaffUpdate(object):
         # Remove every thing except letters and spaces from name filter string
         name_filter = self.ent_name_filter.get()
         if name_filter:
-            name_filter = re.sub(r"[^a-zA-Z -']", '', name_filter).strip()
+            name_filter = staff_name_filter(name_filter)
             self.ent_name_filter.delete(0, 9999)
             self.ent_name_filter.insert(0, name_filter)
 
@@ -503,7 +504,7 @@ class StaffDelete(object):
         logger.debug(f"In StaffDelete name_filter called for event{event} and filter name {name_filter}")
         if name_filter:
             # Remove every thing except letters and spaces from filter string
-            name_filter = re.sub(r'[^a-zA-Z -]', '', name_filter).strip()
+            name_filter = staff_name_filter(name_filter)
             self.ent_name_filter.delete(0, 9999)
             self.ent_name_filter.insert(0, name_filter)
             # Set the filter name list

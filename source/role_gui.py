@@ -106,11 +106,8 @@ class RoleUpdate(object):
         # Remove a row from the table for each deleted record
         for i in range(len(self.role_widgets) - self.ad.md.len('Role')):
             # Remove last row of widgets
-            self.role_widgets[-1]['Display Order'].destroy()
-            self.role_widgets[-1]['Role Code'].destroy()
-            self.role_widgets[-1]['Role Name'].destroy()
-            self.role_widgets[-1]['RN'].destroy()
-            self.role_widgets[-1]['Services'].destroy()
+            for widget_key in self.role_widgets[-1]:
+                self.role_widgets[-1][widget_key].destroy()
             self.role_widgets.pop()
 
         # Re-display table

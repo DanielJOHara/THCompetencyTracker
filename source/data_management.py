@@ -84,9 +84,10 @@ class RoleCompetencyGridSelect(object):
         row = 0
         self.lbl_service_code = ctk.CTkLabel(self.frm_attribute, text="Service Code")
         self.lbl_service_code.grid(row=row, column=0, pady=6, padx=10, sticky='e')
-        service_code_list = ad.md.get_list('Service', 'Service Code')
-        if 'LEFT' in service_code_list:
-            service_code_list.remove('LEFT')
+        service_code_list = []
+        for db_s in range(ad.md.len('Service')):
+            if not ad.md.get('Service', 'Special', db_s):
+                service_code_list.append(ad.md.get('Service', 'Service Code', db_s))
         self.cmb_service_code = ctk.CTkComboBox(self.frm_attribute,
                                                 state='readonly',
                                                 values=service_code_list,

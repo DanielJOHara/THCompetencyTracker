@@ -121,13 +121,14 @@ class CompetencyServiceGrid(object):
         self.lbl_column = []
         for db_s in range(self.ad.md.len('Service')):
             service_code = ad.md.get('Service', 'Service Code', db_s)
+            special = ad.md.get('Service', 'Special', db_s)
             self.lbl_column.append(ctk.CTkLabel(self.frm_cnv_ne,
                                                 text=service_code,
                                                 corner_radius=6,
                                                 width=wd_r,
                                                 height=ht,
                                                 fg_color='#00B0F0'))
-            if service_code != 'LEFT':
+            if not special:
                 self.lbl_column[db_s].grid(row=0, column=db_s, padx=1, pady=1)
                 ToolTip(self.lbl_column[db_s], ad.md.get('Service', 'Service Name', db_s))
 
@@ -138,11 +139,12 @@ class CompetencyServiceGrid(object):
             self.chc_cs.append([])
             for db_s in range(self.ad.md.len('Service')):
                 service_code = self.ad.md.get('Service', 'Service Code', db_s)
+                special = ad.md.get('Service', 'Special', db_s)
                 self.chc_cs[db_c].append(ctk.CTkCheckBox(self.frm_cnv_se,
                                                          text='',
                                                          width=20,
                                                          height=ht))
-                if service_code != 'LEFT':
+                if not special:
                     self.chc_cs[db_c][db_s].grid(row=db_c, column=db_s, padx=15, pady=1, sticky='nsew')
                     db_cs = self.ad.md.find_two('Competency Service',
                                                 competency_name, 'Competency Name',
@@ -257,8 +259,9 @@ class CompetencyServiceUpdate:
         row -= 1
         for db_s in range(self.ad.md.len('Service')):
             service_code = self.ad.md.get('Service', 'Service Code', db_s)
+            special = self.ad.md.get('Service', 'Special', db_s)
             self.chc_service_code_list.append(ctk.CTkCheckBox(self.frm_attribute, text=service_code, width=40))
-            if service_code != 'LEFT':
+            if not special:
                 row += 1
                 self.chc_service_code_list[db_s].grid(row=row, column=1, pady=6, padx=10, sticky='w')
                 if self.ad.md.find_two('Competency Service',

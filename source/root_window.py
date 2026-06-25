@@ -84,6 +84,7 @@ class RootWindow:
                                    message="Master Excel directory is not accessible", icon='warning')
             self.wnd_root.wait_window(wnd_mb)
             sys.exit(1)
+            return  # This return  is for testing when sys.exit is mocked
 
         master_excel_path = str(os.path.join(self.ad.args.master_excel_directory, self.ad.args.master_excel_file_name))
         self.ad.md = MasterData(master_excel_path, self.ad.args.retention)

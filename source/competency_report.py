@@ -57,7 +57,7 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
         {'label': 'Services', 'width': 15}
     ]
     for status in range(len(ad.status_dict)):
-        header.append({'label': ad.status_dict[status]['description'], 'width': 11})
+        header.append({'label': ad.status_dict[status]['text'], 'width': 11})
     ws_sum = create_report_worksheet(wb, 'Competency',
                                      header, formats['header'], protect_options, ad.args.report_password)
     ws_sum_row = 0
@@ -69,9 +69,11 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
         scope = ad.md.get('Competency', 'Scope', db_c)
         if scope == 'BOTH' or scope in staff_type_list:
             for service_code in service_code_list:
-                if ad.md.find_two('Competency Service',
-                                  competency_name, 'Competency Name',
-                                  service_code, 'Service Code') > -1:
+                db_s = ad.md.find_one('Service', service_code, 'Service Code')
+                special_service = ad.md.get('Service', 'Special', db_s)
+                if special_service or ad.md.find_two('Competency Service',
+                                                     competency_name, 'Competency Name',
+                                                     service_code, 'Service Code') > -1:
                     db_c_list.append(db_c)
 
     # Process each competency
@@ -167,7 +169,7 @@ def competency_report(ad: AppData, report_excel_path: str, service_code_list: li
                         night_shift_flags += ',' + yn(ad.md.get('Staff Role', 'Nightshift', db_sr))
                         bank_flags += ',' + yn(ad.md.get('Staff Role', 'Bank', db_sr))
                     data = [
-                        {'value': ad.status_dict[status]['description']},
+                        {'value': ad.status_dict[status]['text']},
                         {'value': ad.md.get('Staff', 'Staff Name', db_s)},
                         {'value': service_codes},
                         {'value': rn_flags, 'format': 'centre'},

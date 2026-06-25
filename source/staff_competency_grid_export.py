@@ -144,12 +144,12 @@ def competency_grid_export(ad: AppData,
                     col = write_cell(ws, row, col, display_value, display_format)
 
             write_cell(ws, row + 2, 0, 'Key', format_centre)
-            write_cell(ws, row + 3, 0, 'Not Required For Role', format_not_required)
-            write_cell(ws, row + 4, 0, 'Out of Date', format_out_of_date)
-            write_cell(ws, row + 5, 0, 'Within 3 Months', format_next_3_months)
-            write_cell(ws, row + 6, 0, 'In Date', format_in_date)
-            write_cell(ws, row + 7, 0, 'FT Needed', format_ft_needed)
-            write_cell(ws, row + 8, 0, 'Competency Needed', format_needed)
+            write_cell(ws, row + 3, 0, ad.status_dict[5]['text'], format_not_required)
+            write_cell(ws, row + 4, 0, ad.status_dict[0]['text'], format_out_of_date)
+            write_cell(ws, row + 5, 0, ad.status_dict[3]['text'], format_next_3_months)
+            write_cell(ws, row + 6, 0, ad.status_dict[4]['text'], format_in_date)
+            write_cell(ws, row + 7, 0, ad.status_dict[1]['text'], format_ft_needed)
+            write_cell(ws, row + 8, 0, ad.status_dict[2]['text'], format_needed)
 
             # Add filters to staff name and roles
             if staff_type == 'RN':

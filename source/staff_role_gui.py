@@ -61,6 +61,7 @@ class StaffRoleUpdate(object):
         self.chc_nightshift = []
         self.cmb_role_code = []
         for db_sc, service_code in enumerate(ad.md.get_list('Service', 'Service Code')):
+            special_service = self.ad.md.get('Service', 'Special', db_sc)
             row += 1
             col = 0
             self.ent_service_code.append(ctk.CTkEntry(self.frm_attribute))
@@ -70,7 +71,7 @@ class StaffRoleUpdate(object):
 
             # Filter role codes to those relevant to the service area
             role_code_list = ad.md.get_list('Role', 'Role Code')
-            if service_code == 'LEFT':
+            if special_service:
                 service_code_role_list = role_code_list
             else:
                 service_code_role_list = []

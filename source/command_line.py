@@ -110,6 +110,15 @@ def command_line(ad: AppData, description: str) -> None:
 
     ad.args = parser.parse_args()
 
+    # Define parameters only available in ini file
+    ad.args.out_of_date = ''
+    ad.args.ft_needed = ''
+    ad.args.competency_needed = ''
+    ad.args.next_three_months = ''
+    ad.args.in_date = ''
+    ad.args.not_required = ''
+    ad.args.not_relevant = ''
+
     ad.ini_path = str(os.path.join(app_directory, f'{ad.app_name}.ini'))
 
     # Load the ini file if it exists
@@ -188,6 +197,14 @@ def command_line(ad: AppData, description: str) -> None:
     ad.args.theme = list_arg(ad.args.theme, 'theme', config, themes, 'green', lower=True)
     ad.args.icon = str_arg(ad.args.icon, 'icon', config, 'Th.png')
 
+    ad.args.out_of_date = str_arg(ad.args.out_of_date, 'out_of_date', config, "Out of Date")
+    ad.args.ft_needed = str_arg(ad.args.ft_needed, 'ft_needed', config, "FT Needed")
+    ad.args.competency_needed = str_arg(ad.args.competency_needed, 'competency_needed', config, "Competency Needed")
+    ad.args.next_three_months = str_arg(ad.args.next_three_months, 'next_three_months', config, "Within 3 Months")
+    ad.args.in_date = str_arg(ad.args.in_date, 'in_date', config, "In Date")
+    ad.args.not_required = str_arg(ad.args.not_required, 'not_required', config, "Not Required For Role")
+    ad.args.not_relevant = str_arg(ad.args.not_relevant, 'not_relevant', config, "Not Relevant")
+
     # Ensure the logging directory is writeable
     if not ad.args.logging_directory or not os.access(ad.args.logging_directory, os.W_OK):
         if os.access(ad.args.master_excel_directory, os.W_OK):
@@ -208,13 +225,13 @@ def command_line(ad: AppData, description: str) -> None:
 
     # Dictionary of configuration status reference data
     ad.status_dict = {
-        0: {'description': "Out of Date", 'colour': '#FF0000', 'default': '#FF0000'},
-        1: {'description': "FT Needed", 'colour': '#FFFF40', 'default': '#FFFF40'},
-        2: {'description': "Competency Needed", 'colour': '#B7DEE8', 'default': '#B7DEE8'},
-        3: {'description': "Next Three Months", 'colour': '#FCD5B4', 'default': '#FCD5B4'},
-        4: {'description': "In Date", 'colour': '#D8E4BC', 'default': '#D8E4BC'},
-        5: {'description': "Not Required", 'colour': '#D9D9D9', 'default': '#D9D9D9'},
-        6: {'description': "Not Relevant", 'colour': '#FFFFFF', 'default': '#FFFFFF'}}
+        0: {'title': "Out of Date", 'text': ad.args.out_of_date, 'colour': '#FF0000', 'default': '#FF0000'},
+        1: {'title': "FT Needed", 'text': ad.args.ft_needed,  'colour': '#FFFF40', 'default': '#FFFF40'},
+        2: {'title': "Competency Needed", 'text': ad.args.competency_needed, 'colour': '#B7DEE8', 'default': '#B7DEE8'},
+        3: {'title': "Next Three Months", 'text': ad.args.next_three_months, 'colour': '#FCD5B4', 'default': '#FCD5B4'},
+        4: {'title': "In Date", 'text': ad.args.in_date, 'colour': '#D8E4BC', 'default': '#D8E4BC'},
+        5: {'title': "Not Required", 'text': ad.args.not_required, 'colour': '#D9D9D9', 'default': '#D9D9D9'},
+        6: {'title': "Not Relevant", 'text': ad.args.not_relevant, 'colour': '#FFFFFF', 'default': '#FFFFFF'}}
 
     # Apply saved colors from json configuration file
     ad.configuration_path = str(os.path.join(ad.args.master_excel_directory, f'{ad.app_name}.json'))

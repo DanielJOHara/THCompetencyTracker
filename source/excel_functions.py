@@ -80,7 +80,7 @@ def format_status_column(ws: xlsxwriter.workbook.Worksheet,
         else:
             this_format = wb.add_format(status_format | {'left': 1, 'right': 1, 'font_color': status_colour})
 
-        write_cell(ws, row, 0, status_dict[row_status[row]]['description'], this_format)
+        write_cell(ws, row, 0, status_dict[row_status[row]]['title'], this_format)
 
 
 def create_report_worksheet(wb: xlsxwriter.workbook.Workbook,

@@ -12,8 +12,10 @@ logger.addHandler(stream_handler)
 def value_list(ad):
     value_list = []
     for db_s in range(ad.md.len('Service')):
-        value_list.append({'Service Code': ad.md.get('Service', 'Service Code', db_s),
-                           'Service Name': ad.md.get('Service', 'Service Name', db_s)})
+        value_list.append({'Display Order': str(ad.md.get('Service', 'Display Order', db_s)),
+                           'Service Code': ad.md.get('Service', 'Service Code', db_s),
+                           'Service Name': ad.md.get('Service', 'Service Name', db_s),
+                           'Special': ad.md.get('Service', 'Special', db_s)})
     yield value_list
 
 
@@ -22,7 +24,7 @@ def test_add_service_success(ad):
     service_len = ad.md.len('Service')
     service_code = "NEW"
     service_name = "New Service"
-    success, message = ServiceLogic(ad).add_service(service_code, service_name)
+    success, message = ServiceLogic(ad).add_service(service_code, service_name, "4", False)
     
     assert success is True
     assert message == f"Added {service_code} - {service_name}"
@@ -34,7 +36,7 @@ def test_add_service_failure_exists(ad):
     """Test failing to add a service that already exists."""
     service_len = ad.md.len('Service')
     service_code = ad.md.get('Service', 'Service Code', 1) # SC2
-    success, message = ServiceLogic(ad).add_service(service_code, "Existing service code")
+    success, message = ServiceLogic(ad).add_service(service_code, "Existing service code", "4", False)
     
     assert success is False
     assert message == f"Service Code {service_code} all ready defined!"
@@ -44,7 +46,7 @@ def test_add_service_failure_exists(ad):
 def test_add_service_failure_no_code(ad):
     """Test failing to add a service with no service code."""
     service_len = ad.md.len('Service')
-    success, message = ServiceLogic(ad).add_service("", "No Code Service")
+    success, message = ServiceLogic(ad).add_service("", "No Code Service", "4", False)
     
     assert success is False
     assert message == "Service Code field must be set!"
@@ -113,12 +115,14 @@ def test_delete_service_with_dependents(ad):
 
 
 def test_save_services_no_changes(ad, value_list):
-    reported_changes = ServiceLogic(ad).save_services(value_list)
+    success, reported_changes, message = ServiceLogic(ad).save_services(value_list)
 
     input_and_output_match = True
     for db_s in range(ad.md.len('Service')):
         if (value_list[db_s]['Service Code'] != ad.md.get('Service', 'Service Code', db_s)
-           or value_list[db_s]['Service Name'] != ad.md.get('Service', 'Service Name', db_s)):
+           or value_list[db_s]['Service Name'] != ad.md.get('Service', 'Service Name', db_s)
+           or int(value_list[db_s]['Display Order']) != ad.md.get('Service', 'Display Order', db_s)
+           or value_list[db_s]['Special'] != ad.md.get('Service', 'Special', db_s)):
             input_and_output_match = False
             break
 
@@ -133,7 +137,7 @@ def test_save_services_with_changes(ad, value_list):
     value_list[idx]['Service Code'] = 'SC3New'
     value_list[idx]['Service Name'] = 'New Name'
 
-    reported_changes = ServiceLogic(ad).save_services(value_list)
+    success, reported_changes, message = ServiceLogic(ad).save_services(value_list)
 
     assert reported_changes == 1
 
@@ -144,7 +148,7 @@ def test_save_services_with_changes_and_dependencies(ad, value_list):
     value_list[idx]['Service Code'] = 'SC1New'
     value_list[idx]['Service Name'] = 'New Name'
 
-    reported_changes = ServiceLogic(ad).save_services(value_list)
+    success, reported_changes, message = ServiceLogic(ad).save_services(value_list)
 
     assert reported_changes == 1
     assert ad.md.find_one('Staff Role', 'SC1New', 'Service Code') > -1

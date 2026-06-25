@@ -37,7 +37,7 @@ class ChooseColours(object):
         self.btn_status_change = []
         for status in ad.status_dict:
             row += 1
-            self.lbl_description.append(ctk.CTkLabel(self.frm_attribute, text=ad.status_dict[status]['description']))
+            self.lbl_description.append(ctk.CTkLabel(self.frm_attribute, text=ad.status_dict[status]['title']))
             self.lbl_description[status].grid(row=row, column=0, pady=6, padx=10, sticky='e')
 
             self.btn_default.append(
@@ -91,8 +91,8 @@ class ChooseColours(object):
         colour = colorchooser.askcolor(
             master=self.wnd_colours,
             initialcolor=self.ad.status_dict[status]['colour'],
-            title=f"{self.ad.status_dict[status]['description']} colour")
-        logger.info(f"User chose {colour[1]} for {self.ad.status_dict[status]['description']}")
+            title=f"{self.ad.status_dict[status]['title']} colour")
+        logger.info(f"User chose {colour[1]} for {self.ad.status_dict[status]['title']}")
         if colour[1]:
             self.btn_current[status].configure(fg_color=colour[1], text=colour_to_numbers(str(colour[1])))
             self.ad.status_dict[status]['colour'] = colour[1]

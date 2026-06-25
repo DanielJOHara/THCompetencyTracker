@@ -75,6 +75,9 @@ def test_service_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad, mock
     service_add.ent_service_code.insert(0, 'NEW')
     service_add.ent_service_name.delete(0, 9999)
     service_add.ent_service_name.insert(0, 'New Service')
+    service_add.ent_display_order.delete(0, 9999)
+    service_add.ent_display_order.insert(0, '4')
+    service_add.chc_special.select()
     service_add.btn_add.invoke()
     pump_events(ctk_root)
 
@@ -85,6 +88,8 @@ def test_service_add(ctk_root, mock_input_warning, mock_ctk_messagebox, ad, mock
     db_s = ad.md.find_one('Service', 'NEW', 'Service Code')
     assert db_s > -1
     assert ad.md.get('Service', 'Service Name', db_s) == 'New Service'
+    assert ad.md.get('Service', 'Display Order', db_s) == 4
+    assert bool(ad.md.get('Service', 'Special', db_s)) is True
 
     # Close service add window
     service_add.btn_exit.invoke()
@@ -105,6 +110,8 @@ def test_service_delete(ctk_root, ad, mock_ctk_messagebox, mock_child_window):
     service_delete.refresh_service(None)
     pump_events(ctk_root)
     assert service_delete.ent_service_name.get() == 'Service Two'
+    assert service_delete.ent_display_order.get() == '2'
+    assert service_delete.chc_special.get() == 0
 
     # Delete the new record
     service_delete.btn_delete.invoke()

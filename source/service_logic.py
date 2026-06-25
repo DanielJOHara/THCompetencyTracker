@@ -12,9 +12,14 @@ class ServiceLogic(object):
         """Initialise the ServiceLogic class."""
         self.ad = ad
 
-    def save_services(self, service_values: list) -> int:
+    def save_services(self, service_values: list) -> tuple[bool, int, str]:
         """Read all values in table and update the table object if any values
            have changed."""
+        # Validate that Display Order is an integer
+        for db_s in range(self.ad.md.len('Service')):
+            if not service_values[db_s]['Display Order'].isdigit():
+                return False, 0, "Display Order field must be integer!"
+
         number_changes = 0
         for db_s in range(self.ad.md.len('Service')):
             old_code = self.ad.md.get('Service', 'Service Code', db_s)
@@ -27,17 +32,24 @@ class ServiceLogic(object):
                 self.ad.md.replace('Role Competency', 'Service Code', old_code, new_code)
                 self.ad.md.replace('Competency Service', 'Service Code', old_code, new_code)
 
+            new_display_order = int(service_values[db_s]['Display Order'])
+            new_service_name = service_values[db_s]['Service Name']
+            new_special = service_values[db_s]['Special']
             if (old_code != new_code
-                    or self.ad.md.get('Service', 'Service Name', db_s) != service_values[db_s]['Service Name']):
+                    or self.ad.md.get('Service', 'Display Order', db_s) != new_display_order
+                    or self.ad.md.get('Service', 'Service Name', db_s) != new_service_name
+                    or self.ad.md.get('Service', 'Special', db_s) != new_special):
                 number_changes += 1
                 self.ad.master_updated = True
-                self.ad.md.update_row('Service', db_s, {'Service Code': service_values[db_s]['Service Code'],
-                                                        'Service Name': service_values[db_s]['Service Name']})
+                self.ad.md.update_row('Service', db_s, {'Display Order': new_display_order,
+                                                        'Service Code': service_values[db_s]['Service Code'],
+                                                        'Service Name': new_service_name,
+                                                        'Special': new_special})
         
         if number_changes > 0:
             self.ad.md.sort_table('Service')
 
-        return number_changes
+        return True, number_changes, f"{number_changes} Service changes saved"
 
     def delete_service(self, service_code: str) -> tuple[bool, bool, str]:
         """Delete a service and its dependent records."""
@@ -74,7 +86,7 @@ class ServiceLogic(object):
         # Delete entries for Service Code in Competency Service table
         self.ad.md.delete_value('Competency Service', 'Service Code', service_code)
 
-    def add_service(self, service_code: str, service_name: str) -> tuple[bool, str]:
+    def add_service(self, service_code: str, service_name: str, display_order: str, special: bool) -> tuple[bool, str]:
         """Add a new service."""
         if not service_code:
             return False, "Service Code field must be set!"
@@ -83,12 +95,22 @@ class ServiceLogic(object):
         if not service_name:
             service_name = service_code
 
+        if not display_order:
+            display_order = self.ad.md.get('Service', 'Display Order', self.ad.md.len('Service') - 1) + 1
+        else:
+            if not display_order.isdigit():
+                return False, "Display Order field must be integer!"
+            display_order = int(display_order)
+
         # Check Service Code is not already defined
         try:
             self.ad.md.index('Service', 'Service Code', service_code)
         except IndexError:
             self.ad.master_updated = True
-            self.ad.md.add_row('Service', {'Service Code': service_code, 'Service Name': service_name})
+            self.ad.md.add_row('Service', {'Service Code': service_code,
+                                           'Service Name': service_name,
+                                           'Display Order': display_order,
+                                           'Special': special})
             return True, f"Added {service_code} - {service_name}"
         else:
             return False, f"Service Code {service_code} all ready defined!"

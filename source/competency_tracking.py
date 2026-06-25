@@ -12,7 +12,7 @@ import tkinter as tk
 from CTkMessagebox import CTkMessagebox
 
 from source.appdata import AppData
-from source.window import child_window, input_warning
+from source.window import child_window, input_warning, staff_name_filter
 from source.staff_competency_gui import StaffCompetencyUpdate
 from source.staff_competency_grid_gui import StaffCompetencyGrid
 from source.staff_competency_grid_export import competency_grid_export
@@ -101,9 +101,11 @@ class StaffCompetencyGridSelect(object):
         row += 1
         self.lbl_service_code = ctk.CTkLabel(self.frm_attribute, text="Service Code")
         self.lbl_service_code.grid(row=row, column=0, pady=6, padx=10, sticky='e')
-        service_code_list = ad.md.get_list('Service', 'Service Code')
-        if 'LEFT' in service_code_list:
-            service_code_list.remove('LEFT')
+        # Limit selection to non Special Service Codes
+        service_code_list = []
+        for db_s in range(self.ad.md.len('Service')):
+            if not ad.md.get('Service', 'Special', db_s):
+                service_code_list.append(ad.md.get('Service', 'Service Code', db_s))
         self.cmb_service_code = ctk.CTkComboBox(self.frm_attribute, state='readonly',
                                                 values=service_code_list,
                                                 command=self.call_review)
@@ -173,7 +175,8 @@ class ReportSelect(object):
         self.chc_service_code_list = []
         for s, service_code in enumerate(self.ad.md.get_list('Service', 'Service Code')):
             self.chc_service_code_list.append(ctk.CTkCheckBox(self.frm_attribute, text=service_code))
-            if report_type != 'GRID' or service_code != 'LEFT':
+            special = self.ad.md.get('Service', 'Special', s)
+            if report_type != 'GRID' or not special:
                 row += 1
                 self.chc_service_code_list[s].grid(row=row, column=0, pady=6, padx=20, sticky='e')
                 self.chc_service_code_list[s].bind("<Button-1>", command=self.set_default_file)
@@ -478,11 +481,10 @@ class StaffDocumentSelect(object):
 
         service_filter = self.cmb_service_filter.get()
 
-        # Remove every thing except letters and spaces from name filter string
-        name_filter = self.ent_name_filter.get()
+        # Standardise the staff filter name
+        name_filter = staff_name_filter(self.ent_name_filter.get())
+        self.ent_name_filter.delete(0, 9999)
         if name_filter:
-            name_filter = re.sub(r"[^a-zA-Z -']", '', name_filter).strip()
-            self.ent_name_filter.delete(0, 9999)
             self.ent_name_filter.insert(0, name_filter)
 
         # Filter staff names for RN or role, service and name match

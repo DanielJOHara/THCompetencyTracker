@@ -32,7 +32,7 @@ class MasterData:
             'Service', 'Role', 'Staff', 'Competency', 'Role Service',
             'Competency Service', 'Staff Role', 'Role Competency', 'Staff Competency']
         self.table_columns = {
-            'Service': ['Service Name', 'Service Code'],
+            'Service': ['Display Order', 'Service Name', 'Service Code', 'Special'],
             'Role': ['Role Name', 'Role Code', 'RN', 'Display Order'],
             'Staff': ['Staff Name', 'Start Date', 'Practice Supervisor', 'Practice Assessor'],
             'Competency': ['Competency Name', 'Competency Name', 'Scope', 'Display Order', 'Expiry',
@@ -54,7 +54,7 @@ class MasterData:
             'Role Competency': ['Role Code', 'Competency Name', 'Service Code'],
             'Staff Competency': ['Staff Name', 'Competency Name']}
         self.table_order = {
-            'Service': ['Service Code'],
+            'Service': ['Display Order'],
             'Role': ['Display Order'],
             'Staff': ['Staff Name'],
             'Competency': ['Display Order'],
@@ -160,24 +160,42 @@ class MasterData:
         for table in self.tables:
             try:
                 self._df[table] = pd.read_excel(excel_path, sheet_name=table, keep_default_na=False)
+                if table == 'Service':
+                    if 'Display Order' not in self._df[table].columns:
+                        self._df[table]['Display Order'] = range(1, len(self._df[table]) + 1)
+                    if 'Special' not in self._df[table].columns:
+                        self._df[table]['Special'] = False
+                        db_s = self.find_one(table, 'LEFT', 'Service Code')
+                        if db_s > -1:
+                            self.update_row(table, db_s, {'Special': True})
+
             except (IOError, ValueError) as e:
-                # If Role Service and/or Competency Service sheets are missing
-                # add them with all Srvice Codes set except for LEFT
+                special_list = self._df['Service'].loc[self._df['Service']['Special'] == 1, 'Service Code'].tolist()
+                # If Role Service sheet is missing add it with all values set except for special service codes
                 if table == 'Role Service':
-                    logger.info(f"Adding {table} table with values set for all Service Codes except LEFT")
+                    logger.info(f"Adding {table} table with values set for all non special Service Codes")
                     data = []
                     for role_code in self._df['Role']['Role Code'].tolist():
                         for service_code in self._df['Service']['Service Code'].tolist():
-                            if service_code != 'LEFT':
+                            if service_code not in special_list:
                                 data.append([role_code, service_code])
                     self.add_table(table, self.table_columns[table], data)
-                # If Competency Service sheet is missing add it with all values set except for LEFT service code
+                # If Competency Service sheet is missing add it with all values set except for special service codes
                 elif table == 'Competency Service':
-                    logger.info(f"Adding {table} table with values set for all Service Codes except LEFT")
+                    logger.info(f"Adding {table} table with values set for all non special Service Codes")
                     data = []
                     for competency_name in self._df['Competency']['Competency Name'].tolist():
                         for service_code in self._df['Service']['Service Code'].tolist():
-                            if service_code != 'LEFT':
+                            if service_code not in special_list:
+                                data.append([competency_name, service_code])
+                    self.add_table(table, self.table_columns[table], data)
+                # If Competency Service sheet is missing add it with all values set except for special service codes
+                elif table == 'Competency Service':
+                    logger.info(f"Adding {table} table with values set for all non Special Service Codes")
+                    data = []
+                    for competency_name in self._df['Competency']['Competency Name'].tolist():
+                        for service_code in self._df['Service']['Service Code'].tolist():
+                            if service_code not in special_list:
                                 data.append([competency_name, service_code])
                     self.add_table(table, self.table_columns[table], data)
                 else:
@@ -317,6 +335,7 @@ class MasterData:
         """Update the row with the specified index in the specified table with the values in the supplied dictionary.
            Values in the dictionary not in the table will be ignored. The table is not sorted incase the user is
            updating multiple rows and sorting will change the index."""
+        logger.debug(f"Updating row {index} in table {table} with {update_row}")
         for key, value in update_row.items():
             if key in self._df[table]:
                 self._df[table].at[index, key] = value

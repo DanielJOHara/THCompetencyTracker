@@ -1,6 +1,9 @@
+import os
+import pandas as pd
 import pytest
 import customtkinter as ctk
 import _tkinter
+from source.window import parse_date
 from unittest.mock import MagicMock, patch
 from source.master_data import MasterData
 from source.appdata import AppData
@@ -32,6 +35,96 @@ def ctk_root():
 
 
 @pytest.fixture
+def master_data_path(tmp_path):
+    """Fixture to create a temporary Excel file with test data."""
+    file_path = tmp_path / "TestMasterData.xlsx"
+    
+    # Define minimal data for tests
+    data = {
+        'Service': pd.DataFrame({
+            'Display Order': [1, 2, 3, 4],
+            'Service Name': ['In Patient Service', 'Staff Who Left', 'Out Patient Service', 'Hospice at Home'],
+            'Service Code': ['IPS', 'LEFT', 'OPS', 'PCRT'],
+            'Special': [0, 1, 0, 0],
+            'User': ['Unknown']*4,
+            'Change Date': ['Unknown']*4
+        }),
+        'Role': pd.DataFrame({
+            'Role Name': ['Role One', 'Role Two'],
+            'Role Code': ['R1', 'R2'],
+            'Display Order': [1, 2],
+            'RN': [1, 0],
+            'User': ['Unknown']*2,
+            'Change Date': ['Unknown']*2
+        }),
+        'Staff': pd.DataFrame({
+            'Staff Name': ['A Staff', 'Captain Amelia', 'Z Staff', 'Huey Duck', 'Dewey Duck'],
+            'Start Date': [parse_date("2023-01-01"), parse_date("2023-02-01"), parse_date("2023-03-01"),
+                           parse_date("2023-04-01"), parse_date("2023-05-01")],
+            'Practice Supervisor': [0, 1, 0, 0, 0],
+            'Practice Assessor': [0, 1, 0, 0, 0],
+            'User': ['Unknown']*5,
+            'Change Date': ['Unknown']*5
+        }),
+        'Competency': pd.DataFrame({
+            'Competency Name': ['VoED', 'Cannulation'],
+            'Scope': ['BOTH', 'RN'],
+            'Display Order': [1, 2],
+            'Expiry': [2, 0],
+            'Prerequisite': [0, 0],
+            'Nightshift': [0, 0],
+            'Bank': [0, 0],
+            'User': ['Unknown']*2,
+            'Change Date': ['Unknown']*2
+        }),
+        'Staff Role': pd.DataFrame({
+            'Staff Name': ['A Staff', 'Captain Amelia'],
+            'Role Code': ['R1', 'R2'],
+            'Service Code': ['IPS', 'OPS'],
+            'Bank': [0, 0],
+            'Nightshift': [0, 0],
+            'User': ['Unknown']*2,
+            'Change Date': ['Unknown']*2
+        }),
+        'Role Competency': pd.DataFrame({
+            'Role Code': ['R1', 'R2'],
+            'Competency Name': ['VoED', 'Cannulation'],
+            'Service Code': ['IPS', 'OPS'],
+            'User': ['Unknown']*2,
+            'Change Date': ['Unknown']*2
+        }),
+        'Staff Competency': pd.DataFrame({
+            'Staff Name': ['Huey Duck', 'Dewey Duck'],
+            'Competency Name': ['VoED', 'Cannulation'],
+            'Prerequisite Date': [pd.NaT, pd.NaT],
+            'Achieved': [1, 0],
+            'Competency Date': [parse_date("2024-01-30"), pd.NaT],
+            'Completed': [1, 0],
+            'Notes': ['PD', ''],
+            'Not Required': [0, 0],
+            'Required': [0, 0],
+            'User': ['dudlea', 'unknown'],
+            'Change Date': [parse_date("2024-01-31"), pd.NaT]
+        })
+    }
+    
+    with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+        for sheet_name, df in data.items():
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+            
+    return str(file_path)
+
+
+@pytest.fixture
+def md(master_data_path):
+    """Fixture to provide a MasterData instance pointing to a temporary file."""
+    md_instance = MasterData(master_data_path, 30)
+    md_instance.load()
+    yield md_instance
+    md_instance._unlock()
+
+
+@pytest.fixture
 def ad():
     """Fixture to create an AppData object with a fully populated MasterData instance."""
     ad = AppData()
@@ -44,10 +137,10 @@ def ad():
     
     # Service
     ad.md.add_table('Service',
-                    ['Service Name', 'Service Code'],
-                    [["Service One", "SC1"],
-                     ["Service Two", "SC2"],
-                     ["Service Three", "SC3"]])
+                    ['Display Order', 'Service Name', 'Service Code', 'Special'],
+                    [[1, "Service One", "SC1", 0],
+                     [2, "Service Two", "SC2", 0],
+                     [3, "Service Three", "SC3", 0]])
     
     # Role
     ad.md.add_table('Role',
@@ -103,11 +196,12 @@ def ad():
 def ad_with_status(ad):
     """Fixture to add status_dict to the centralized ad fixture."""
     ad.status_dict = {
-        0: {'description': "Out of Date", 'colour': '#FF0000', 'default': '#FF0000'},
-        1: {'description': "FT Needed", 'colour': '#FFFF40', 'default': '#FFFF40'},
-        2: {'description': "Competency Needed", 'colour': '#B7DEE8', 'default': '#B7DEE8'},
-        3: {'description': "Next Three Months", 'colour': '#FCD5B4', 'default': '#FCD5B4'},
-        4: {'description': "In Date", 'colour': '#D8E4BC', 'default': '#D8E4BC'},
-        5: {'description': "Not Required", 'colour': '#D9D9D9', 'default': '#D9D9D9'},
-        6: {'description': "Not Relevant", 'colour': '#FFFFFF', 'default': '#FFFFFF'}}
+        0: {'title': "Out of Date", 'text': "Out of Date", 'colour': '#FF0000', 'default': '#FF0000'},
+        1: {'title': "FT Needed", 'text': "Prerequisite Needed", 'colour': '#FFFF40', 'default': '#FFFF40'},
+        2: {'title': "Competency Needed", 'text': "Competency Needed", 'colour': '#B7DEE8', 'default': '#B7DEE8'},
+        3: {'title': "Next Three Months", 'text': "Within 3 Months", 'colour': '#FCD5B4', 'default': '#FCD5B4'},
+        4: {'title': "In Date", 'text': "In Date", 'colour': '#D8E4BC', 'default': '#D8E4BC'},
+        5: {'title': "Not Required", 'text': "Not Required For Role", 'colour': '#D9D9D9', 'default': '#D9D9D9'},
+        6: {'title': "Not Relevant", 'text': "Not Relevant", 'colour': '#FFFFFF', 'default': '#FFFFFF'}}
+
     return ad
