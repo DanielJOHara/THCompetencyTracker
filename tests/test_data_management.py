@@ -28,3 +28,22 @@ def test_data_management_buttons(mock_child, ctk_root, ad_with_status):
     
     wnd.destroy()
     pump_events(ctk_root)
+
+
+@patch('source.data_management.child_window')
+def test_role_competency_grid_select(mock_child, ctk_root, ad_with_status):
+    from source.data_management import RoleCompetencyGridSelect
+    wnd = ctk.CTkToplevel(ctk_root)
+    app = RoleCompetencyGridSelect(ad_with_status, wnd)
+    pump_events(ctk_root)
+    
+    assert app.cmb_service_code is not None
+    assert app.cmb_staff_type is not None
+    
+    app.cmb_service_code.set('SC1')
+    app.cmb_staff_type.set('RN')
+    app.call_review('dummy_event')
+    
+    assert mock_child.called
+    pump_events(ctk_root)
+

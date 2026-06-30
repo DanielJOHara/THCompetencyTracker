@@ -35,7 +35,7 @@ class MasterData:
             'Service': ['Display Order', 'Service Name', 'Service Code', 'Special'],
             'Role': ['Role Name', 'Role Code', 'RN', 'Display Order'],
             'Staff': ['Staff Name', 'Start Date', 'Practice Supervisor', 'Practice Assessor'],
-            'Competency': ['Competency Name', 'Competency Name', 'Scope', 'Display Order', 'Expiry',
+            'Competency': ['Competency Name', 'Scope', 'Display Order', 'Expiry',
                            'Prerequisite', 'Nightshift', 'Bank'],
             'Role Service': ['Role Code', 'Service Code'],
             'Competency Service': ['Competency Name', 'Service Code'],
@@ -183,15 +183,6 @@ class MasterData:
                 # If Competency Service sheet is missing add it with all values set except for special service codes
                 elif table == 'Competency Service':
                     logger.info(f"Adding {table} table with values set for all non special Service Codes")
-                    data = []
-                    for competency_name in self._df['Competency']['Competency Name'].tolist():
-                        for service_code in self._df['Service']['Service Code'].tolist():
-                            if service_code not in special_list:
-                                data.append([competency_name, service_code])
-                    self.add_table(table, self.table_columns[table], data)
-                # If Competency Service sheet is missing add it with all values set except for special service codes
-                elif table == 'Competency Service':
-                    logger.info(f"Adding {table} table with values set for all non Special Service Codes")
                     data = []
                     for competency_name in self._df['Competency']['Competency Name'].tolist():
                         for service_code in self._df['Service']['Service Code'].tolist():
