@@ -13,6 +13,7 @@ from source.staff_logic import StaffLogic
 from source.staff_role_gui import StaffRoleUpdate
 from source.window import (child_window, set_disabled_checkbox,  set_disabled_entry, input_warning,
                            parse_date, date_to_string, show_master_data_error, staff_name_filter)
+from source.layout_utils import LayoutUtils
 
 logger = logging.getLogger(__name__)
 
@@ -361,18 +362,14 @@ class StaffUpdate(object):
             when the labels are created.
             """
         logger.debug(f"Event widget [{event.widget}]")
-        # Extract label number from widget
-        label_number_search = re.search(r'ctklabel(\d+)?', str(event.widget))
-        if not label_number_search:
+        widget_label_number = LayoutUtils.parse_widget_label_num(str(event.widget))
+        if widget_label_number is None:
             logger.error(f"Failed to extract label number from event widget [{event.widget}]")
             return
 
-        # First label has no number
-        if not label_number_search.group(1):
-            widget_label_number = 1
+        if widget_label_number == 1:
             s_index = 0
         else:
-            widget_label_number = int(label_number_search.group(1))
             s_index = -1
             for s, label_num in enumerate(self.label_number_list):
                 if label_num == widget_label_number:

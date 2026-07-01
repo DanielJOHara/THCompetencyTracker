@@ -13,6 +13,7 @@ from source.competency_logic import CompetencyLogic
 from source.competency_service_gui import CompetencyServiceUpdate
 from source.window import child_window, set_disabled_checkbox, set_disabled_entry, \
     input_warning, widget_dict_values, show_master_data_error
+from source.layout_utils import LayoutUtils
 
 logger = logging.getLogger(__name__)
 
@@ -186,17 +187,12 @@ class CompetencyUpdate(object):
 
     def handel_service_click(self, event: tk.Event):
         logger.debug(f"Click from event widget [{event.widget}]")
-        # Extract label number from widget
-        label_num_search = re.search(r'ctklabel(\d+)?', str(event.widget))
-        if not label_num_search:
+        label_num = LayoutUtils.parse_widget_label_num(str(event.widget))
+        if label_num is None:
             logger.error(f"Failed to extract label number from event widget [{event.widget}]")
             return
 
-        # First label has no number
-        if not label_num_search.group(1):
-            db_c = 0
-        else:
-            db_c = int(label_num_search.group(1)) - 1
+        db_c = label_num - 1
 
         competency_name = self.ad.md.get('Competency', 'Competency Name', db_c)
         child_window(CompetencyServiceUpdate, self.ad, self.wnd_competency, competency_name)

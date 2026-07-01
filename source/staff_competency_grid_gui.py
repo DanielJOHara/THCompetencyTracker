@@ -14,6 +14,7 @@ from source.staff_competency_gui import StaffCompetencyUpdate
 from source.tool_tip import ToolTip, competency_tip_text, role_tip_text
 from source.window import child_window, date_to_string
 from source.competency_display import set_display_value, staff_competency_lists
+from source.layout_utils import LayoutUtils
 
 logger = logging.getLogger(__name__)
 
@@ -441,17 +442,12 @@ class StaffCompetencyGrid(object):
     def handel_assessor_click(self, event: tk.Event):
         """When a staff members assessor or supervisor cell is clicked open
            a window to allow user to set these values for the staff member."""
-        # Extract label number from widget
-        label_num_search = re.search(r'label(\d+)', str(event.widget))
-        if not label_num_search:
+        label_num = LayoutUtils.parse_widget_label_num(str(event.widget), r'label(\d+)')
+        if label_num is None:
             logger.error(f"Failed to extract label number from event widget [{event.widget}]")
             return
-        label_num = int(label_num_search.group(1))
 
-        # The labels for all staff name and role are created first then for each refresh of the practice columns for
-        # each staff name a pair for practice assessor and supervisor labels are created. So the modulus twice the
-        # number of customers of the label number plus one divided by 2 gives the row number.
-        s = int((label_num % (2 * len(self.db_s_list)) + 1) / 2) - 1
+        s = LayoutUtils.assessor_row_from_label_num(label_num, len(self.db_s_list))
         staff_name = self.ad.md.get('Staff', 'Staff Name', self.db_s_list[s])
 
         # Invoke child widow to allow user to update the Practice Assessor status
@@ -493,29 +489,12 @@ class StaffCompetencyGrid(object):
             the event widget. This is then used to calculate the index into the
             staff name list and the competency name list. The numbers go up
             sequential from the top left hand corner of the grid."""
-        # Extract label number from widget
-        label_num_search = re.search(r'label(\d+)?', str(event.widget))
-        if not label_num_search:
+        label_num = LayoutUtils.parse_widget_label_num(str(event.widget), r'label(\d+)?')
+        if label_num is None:
             logger.error(f"Failed to extract label number from event widget [{event.widget}]")
             return
 
-        # First label has no number
-        if not label_num_search.group(1):
-            label_num = 1
-        else:
-            label_num = int(label_num_search.group(1))
-
-        # The staff index is simply label number minus one divided by the
-        # number of competencies rounded down
-        s = int((label_num - 1) / len(self.db_c_list))
-
-        # Use modules number of the number of competencies the label
-        # number to set the competency index
-        # 0 is a special case as this is the last column
-        if label_num % len(self.db_c_list) == 0:
-            c = len(self.db_c_list) - 1
-        else:
-            c = label_num % len(self.db_c_list) - 1
+        s, c = LayoutUtils.grid_coords_from_label_num(label_num, len(self.db_c_list))
 
         logger.debug(f"Clicked widget {str(event.widget)}, label number{label_num}, staff index {c}"
                      f" of {len(self.db_s_list)} competency {s} of {len(self.db_c_list)}")

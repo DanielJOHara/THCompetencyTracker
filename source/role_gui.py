@@ -13,6 +13,7 @@ from source.role_logic import RoleUpdateLogic
 from source.role_service_gui import RoleServiceUpdate
 from source.window import child_window, set_disabled_checkbox, set_disabled_entry, \
     input_warning, widget_dict_values, show_master_data_error
+from source.layout_utils import LayoutUtils
 
 logger = logging.getLogger(__name__)
 
@@ -166,17 +167,12 @@ class RoleUpdate(object):
 
     def handel_service_click(self, event: tk.Event):
         logger.debug(f"Click from event widget [{event.widget}]")
-        # Extract label number from widget
-        label_num_search = re.search(r'ctklabel(\d+)?', str(event.widget))
-        if not label_num_search:
+        label_num = LayoutUtils.parse_widget_label_num(str(event.widget))
+        if label_num is None:
             logger.error(f"Failed to extract label number from event widget [{event.widget}]")
             return
 
-        # First label has no number
-        if not label_num_search.group(1):
-            db_r = 0
-        else:
-            db_r = int(label_num_search.group(1)) - 1
+        db_r = label_num - 1
 
         role_code = self.ad.md.get('Role', 'Role Code', db_r)
         child_window(RoleServiceUpdate, self.ad, self.wnd_role, role_code)
