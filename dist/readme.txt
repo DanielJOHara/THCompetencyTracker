@@ -133,3 +133,4 @@ Functional Changes:
     On change information windows specify the table that was changed.
     Added Display Order and Special column to Service table.
     Added ini file only parameters to change descriptions for competencies states.
+

@@ -205,6 +205,11 @@ def command_line(ad: AppData, description: str) -> None:
     ad.args.not_required = str_arg(ad.args.not_required, 'not_required', config, "Not Required For Role")
     ad.args.not_relevant = str_arg(ad.args.not_relevant, 'not_relevant', config, "Not Relevant")
 
+    # Substitute user name in directory parameters
+    ad.args.master_excel_directory = str(ad.args.master_excel_directory).replace('@User@', ad.username)
+    ad.args.report_directory = str(ad.args.report_directory).replace('@User@', ad.username)
+    ad.args.logging_directory = str(ad.args.logging_directory).replace('@User@', ad.username)
+
     # Ensure the logging directory is writeable
     if not ad.args.logging_directory or not os.access(ad.args.logging_directory, os.W_OK):
         if os.access(ad.args.master_excel_directory, os.W_OK):
