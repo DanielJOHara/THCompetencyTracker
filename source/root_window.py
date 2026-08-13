@@ -8,6 +8,8 @@ import tkinter as tk
 from CTkMessagebox import CTkMessagebox
 from PIL import ImageTk
 
+from competency_column_gui import CompetencyColumn
+from competency_diff_gui import CompetencyDiff
 from source.appdata import AppData
 from source.command_line import resource
 from source.master_data import MasterData, MasterDataError
@@ -56,6 +58,11 @@ class RootWindow:
                                       state='disabled', command=self.handle_save_click)
         self.btn_save.pack(pady=12, padx=20)
 
+        if ad.args.comp_report:
+            self.btn_report = ctk.CTkButton(self.frm_button, text="Load Competency",
+                                            state='disabled', command=self.handle_report_click)
+            self.btn_report.pack(pady=12, padx=20)
+
         self.btn_data_input = ctk.CTkButton(self.frm_button, text="Data Management", state='disabled',
                                             command=lambda: child_window(DataManagement, ad, self.wnd_root))
         self.btn_data_input.pack(pady=12, padx=20)
@@ -89,7 +96,7 @@ class RootWindow:
         master_excel_path = str(os.path.join(self.ad.args.master_excel_directory, self.ad.args.master_excel_file_name))
         self.ad.md = MasterData(master_excel_path, self.ad.args.retention)
         try:
-            self.ad.md.load(master_excel_path, readonly=self.ad.args.readonly)
+            self.ad.md.load_excel(master_excel_path, readonly=self.ad.args.readonly)
             self.set_button_states()
 
             # In readonly mode hide root window and start competency tracking window
@@ -113,7 +120,7 @@ class RootWindow:
                     if msg.get() == 'Read Only':
                         self.ad.args.readonly = True
                         try:
-                            self.ad.md.load(master_excel_path, readonly=self.ad.args.readonly)
+                            self.ad.md.load_excel(master_excel_path, readonly=self.ad.args.readonly)
                             self.wnd_root.withdraw()
                             child_window(CompetencyTracking, self.ad, self.wnd_root)
                         except (IOError, ValueError) as e:
@@ -125,13 +132,15 @@ class RootWindow:
                     CTkMessagebox(title="Data Load Error", message=e, icon='warning')
 
     def set_button_states(self) -> None:
-        """Enable (normal) buttons that dependant on the master spreadsheet being loaded."""
+        """Enable (state='normal') buttons that dependant on the master spreadsheet being loaded."""
         if hasattr(self, 'btn_competency'):
             self.btn_competency.configure(state='normal')
         if hasattr(self, 'btn_save'):
             self.btn_save.configure(state='normal')
         if hasattr(self, 'btn_data_input'):
             self.btn_data_input.configure(state='normal')
+        if hasattr(self, 'btn_report'):
+            self.btn_report.configure(state='normal')
 
     def handle_reload_click(self) -> None:
         """Prompt user for the location of a master Excel file and load it."""
@@ -143,7 +152,7 @@ class RootWindow:
         logger.info(f"User selected to re-load master Excel: {excel_path}")
         if excel_path:
             try:
-                self.ad.md.load(str(excel_path))
+                self.ad.md.load_excel(str(excel_path))
                 self.set_button_states()
             except MasterDataError as e:
                 show_master_data_error(str(e), self.wnd_root)
@@ -157,6 +166,17 @@ class RootWindow:
         self.ad.md.write()
         self.ad.master_updated = False
         CTkMessagebox(title="Information", message="Master data saved", icon='info')
+
+    def handle_report_click(self) -> None:
+        """Call window to process report."""
+        report_path = tk.filedialog.askopenfilename(
+            initialdir=self.ad.args.report_directory,
+            initialfile=self.ad.args.comp_file_name,
+            title="Select Competency Report Excel File",
+            filetype=(('xlsx files', '*.xlsx'),)).replace('/', '\\')
+        logger.info(f"User selected to load competency report Excel: {report_path}")
+        if report_path:
+            child_window(CompetencyColumn, self.ad, self.wnd_root, report_path)
 
     def on_closing(self) -> None:
         """When the root window is closed check if there are any data updates

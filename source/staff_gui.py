@@ -520,12 +520,13 @@ class StaffDelete(object):
 
 class StaffAdd(object):
     """Window to allow user to add a single Staff data record."""
-    def __init__(self, ad: AppData, wnd_staff_add: ctk.CTkToplevel) -> None:
+    def __init__(self, ad: AppData, wnd_staff_add: ctk.CTkToplevel, staff_name: str = None) -> None:
 
         logger.info(f"Creating Staff data add row window")
 
-        self.wnd_staff_add = wnd_staff_add
         self.ad = ad
+        self.wnd_staff_add = wnd_staff_add
+        self.staff_name = staff_name
         self.sl = StaffLogic(ad)
 
         # Add title top window
@@ -539,6 +540,10 @@ class StaffAdd(object):
         self.lbl_staff_name.grid(row=row, column=0, pady=6, padx=10, sticky='e')
         self.ent_staff_name = ctk.CTkEntry(self.frm_attribute)
         self.ent_staff_name.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+
+        if self.staff_name:
+            self.ent_staff_name.insert(0, self.staff_name)
+            self.ent_staff_name.configure(state='disabled')
 
         row += 1
         self.lbl_start_date = ctk.CTkLabel(self.frm_attribute, text="Start Date")
@@ -580,12 +585,15 @@ class StaffAdd(object):
                 # Open window to add roles for the new staff member
                 child_window(StaffRoleUpdate, self.ad, self.wnd_staff_add, re.sub(' +', ' ', staff_name.strip()))
 
-                # Display message from adding the staff member
-                CTkMessagebox(title="Information", message=message, icon='info')
-                self.ent_staff_name.delete(0, 9999)
-                self.ent_start_date.delete(0, 9999)
-                self.chc_practice_supervisor.deselect()
-                self.chc_practice_assessor.deselect()
+                if self.staff_name:
+                    self.wnd_staff_add.destroy()
+                else:
+                    # Display message from adding the staff member
+                    CTkMessagebox(title="Information", message=message, icon='info')
+                    self.ent_staff_name.delete(0, 9999)
+                    self.ent_start_date.delete(0, 9999)
+                    self.chc_practice_supervisor.deselect()
+                    self.chc_practice_assessor.deselect()
             else:
                 input_warning(self.wnd_staff_add, message)
         except MasterDataError as e:

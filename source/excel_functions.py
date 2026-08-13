@@ -87,8 +87,8 @@ def create_report_worksheet(wb: xlsxwriter.workbook.Workbook,
                             sheet_name: str,
                             header: list,
                             format_header: xlsxwriter.workbook.Format,
-                            protect_options: dict,
-                            password: str) -> xlsxwriter.workbook.Worksheet:
+                            protect_options: dict = None,
+                            password: str = '') -> xlsxwriter.workbook.Worksheet:
     """Create a worksheet with a header row and basic formatting."""
     ws = wb.add_worksheet(sheet_name)
     ws.hide_gridlines(2)
@@ -96,5 +96,6 @@ def create_report_worksheet(wb: xlsxwriter.workbook.Workbook,
     col = 0
     for item in header:
         col = write_cell(ws, 0, col, item['label'], format_header, width=item['width'])
-    ws.protect(password, protect_options)
+    if protect_options and password:
+        ws.protect(password, protect_options)
     return ws

@@ -41,7 +41,7 @@ def child_window(function: Callable[..., Any],
 
 def input_warning(wnd: ctk.CTk | ctk.CTkToplevel, message: str) -> None:
     """Display a warning message box then grab back focus."""
-    win_msg = CTkMessagebox(title="Data Input Error", message=message, icon='warning', option_1='OK')
+    win_msg = CTkMessagebox(wnd, title="Data Input Error", message=message, icon='warning', option_1='OK')
     logger.info(f"Displaying Data Input Error: {message}")
     if win_msg.get() != 'OK':
         pass
@@ -112,7 +112,7 @@ def widget_dict_values(widget_dict_list: list) -> list:
             if type(widget_dict[widget]) in [ctk.CTkEntry, ctk.CTkComboBox, ctk.CTkCheckBox, ctk.CTkTextbox]:
                 value_dict[widget] = widget_dict[widget].get()
             else:
-                logger.warning(f"Widget {widget} type {type(widget_dict[widget])} not processed")
+                logger.debug(f"Widget {widget} type {type(widget_dict[widget])} not processed")
         value_dict_list.append(value_dict)
 
     return value_dict_list

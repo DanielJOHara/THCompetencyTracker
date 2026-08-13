@@ -119,7 +119,7 @@ def master_data_path(tmp_path):
 def md(master_data_path):
     """Fixture to provide a MasterData instance pointing to a temporary file."""
     md_instance = MasterData(master_data_path, 30)
-    md_instance.load()
+    md_instance.load_excel()
     yield md_instance
     md_instance._unlock()
 

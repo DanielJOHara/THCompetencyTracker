@@ -143,8 +143,8 @@ class MasterData:
         self._df[table].sort_values(self.table_order[table], inplace=True)
         self._df[table].reset_index(drop=True, inplace=True)
 
-    def load(self, excel_path: str = None, readonly: bool = False) -> None:
-        """Load the data from file. The path is optional for just this load keeping the master location the same.
+    def load_excel(self, excel_path: str = None, readonly: bool = False) -> None:
+        """Load the data from excel file. The path is optional for just this load keeping the master location the same.
            This allows an archive version of the master excel to be loaded to replace the current master."""
         if not excel_path:
             excel_path = self.master_excel_path

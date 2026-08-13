@@ -134,3 +134,9 @@ Functional Changes:
     Added Display Order and Special column to Service table.
     Added ini file only parameters to change descriptions for competencies states.
     Substitute @User@ with user name in directory parameters.
+
+Version 0.1.2.14
+Technical Changes:
+
+Functional Changes:
+    Added ability to load a competency spreadsheet and compair it to the master data.

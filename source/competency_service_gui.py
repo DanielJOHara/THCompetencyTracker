@@ -224,7 +224,7 @@ class CompetencyServiceGrid(object):
 
 
 class CompetencyServiceUpdate:
-    """Generate a window to update the Service Codes foe an individual Competency."""
+    """Generate a window to update the Service Codes for an individual Competency."""
     def __init__(self,
                  ad: AppData,
                  wnd_cs_update: ctk.CTkToplevel,

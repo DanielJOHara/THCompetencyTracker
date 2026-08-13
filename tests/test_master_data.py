@@ -34,7 +34,7 @@ def test_sort_table(md):
 
 
 def test_load(md):
-    md.load()
+    md.load_excel()
     assert md.len('Service') > 0
 
 

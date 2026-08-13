@@ -97,6 +97,37 @@ def command_line(ad: AppData, description: str) -> None:
         help=f"Retention period for archive Master Excel files, default 30 days")
 
     parser.add_argument(
+        '-cr',
+        '--comp_report',
+        action="store_true",
+        help="Display button to load Alexander Devine competency report")
+
+    parser.add_argument(
+        '-cf',
+        '--comp_file_name',
+        help="Competency Report file name, default Competencies Report *")
+
+    parser.add_argument(
+        '-cs',
+        '--comp_staff_column',
+        help="Competency Report Staff Name column(s), default Name")
+
+    parser.add_argument(
+        '-cc',
+        '--comp_column',
+        help="Competency Report Competency Name column, default Competency")
+
+    parser.add_argument(
+        '-cd',
+        '--comp_date_column',
+        help="Competency Report Competency Date column, default Date")
+
+    parser.add_argument(
+        '-csc',
+        '--comp_service',
+        help="Competency Report Service Code, default ALL")
+    
+    parser.add_argument(
         '-t',
         '--theme',
         type=str.lower,
@@ -194,6 +225,12 @@ def command_line(ad: AppData, description: str) -> None:
     ad.args.logging_directory = str_arg(ad.args.logging_directory, 'logging_directory', config, None)
     ad.args.logging_file_name = str_arg(ad.args.logging_file_name, 'logging_file_name', config, ad.app_name + '.log')
     ad.args.retention = int_arg(ad.args.retention, 'retention', config, 30)
+    ad.args.comp_report = bool_arg(ad.args.comp_report, 'comp_report', config)
+    ad.args.comp_file_name = str_arg(ad.args.comp_file_name, 'comp_file_name', config, 'Competencies Report *')
+    ad.args.comp_staff_column = str_arg(ad.args.comp_staff_column, 'comp_staff_column', config, "Name")
+    ad.args.comp_column = str_arg(ad.args.comp_column, 'comp_column', config, "Competency")
+    ad.args.comp_date_column = str_arg(ad.args.comp_date_column, 'comp_date_column', config, "Date")
+    ad.args.comp_service = str_arg(ad.args.comp_service, 'comp_service', config, "ALL")
     ad.args.theme = list_arg(ad.args.theme, 'theme', config, themes, 'green', lower=True)
     ad.args.icon = str_arg(ad.args.icon, 'icon', config, 'Th.png')
 
@@ -216,6 +253,15 @@ def command_line(ad: AppData, description: str) -> None:
             ad.args.logging_directory = ad.args.master_excel_directory
         else:
             ad.args.logging_directory = app_directory
+
+    # Split competency staff name column into first and last name
+    if ',' in ad.args.comp_staff_column:
+        ad.args.first_name_column = ad.args.comp_staff_column.split(',')[0].strip()
+        ad.args.surname_column = ad.args.comp_staff_column.split(',')[1].strip()
+        ad.args.comp_staff_column = ''
+    else:
+        ad.args.first_name_column = ''
+        ad.args.surname_column = ''
 
     setup_logger(ad)
 

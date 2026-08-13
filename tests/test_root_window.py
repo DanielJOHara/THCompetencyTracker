@@ -66,7 +66,7 @@ def test_root_window_on_startup_success(mock_md, mock_access, mock_ad):
     app.on_startup()
     
     assert mock_ad.md is not None
-    mock_md.return_value.load.assert_called_once()
+    mock_md.return_value.load_excel.assert_called_once()
 
 
 @patch('source.root_window.os.access', return_value=True)
@@ -88,7 +88,7 @@ def test_root_window_on_startup_readonly(mock_child, mock_md, mock_access, mock_
 @patch('source.root_window.show_master_data_error')
 def test_root_window_on_startup_master_data_error(mock_show_error, mock_md, mock_access, mock_ad):
     from source.master_data import MasterDataError
-    mock_md.return_value.load.side_effect = MasterDataError("Test Error")
+    mock_md.return_value.load_excel.side_effect = MasterDataError("Test Error")
     app = RootWindowNoInit(mock_ad)
     
     app.on_startup()
@@ -100,8 +100,8 @@ def test_root_window_on_startup_master_data_error(mock_show_error, mock_md, mock
 @patch('source.root_window.CTkMessagebox')
 @patch('source.root_window.child_window')
 def test_root_window_on_startup_io_error(mock_child, mock_msg, mock_md, mock_access, mock_ad):
-    # First call to load raises IOError, second (after 'Read Only' choice) succeeds
-    mock_md.return_value.load.side_effect = [IOError("Master Excel in use"), None]
+    # First call to load_excel raises IOError, second (after 'Read Only' choice) succeeds
+    mock_md.return_value.load_excel.side_effect = [IOError("Master Excel in use"), None]
     app = RootWindowNoInit(mock_ad)
     app.frm_button = MagicMock()
     mock_msg.return_value.get.return_value = 'Read Only'
@@ -145,7 +145,7 @@ def test_root_window_handle_reload_click(mock_file, mock_ad):
     app.set_button_states = MagicMock()
     
     app.handle_reload_click()
-    mock_ad.md.load.assert_called_with('C:\\new.xlsx')
+    mock_ad.md.load_excel.assert_called_with('C:\\new.xlsx')
 
 
 def test_root_window_on_closing_no_changes(mock_ad):

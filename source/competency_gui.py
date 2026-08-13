@@ -314,11 +314,12 @@ class CompetencyDelete(object):
 
 class CompetencyAdd(object):
     """Window to allow user to add  a single record Competency data record."""
-    def __init__(self, ad: AppData, wnd_competency_add: ctk.CTkToplevel) -> None:
+    def __init__(self, ad: AppData, wnd_competency_add: ctk.CTkToplevel, competency_name: str = None) -> None:
         logger.info(f"Creating Competency data add window")
 
-        self.wnd_competency_add = wnd_competency_add
         self.ad = ad
+        self.wnd_competency_add = wnd_competency_add
+        self.competency_name = competency_name
         self.cl = CompetencyLogic(ad)
 
         # Add title top window
@@ -332,6 +333,10 @@ class CompetencyAdd(object):
         self.lbl_competency_name.grid(row=row, column=0, pady=6, padx=10, sticky='e')
         self.ent_competency_name = ctk.CTkEntry(self.frm_attribute)
         self.ent_competency_name.grid(row=row, column=1, pady=6, padx=10, sticky='w')
+
+        if self.competency_name:
+            self.ent_competency_name.insert(0, self.competency_name)
+            self.ent_competency_name.configure(state='disabled')
 
         row += 1
         self.lbl_scope = ctk.CTkLabel(self.frm_attribute, text="Scope")
@@ -388,14 +393,17 @@ class CompetencyAdd(object):
                 # Invoke windo to create Service area associations for new Competency
                 child_window(CompetencyServiceUpdate, self.ad, self.wnd_competency_add, competency_name)
 
-                CTkMessagebox(title="Information", message=message, icon='info')
-                self.ent_competency_name.delete(0, 9999)
-                self.cmb_scope.set("")
-                self.ent_display_order.delete(0, 9999)
-                self.ent_expiry.delete(0, 9999)
-                self.chc_prerequisite.deselect()
-                self.chc_nightshift.deselect()
-                self.chc_bank.deselect()
+                if self.competency_name:
+                    self.wnd_competency_add.destroy()
+                else:
+                    CTkMessagebox(title="Information", message=message, icon='info')
+                    self.ent_competency_name.delete(0, 9999)
+                    self.cmb_scope.set("")
+                    self.ent_display_order.delete(0, 9999)
+                    self.ent_expiry.delete(0, 9999)
+                    self.chc_prerequisite.deselect()
+                    self.chc_nightshift.deselect()
+                    self.chc_bank.deselect()
             else:
                 input_warning(self.wnd_competency_add, message)
         except MasterDataError as e:

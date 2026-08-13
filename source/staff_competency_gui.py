@@ -2,6 +2,7 @@
    a grid or by directly accessing records."""
 import logging
 import re
+from datetime import date
 from typing import Any
 
 import customtkinter as ctk
@@ -25,7 +26,8 @@ class StaffCompetencyUpdate(object):
                  ad: AppData,
                  wnd_staff_competency: ctk.CTkToplevel,
                  inp_staff_name: str = None,
-                 inp_competency_name: str = None) -> None:
+                 inp_competency_name: str = None,
+                 inp_competency_date: date = None) -> None:
 
         self.wnd_staff_competency = wnd_staff_competency
         self.ad = ad
@@ -103,13 +105,17 @@ class StaffCompetencyUpdate(object):
         self.lbl_competency_date.grid(row=row, column=0, pady=6, padx=10, sticky='e')
         self.ent_competency_date = ctk.CTkEntry(self.frm_attribute)
         self.ent_competency_date.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-        if db_sc > -1:
+        if inp_competency_date:
+            self.ent_competency_date.insert(0, date_to_string(inp_competency_date))
+        elif db_sc > -1:
             self.ent_competency_date.insert(0, date_to_string(ad.md.get('Staff Competency', 'Competency Date', db_sc)))
 
         row += 1
         self.chc_completed = ctk.CTkCheckBox(self.frm_attribute, text="Completed")
         self.chc_completed.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-        if db_sc > -1:
+        if inp_competency_date:
+            self.chc_completed.select()
+        elif db_sc > -1:
             if ad.md.get('Staff Competency', 'Completed', db_sc):
                 self.chc_completed.select()
 
