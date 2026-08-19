@@ -3,9 +3,9 @@ import os
 
 import xlsxwriter
 
-from appdata import AppData
-from competency_differences import CompetencyDifferences
-from excel_functions import create_report_worksheet, write_cell
+from source.appdata import AppData
+from source.competency_differences import CompetencyDifferences
+from source.excel_functions import create_report_worksheet, write_cell
 
 logger = logging.getLogger(__name__)
 

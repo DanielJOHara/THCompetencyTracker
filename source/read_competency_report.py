@@ -6,35 +6,18 @@ from datetime import datetime, date
 import pandas as pd
 import customtkinter as ctk
 
-from appdata import AppData
-from competency_differences import CompetencyDifferences, Competency
-from window import staff_name_title_case, child_window, parse_date
+from source.appdata import AppData
+from source.competency_differences import CompetencyDifferences, Competency
+from source.window import staff_name_title_case, child_window, parse_date
 
 logger = logging.getLogger(__name__)
 
 
-def read_competency_report(ad: AppData, rep_df: pd.DataFrame, diff: CompetencyDifferences) -> None:
+def read_competency_report(ad: AppData, rep_df: pd.DataFrame, diff: CompetencyDifferences, name_column: str) -> None:
     """This function reads an competency status report in a dataframe and compares it to the
-       master data. The differences are added to the supplied CompetencyDifferences data object."""
-
-    # Add standard columns from the columns specified in the command line arguments
-    # The Staff Name is either the concatenation of the First Name ad Surname or the Staff Name and 'fixed'
-    # by removing ZZ at the start, reducing multiple spaces to a single space and set it to title case
-    if ad.args.first_name_column:
-        rep_df['Staff Name'] = rep_df.apply(
-            lambda row: fix_staff_name(row[ad.args.first_name_column] + ' ' + row[ad.args.surname_column]), axis=1)
-    else:
-        rep_df['Staff Name'] = rep_df.apply(lambda row: fix_staff_name(row[ad.args.comp_staff_column]), axis=1)
-        
-    # Competency Name 'fixed' by removing any version number at the end and repacing
-    # en dash character with a standard hyphen
-    rep_df['Competency Name'] = rep_df.apply(lambda row: fix_competency_name(row[ad.args.comp_column]), axis=1)
-
-    # Competency Date created from a datetime colum or a string that parses to a date
-    if rep_df[ad.args.comp_date_column].dtype == 'datetime64[ns]':
-        rep_df['Competency Date'] = rep_df.apply(lambda row: row[ad.args.comp_date_column].date(), axis=1)
-    else:
-        rep_df['Competency Date'] = rep_df.apply(lambda row: parse_date(row[ad.args.comp_date_column]), axis=1)
+       master data. The differences are added to the supplied CompetencyDifferences data object.
+       The name column identifies the column that contains the start of the name so that it can be
+       check for ZZ indicating a staff member has left."""
 
     # Generate a unique set of the competency name in the report
     rep_competency_set: set[str] = set(rep_df['Competency Name'])
@@ -68,10 +51,7 @@ def read_competency_report(ad: AppData, rep_df: pd.DataFrame, diff: CompetencyDi
     rep_staff_set: set[str] = set(rep_df['Staff Name'])
 
     # Generate a list of staff in competency report who have left, their name starts wit ZZ
-    if ad.args.first_name_column:
-        zz_mask = rep_df[ad.args.first_name_column].str.contains('^[Zz][Zz]')
-    else:
-        zz_mask = rep_df[ad.args.comp_staff_column].str.contains('^[Zz][Zz]')
+    zz_mask = rep_df[name_column].str.contains('^[Zz][Zz]')
     zz_staff = rep_df[zz_mask]
     zz_staff_set = set(zz_staff['Staff Name'])
 
@@ -82,9 +62,12 @@ def read_competency_report(ad: AppData, rep_df: pd.DataFrame, diff: CompetencyDi
             logger.debug(f"{staff_name} from report NOT IN master data")
             diff.missing_staff.append(staff_name)
 
-    # Identify staff names with staff competency record for competency service specified in the command line parameter
+    # Identify staff names with staff competency record for service specified in the command line parameter
     service_staff_list: list[str] = []
     for staff_name in ad.md.get_list('Staff', 'Staff Name'):
+        # Ignore staff who have left
+        if ad.md.find_two('Staff Role', staff_name, 'Staff Name', 'LEFT', 'Service Code') > -1:
+            continue
         db_sc: int = -1
         while True:
             db_sc = ad.md.find_one('Staff Competency', staff_name, 'Staff Name', db_sc+1)
@@ -171,18 +154,3 @@ def read_competency_report(ad: AppData, rep_df: pd.DataFrame, diff: CompetencyDi
     logger.info(f"No missing competencies: {len(diff.missing_staff_comp)}")
     logger.info(f"No extra competencies: {len(diff.extra_staff_comp)}")
     logger.info(f"No competency date changes: {len(diff.staff_comp_date)}")
-
-
-def fix_competency_name(competency_name: str) -> str:
-    """Remove version ( V1) from the end of the competency names and replace the
-       windows en dash (unicode 2013) characters with a standard hyphen."""
-    competency_name = re.sub(r' *V\d+ *$', '', competency_name)
-    competency_name = re.sub(u'\u2013', '-', competency_name)
-    return competency_name
-
-
-def fix_staff_name(staff_name: str) -> str:
-    """Remove any ZZ from the star of the name and then standardises name using function used for user input."""
-    staff_name = re.sub(r'^[Zz][Zz]', '', staff_name)
-    staff_name = staff_name_title_case(staff_name)
-    return staff_name

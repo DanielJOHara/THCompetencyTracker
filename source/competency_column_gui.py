@@ -1,15 +1,16 @@
 import logging
+import re
 from typing import Any
 
 import customtkinter as ctk
 import tkinter as tk
 import pandas as pd
 
-from appdata import AppData
-from competency_diff_gui import CompetencyDiff
-from competency_differences import CompetencyDifferences
-from read_competency_report import read_competency_report
-from window import child_window, input_warning, set_disabled_entry, date_to_string, parse_date
+from source.appdata import AppData
+from source.competency_diff_gui import CompetencyDiff
+from source.competency_differences import CompetencyDifferences
+from source.read_competency_report import read_competency_report
+from source.window import child_window, input_warning, set_disabled_entry, date_to_string, parse_date, staff_name_title_case
 
 logger = logging.getLogger(__name__)
 
@@ -55,17 +56,33 @@ class CompetencyColumn(object):
                 else:
                     self.non_date_column.append(column)
 
-        # Blank parameter column names if they do not exist
-        if ad.args.first_name_column not in self.non_date_column:
-            ad.args.first_name_column = ''
-        if ad.args.surname_column not in self.non_date_column:
-            ad.args.surname_column = ''
-        if ad.args.comp_staff_column not in self.non_date_column:
-            ad.args.comp_staff_column = ''
+        # Fill in column names from command line parameters and blank them if they do not exist in the dataframe
+        # Split competency staff name column containing a comma into first and last name
+        if ',' in ad.args.comp_staff_column:
+            first_name_column = ad.args.comp_staff_column.split(',')[0].strip()
+            if first_name_column not in self.non_date_column:
+                first_name_column = ''
+            surname_column = ad.args.comp_staff_column.split(',')[1].strip()
+            if surname_column not in self.non_date_column:
+                surname_column = ''
+            comp_staff_column = ''
+        else:
+            first_name_column = ''
+            surname_column = ''
+            if ad.args.comp_staff_column not in self.non_date_column:
+                comp_staff_column = ''
+            else:
+                comp_staff_column = ad.args.comp_staff_column
+
         if ad.args.comp_column not in self.non_date_column:
-            ad.args.comp_column = ''
+            comp_column = ''
+        else:
+            comp_column = ad.args.comp_column
+
         if ad.args.comp_date_column not in self.date_column:
-            ad.args.comp_date_column = ''
+            comp_date_column = ''
+        else:
+            comp_date_column = ad.args.comp_date_column
 
         wnd_col.title("Competency Column Selection")
 
@@ -87,7 +104,7 @@ class CompetencyColumn(object):
                                               values=list(self.non_date_column),
                                               command=self.refresh_staff_name)
         self.cmb_staff_name.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-        self.cmb_staff_name.set(ad.args.comp_staff_column)
+        self.cmb_staff_name.set(comp_staff_column)
 
         self.ent_staff_name: list[ctk.CTkEntry] = []
         for i in range(self.num_sample):
@@ -102,7 +119,7 @@ class CompetencyColumn(object):
                                               values=list(self.non_date_column),
                                               command=self.clear_staff_name)
         self.cmb_first_name.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-        self.cmb_first_name.set(ad.args.first_name_column)
+        self.cmb_first_name.set(first_name_column)
 
         self.ent_first_name: list[ctk.CTkEntry] = []
         for i in range(self.num_sample):
@@ -117,7 +134,7 @@ class CompetencyColumn(object):
                                            values=list(self.non_date_column),
                                            command=self.clear_staff_name)
         self.cmb_surname.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-        self.cmb_surname.set(ad.args.surname_column)
+        self.cmb_surname.set(surname_column)
 
         self.ent_surname: list[ctk.CTkEntry] = []
         for i in range(self.num_sample):
@@ -133,7 +150,7 @@ class CompetencyColumn(object):
                                               values=list(self.non_date_column),
                                               command=self.set_sample_values)
         self.cmb_competency.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-        self.cmb_competency.set(ad.args.comp_column)
+        self.cmb_competency.set(comp_column)
 
         self.ent_competency: list[ctk.CTkEntry] = []
         for i in range(self.num_sample):
@@ -149,7 +166,7 @@ class CompetencyColumn(object):
                                         values=list(self.date_column),
                                         command=self.set_sample_values)
         self.cmb_date.grid(row=row, column=1, pady=6, padx=10, sticky='w')
-        self.cmb_date.set(ad.args.comp_date_column)
+        self.cmb_date.set(comp_date_column)
 
         self.ent_date: list[ctk.CTkEntry] = []
         for i in range(self.num_sample):
@@ -254,24 +271,61 @@ class CompetencyColumn(object):
     def read_report(self) -> None:
         """Read and validate the competency column names then call the procedures
            to analyse the differences and give the user the ability to address them."""
-        self.ad.args.comp_staff_column = self.cmb_staff_name.get()
-        self.ad.args.first_name_column = self.cmb_first_name.get()
-        self.ad.args.surname_column = self.cmb_surname.get()
-        self.ad.args.comp_column = self.cmb_competency.get()
-        self.ad.args.date_column = self.cmb_date.get()
-        if not self.ad.args.comp_staff_column and not (self.ad.args.first_name_column and self.ad.args.surname_column):
+        comp_staff_column = self.cmb_staff_name.get()
+        first_name_column = self.cmb_first_name.get()
+        surname_column = self.cmb_surname.get()
+        comp_column = self.cmb_competency.get()
+        comp_date_column = self.cmb_date.get()
+        if not comp_staff_column and not (first_name_column and surname_column):
             input_warning(self.wnd_col, "Staff Name Column or First Name and Surname Columns must be set")
             return
-        if not self.ad.args.comp_column:
+        if not comp_column:
             input_warning(self.wnd_col, "Competency Column must be set")
             return
-        if not self.ad.args.date_column:
+        if not comp_date_column:
             input_warning(self.wnd_col, "Competency Date Column must be set")
             return
 
+        # Add standard columns from the columns specified in the command line arguments
+        # The Staff Name is either the concatenation of the First Name ad Surname or the Staff Name and 'fixed'
+        # by removing ZZ at the start, reducing multiple spaces to a single space and set it to title case
+        if first_name_column:
+            self.rep_df['Staff Name'] = self.rep_df.apply(
+                lambda row: fix_staff_name(row[first_name_column] + ' ' + row[surname_column]), axis=1)
+            name_column = first_name_column
+        else:
+            self.rep_df['Staff Name'] = self.rep_df.apply(lambda row: fix_staff_name(row[comp_staff_column]), axis=1)
+            name_column = comp_staff_column
+
+            # Competency Name 'fixed' by removing any version number at the end and repacing
+        # en dash character with a standard hyphen
+        self.rep_df['Competency Name'] = self.rep_df.apply(
+            lambda row: fix_competency_name(row[comp_column]), axis=1)
+
+        # Competency Date created from a datetime colum or a string that parses to a date
+        if self.rep_df[comp_date_column].dtype == 'datetime64[ns]':
+            self.rep_df['Competency Date'] = self.rep_df.apply(lambda row: row[comp_date_column].date(), axis=1)
+        else:
+            self.rep_df['Competency Date'] = self.rep_df.apply(lambda row: parse_date(row[comp_date_column]), axis=1)
+
         diff: CompetencyDifferences = CompetencyDifferences()
-        read_competency_report(self.ad, self.rep_df, diff)
+        read_competency_report(self.ad, self.rep_df, diff, name_column)
         if diff:
             child_window(CompetencyDiff, self.ad, self.wnd_col, diff)
 
         self.wnd_col.destroy()
+
+
+def fix_competency_name(competency_name: str) -> str:
+    """Remove version ( V1) from the end of the competency names and replace the
+       windows en dash (unicode 2013) characters with a standard hyphen."""
+    competency_name = re.sub(r' *V\d+ *$', '', competency_name)
+    competency_name = re.sub(u'\u2013', '-', competency_name)
+    return competency_name
+
+
+def fix_staff_name(staff_name: str) -> str:
+    """Remove any ZZ from the star of the name and then standardises name using function used for user input."""
+    staff_name = re.sub(r'^[Zz][Zz]', '', staff_name)
+    staff_name = staff_name_title_case(staff_name)
+    return staff_name

@@ -8,8 +8,8 @@ import tkinter as tk
 from CTkMessagebox import CTkMessagebox
 from PIL import ImageTk
 
-from competency_column_gui import CompetencyColumn
-from competency_diff_gui import CompetencyDiff
+from source.competency_column_gui import CompetencyColumn
+from source.competency_diff_gui import CompetencyDiff
 from source.appdata import AppData
 from source.command_line import resource
 from source.master_data import MasterData, MasterDataError

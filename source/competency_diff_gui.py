@@ -5,14 +5,14 @@ import customtkinter as ctk
 import tkinter as tk
 from CTkMessagebox import CTkMessagebox
 
-from appdata import AppData
-from competency_diff_report import competency_diff_report
-from competency_differences import CompetencyDifferences, Competency
-from competency_gui import CompetencyAdd
-from master_data import MasterDataError
-from staff_competency_gui import StaffCompetencyUpdate
-from staff_gui import StaffAdd
-from window import child_window, show_master_data_error
+from source.appdata import AppData
+from source.competency_diff_report import competency_diff_report
+from source.competency_differences import CompetencyDifferences, Competency
+from source.competency_gui import CompetencyAdd
+from source.master_data import MasterDataError
+from source.staff_competency_gui import StaffCompetencyUpdate
+from source.staff_gui import StaffAdd
+from source.window import child_window, show_master_data_error
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +79,10 @@ class CompetencyDiff(object):
 
         if len(diff.staff_comp_date) > 0:
             self.btn_date_change = ctk.CTkButton(self.frm_counts, text="Change Dates",
-                                                  command=self.handle_date_change_click)
+                                                 command=self.handle_date_change_click)
             self.btn_date_change.grid(row=row, column=3, pady=6, padx=10)
 
-        # Extra Competency Names", Staff Names and Staff Competencies.
+        # Extra; Competency Names, Staff Names and Staff Competencies.
         # There is no process to update the system that generated the repot.
         row += 1
         self.lbl_extra_comp = ctk.CTkLabel(self.frm_counts, text=f"{len(diff.extra_competency)}")
@@ -113,8 +113,8 @@ class CompetencyDiff(object):
         self.btn_exit.grid(row=0, column=1, pady=6, padx=10)
 
     def handle_export_click(self) -> None:
-        """Prompt user for the location to write competency difference
-           report Excel file and call function to write it."""
+        """Prompt user for the location to write competency difference report Excel file
+           and call function to write it."""
         report_path = tk.filedialog.asksaveasfilename(
             initialdir=self.ad.args.report_directory,
             initialfile=f"Competencies Export {date.today():%Y-%m-%d}",
@@ -133,11 +133,16 @@ class CompetencyDiff(object):
         for competency_name in self.diff.missing_competency:
             if self.ad.md.find_one('Competency', competency_name, 'Competency Name') == -1:
                 child_window(CompetencyAdd, self.ad, self.wnd_comp_load, competency_name)
-        self.diff.missing_competency = [competency_name for competency_name in self.diff.missing_competency
-                                        if self.ad.md.find_one('Competency', competency_name, 'Competency Name') == -1]
+
+        # Remove entries from the missing competencies list where they now exist
+        self.diff.missing_competency = [
+            competency_name for competency_name in self.diff.missing_competency
+            if self.ad.md.find_one('Competency', competency_name, 'Competency Name') == -1]
+
+        # Update the missing count in label and remove button if there are non remaining
         self.lbl_missing_comp.configure(text=f"{len(self.diff.missing_competency)}")
         if len(self.diff.missing_competency) == 0:
-            self.lbl_missing_comp.destroy()
+            self.btn_missing_comp.destroy()
 
     def handle_missing_staff_click(self) -> None:
         """Function to create child windows to input missing staff in the master data."""
@@ -146,8 +151,12 @@ class CompetencyDiff(object):
         for staff_name in staff_name_list:
             if self.ad.md.find_one('Staff', staff_name, 'Staff Name') == -1:
                 child_window(StaffAdd, self.ad, self.wnd_comp_load, staff_name)
+
+        # Remove entries from the missing staff list where they now exist
         self.diff.missing_staff = [staff_name for staff_name in self.diff.missing_staff
                                    if self.ad.md.find_one('Staff', staff_name, 'Staff Name') == -1]
+
+        # Update the missing count in label and remove button if there are non remaining
         self.lbl_missing_staff.configure(text=f"{len(self.diff.missing_staff)}")
         if len(self.diff.missing_staff) == 0:
             self.btn_missing_staff.destroy()
@@ -157,18 +166,21 @@ class CompetencyDiff(object):
         logger.info(f"User clicked to load {len(self.diff.missing_staff_comp)} missing staff competencies")
         self.load_competencies(self.diff.missing_staff_comp)
 
-        # Remove entries from the missing competencies list where they now exist
-        self.diff.missing_staff_comp = [competency for competency in self.diff.missing_staff_comp
-                                        if self.ad.md.find_two('Staff Competency',
-                                                               competency.staff_name, 'Staff Name',
-                                                               competency.competency_name, 'Competency Name') == -1]
+        # Remove entries from the missing staff competencies list where they now exist
+        self.diff.missing_staff_comp = [
+            competency for competency in self.diff.missing_staff_comp
+            if self.ad.md.find_two('Staff Competency',
+                                   competency.staff_name, 'Staff Name',
+                                   competency.competency_name, 'Competency Name') == -1]
+
+        # Update the missing count in label and remove button if there are non remaining
         self.lbl_missing_staff_comp.configure(text=f"{len(self.diff.missing_staff_comp)}")
         if len(self.diff.missing_staff_comp) == 0:
             self.btn_missing_staff_comp.destroy()
 
     def handle_date_change_click(self) -> None:
-        """Function to call a the function below function to update the master data with the competency date changes.
-           Then remove records from the difference data object where the dates now match."""
+        """Function to call a the function below function to update the master data with the competency
+           date changes. Then remove records from the difference data object where the dates now match."""
         logger.info(f"User clicked change {len(self.diff.staff_comp_date)} staff competency dates")
         self.load_competencies(self.diff.staff_comp_date)
 
@@ -183,7 +195,7 @@ class CompetencyDiff(object):
                 if competency_date == competency.competency_date:
                     date_match_list.append(i)
 
-        # Remove the identified records in revers order to not invalidate the indexes before they are processed
+        # Remove the identified records in revers order to maintain indexes before they are removed
         for i in reversed(date_match_list):
             self.diff.staff_comp_date.pop(i)
 
@@ -204,6 +216,12 @@ class CompetencyDiff(object):
         if msg.get() == 'Accept All':
             logger.info("User opted to accepted all changes")
             for competency in competency_changes:
+                # Skip records for staff and competencies that are not in the master data
+                if self.ad.md.find_one('Staff', competency.staff_name, 'Staff Name') == -1:
+                    continue
+                if self.ad.md.find_one('Competency', competency.competency_name, 'Competency Name') == -1:
+                    continue
+
                 db_sc = self.ad.md.find_two('Staff Competency',
                                             competency.staff_name, 'Staff Name',
                                             competency.competency_name, 'Competency Name')
@@ -231,16 +249,22 @@ class CompetencyDiff(object):
                         show_master_data_error(str(e), self.wnd_comp_load)
                         return
 
-        # When reviewing record call the staff competency update window for a record at a time. This window
-        # will add or update the record as necessary. After each 10 records check the user wants to continue.
+        # When reviewing records call the staff competency update window for a record at a time. This window
+        # will add or update the record as necessary.
         elif msg.get() == 'Review':
             logger.info("User opted to review changes one at a time")
             for i, competency in enumerate(competency_changes):
+                # After each 10 records check the user wants to continue.
                 if i % 10 == 9:
                     msg = CTkMessagebox(title="Option",
                                         message=f"{i+1} of {len(competency_changes)} records processed",
                                         option_1='Continue', option_2='Stop')
                     if msg.get() != 'Continue':
                         break
+                # Skip records for staff and competencies that are not in the master data
+                if self.ad.md.find_one('Staff', competency.staff_name, 'Staff Name') == -1:
+                    continue
+                if self.ad.md.find_one('Competency', competency.competency_name, 'Competency Name') == -1:
+                    continue
                 child_window(StaffCompetencyUpdate, self.ad, self.wnd_comp_load,
                              competency.staff_name, competency.competency_name, competency.competency_date)

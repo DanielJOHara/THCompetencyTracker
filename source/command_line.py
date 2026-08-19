@@ -254,15 +254,6 @@ def command_line(ad: AppData, description: str) -> None:
         else:
             ad.args.logging_directory = app_directory
 
-    # Split competency staff name column into first and last name
-    if ',' in ad.args.comp_staff_column:
-        ad.args.first_name_column = ad.args.comp_staff_column.split(',')[0].strip()
-        ad.args.surname_column = ad.args.comp_staff_column.split(',')[1].strip()
-        ad.args.comp_staff_column = ''
-    else:
-        ad.args.first_name_column = ''
-        ad.args.surname_column = ''
-
     setup_logger(ad)
 
     ad.app_version = get_version_number(app_path)

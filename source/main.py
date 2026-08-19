@@ -3,11 +3,13 @@ The Competency Tracker provide a user interface to maintain a record of the comp
 have achieved and what is required for their role. It stores its data in a master Excel
 spreadsheet and produces excel and word reports.
 
-There are two ways to update competencies for staff members:
+There are three ways to update competencies for staff members:
 1.  Competency Grid: A window that presents the staff and their competencies in an interactive
     grid allowing the cells for a staff and competency combination to be clicked and update the
     status.
 2.  Competency Update: A window for the use to select staff competency combinations to be updated.
+3.  Loading an externally generated Excel competency report with the required columns: staff name
+    or first name and surname; competency name; competency date.
 
 There are four reports that can be produced:
 1.  Grid Export: An excel spreadsheet with a sheet containing a static version of the Staff
